@@ -1,0 +1,59 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem;
+  background: #FAFAFA;
+  border-left: 1px solid var(--border);
+  width: 220px;
+  height: calc(100vh - 64px);
+  position: sticky;
+  top: 64px;
+  overflow-y: auto;
+  color: #171717;
+}
+
+.promptBox {
+  display: flex;
+  flex-direction: column;
+  opacity: 1;
+  transition: opacity 0.2s ease-in-out;
+
+  &.hidden {
+    opacity: 0;
+    height: 0;
+    overflow: hidden;
+  }
+}
+
+.promptInput {
+  padding: 0.75rem;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  resize: vertical;
+  min-height: 80px;
+  font-size: 0.85rem;
+  color: #171717;
+  background: #FFFFFF;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #00b7e1;
+
+  border: none;
+  color: #171717;
+  font-weight: 500;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: background 0.2s;
+
+  &:hover {
+    background: #00A5CD;
+    color: #FFFFFF;
+  }
+}
