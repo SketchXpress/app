@@ -130,6 +130,10 @@ img {
   }
 }
 
+.tl-watermark_SEE-LICENSE {
+  display: none !important;
+}
+
 // Common Animations
 @keyframes fadeIn {
   from { opacity: 0; }

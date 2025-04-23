@@ -1,3 +1,4 @@
+// src/components/CanvasWrapper/CanvasWrapper.tsx
 "use client";
 
 import {
@@ -9,13 +10,17 @@ import {
 } from "tldraw";
 import "tldraw/tldraw.css";
 import styles from "./CanvasWrapper.module.scss";
-import { useMemo, useCallback } from "react";
+import { useMemo, useCallback, useState } from "react";
 import { useCanvasStore } from "@/stores/canvasStore";
 import { TLShapeId } from "@tldraw/editor";
+import EnhanceButton from "../EnhanceButton/EnhanceButton";
 
 const CanvasWrapper = () => {
   // 1) Create the tldraw store once
   const store = useMemo(() => createTLStore(), []);
+
+  // State for tracking AI processing
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // 2) Get your Zustand actions
   const setEditor = useCanvasStore((s) => s.setEditor);
@@ -34,11 +39,24 @@ const CanvasWrapper = () => {
       },
       { scope: "document" }
     );
-
-    // It’s good practice to unsubscribe when this component unmounts;
-    // but since onMount callbacks can’t return a cleanup, you can
-    // also do this in a useEffect tied to your component’s lifecycle.
   }, [setEditor, setSelectedShapeIds]);
+
+  // Handle AI enhancement
+  const handleEnhance = useCallback(() => {
+    setIsProcessing(true);
+    console.log("AI Enhancement requested");
+
+    // TODO: Implement actual AI enhancement logic
+    // 1. Capture the canvas content
+    // 2. Send to your backend API
+    // 3. Process the results
+
+    // Simulating API call delay
+    setTimeout(() => {
+      setIsProcessing(false);
+      // Here we would handle the result from the API
+    }, 1000);
+  }, []);
 
   return (
     <div className={styles.canvasContainer}>
@@ -49,6 +67,13 @@ const CanvasWrapper = () => {
         onMount={handleMount}
         autoFocus
       />
+      <EnhanceButton onClick={handleEnhance} />
+      {isProcessing && (
+        <div className={styles.processingOverlay}>
+          <div className={styles.spinner}></div>
+          <p>Enhancing your artwork...</p>
+        </div>
+      )}
     </div>
   );
 };
