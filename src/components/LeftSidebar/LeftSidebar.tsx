@@ -22,6 +22,7 @@ import {
   ChevronsLeft,
   ChevronsRight
 } from "lucide-react";
+import { useCanvasStore } from "@/stores/canvasStore";
 
 const examples = [
   { id: 1, title: "Robot Sketch", thumbnail: "/demoSketch.png" },
@@ -55,6 +56,12 @@ const LeftSidebar = () => {
   const [isTablet, setIsTablet] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const sidebarRef = useRef<HTMLElement | null>(null);
+
+  const clearCanvas = useCanvasStore((state) => state.clearCanvas);
+  const undoAction = useCanvasStore((state) => state.undoAction);
+  const redoAction = useCanvasStore((state) => state.redoAction);
+  const setActiveTool = useCanvasStore((state) => state.setActiveTool);
+  const activeTool = useCanvasStore((state) => state.activeTool);
 
   // Handle responsive behavior
   useEffect(() => {
@@ -181,19 +188,28 @@ const LeftSidebar = () => {
             <h3 className={styles.sectionTitle}>Tools</h3>
 
             <div className={styles.toolsGrid}>
-              <button className={styles.toolButton}>
+              <button
+                className={`${styles.toolButton} ${activeTool === 'draw' ? styles.active : ''}`}
+                onClick={() => setActiveTool('draw')}
+              >
                 <PenTool size={20} />
                 <span className={styles.toolLabel}>Draw</span>
               </button>
-              <button className={styles.toolButton}>
+
+              <button
+                className={`${styles.toolButton} ${activeTool === 'eraser' ? styles.active : ''}`}
+                onClick={() => setActiveTool('eraser')}
+              >
                 <Eraser size={20} />
                 <span className={styles.toolLabel}>Erase</span>
               </button>
-              <button className={styles.toolButton}>
+
+              <button className={styles.toolButton} onClick={undoAction}>
                 <Undo2 size={20} />
                 <span className={styles.toolLabel}>Undo</span>
               </button>
-              <button className={styles.toolButton}>
+
+              <button className={styles.toolButton} onClick={redoAction}>
                 <Redo2 size={20} />
                 <span className={styles.toolLabel}>Redo</span>
               </button>
@@ -207,7 +223,10 @@ const LeftSidebar = () => {
               <span>Upload Art</span>
             </button>
 
-            <button className={`${styles.iconButton} ${styles.clearButton}`}>
+            <button
+              className={`${styles.iconButton} ${styles.clearButton}`}
+              onClick={clearCanvas}
+            >
               <Trash2 size={18} />
               <span>Clear Canvas</span>
             </button>
