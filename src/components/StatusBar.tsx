@@ -1,1 +1,0 @@
-// Shows progress bar / loading text

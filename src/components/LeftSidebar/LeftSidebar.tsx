@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { AssetRecordType } from "@tldraw/tldraw";
 import Image from "next/image";
 import styles from "./LeftSidebar.module.scss";
 import { useModeStore } from "@/stores/modeStore";
@@ -119,36 +120,65 @@ const LeftSidebar = () => {
   };
 
   const handleUploadArt = () => {
-    // Create a file input element
-    const fileInput = document.createElement('input');
-    fileInput.type = 'file';
-    fileInput.accept = 'image/*'; // Accept only image files
-
-    // Trigger click to open file dialog
+    const fileInput = document.createElement("input");
+    fileInput.type = "file";
+    fileInput.accept = "image/*";
     fileInput.click();
 
-    // Add event listener for when a file is selected
     fileInput.onchange = (event) => {
       const target = event.target as HTMLInputElement;
       const file = target.files?.[0];
+      if (!file) return;
 
-      if (file) {
-        // Here you would typically:
-        // 1. Preview the image
-        // 2. Prepare it for the canvas
-        console.log('File selected:', file.name);
+      const editor = useCanvasStore.getState().editor;
+      if (!editor) return;
 
-        // Example: create a URL for the file and display it
-        // const imageUrl = URL.createObjectURL(file);
+      const assetId = AssetRecordType.createId();
+      const reader = new FileReader();
 
-        // You could then pass this to a function that loads the image into TLDraw
-        // loadImageToCanvas(imageUrl);
+      reader.onload = () => {
+        const base64DataUrl = reader.result as string;
+        const image = new window.Image();
 
-        // Don't forget to revoke the URL when done with it
-        // URL.revokeObjectURL(imageUrl);
-      }
+        image.onload = () => {
+          const { width, height } = image;
+
+          editor.createAssets([
+            {
+              id: assetId,
+              type: "image",
+              typeName: "asset",
+              props: {
+                name: file.name,
+                src: base64DataUrl, // ✅ valid src now
+                w: width,
+                h: height,
+                mimeType: file.type,
+                isAnimated: false,
+              },
+              meta: {},
+            },
+          ]);
+
+          editor.createShape({
+            type: "image",
+            x: (window.innerWidth - width) / 2,
+            y: (window.innerHeight - height) / 2,
+            props: {
+              assetId,
+              w: width,
+              h: height,
+            },
+          });
+        };
+
+        image.src = base64DataUrl;
+      };
+
+      reader.readAsDataURL(file); // ✅ convert to base64
     };
   };
+
 
   // Determine which tips to show based on mode
   const tipsToShow = mode === 'kids' ? drawingTips.kids : drawingTips.pro;
