@@ -14,6 +14,7 @@ import { useMemo, useCallback, useState } from "react";
 import { useCanvasStore } from "@/stores/canvasStore";
 import { TLShapeId } from "@tldraw/editor";
 import EnhanceButton from "../EnhanceButton/EnhanceButton";
+import { enhanceSketch } from "@/lib/enhanceSketch";
 
 const CanvasWrapper = () => {
   // 1) Create the tldraw store once
@@ -42,21 +43,21 @@ const CanvasWrapper = () => {
   }, [setEditor, setSelectedShapeIds]);
 
   // Handle AI enhancement
-  const handleEnhance = useCallback(() => {
-    setIsProcessing(true);
-    console.log("AI Enhancement requested");
+  const handleEnhance = useCallback(async () => {
+    const editor = useCanvasStore.getState().editor
+    if (!editor) return
 
-    // TODO: Implement actual AI enhancement logic
-    // 1. Capture the canvas content
-    // 2. Send to your backend API
-    // 3. Process the results
+    try {
+      setIsProcessing(true)
+      await enhanceSketch(editor)
+    } catch (err) {
+      console.error('[EnhanceSketch] Error:', err)
+      alert((err as Error).message || 'Failed to enhance the sketch')
+    } finally {
+      setIsProcessing(false)
+    }
+  }, [])
 
-    // Simulating API call delay
-    setTimeout(() => {
-      setIsProcessing(false);
-      // Here we would handle the result from the API
-    }, 1000);
-  }, []);
 
   return (
     <div className={styles.canvasContainer}>
