@@ -169,7 +169,7 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  z-index: 1100; /* Higher than sidebar to be clickable */
+  z-index: 1001; /* Higher than sidebar to be clickable */
   transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
   

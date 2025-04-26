@@ -6,6 +6,7 @@ import ModeToggle from "../ModeToggle/ModeToggle";
 import styles from "./Header.module.scss";
 import { Menu, Share2, User, Save } from "lucide-react";
 import { useState } from "react";
+import ConnectWalletButton from "@/wallet/ConnectWalletButton";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -38,6 +39,7 @@ const Header = () => {
       <div className={styles.controls}>
         <ModeToggle />
 
+        {/* Action Buttons */}
         <div className={styles.actions}>
           <button className={styles.actionButton} aria-label="Save">
             <Save size={18} />
@@ -49,13 +51,17 @@ const Header = () => {
             <User size={18} />
           </button>
         </div>
+
+        {/* Desktop-only Connect Wallet Button */}
+        <div className={styles.connectWalletDesktop}>
+          <ConnectWalletButton />
+        </div>
       </div>
 
       {/* Mobile menu overlay */}
       {isMenuOpen && (
         <div className={styles.mobileMenu}>
           <div className={styles.mobileMenuContent}>
-            {/* Menu items would go here */}
             <button className={styles.mobileMenuItem}>
               <Save size={18} />
               <span>Save Project</span>
@@ -68,6 +74,11 @@ const Header = () => {
               <User size={18} />
               <span>Profile</span>
             </button>
+
+            {/* Connect Wallet in Mobile Menu */}
+            <div className={styles.mobileMenuItem}>
+              <ConnectWalletButton />
+            </div>
           </div>
         </div>
       )}
