@@ -26,6 +26,10 @@ import {
   EnhanceCompletedEvent,
   EnhanceFailedEvent
 } from "@/lib/events";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { uploadMetadataToIPFS } from "@/lib/uploadMetadataToIPFS";
+import { mintNFT } from "@/lib/mintNFT";
+import { uploadToIPFSUsingPinata } from "@/lib/uploadToIPFSUsingPinata";
 
 // Image type definition
 interface GeneratedImage {
@@ -48,6 +52,7 @@ const RightPanel: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const sidebarRef = useRef<HTMLElement | null>(null);
+  const walletContext = useWallet();
 
   // Get enhance store values
   const {
@@ -280,16 +285,53 @@ const RightPanel: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  const handleMintNFT = () => {
-    if (!selectedImageId) {
-      alert("Please select an image to mint as NFT");
-      return;
-    }
+  const handleMintNFT = async () => {
+    try {
+      // 1. Check wallet connected
+      if (!walletContext.connected || !walletContext.publicKey) {
+        alert("Please connect your wallet before minting!");
+        return;
+      }
 
-    console.log("Minting image with ID:", selectedImageId);
-    // Implementation would go here for NFT minting
-    alert("NFT minting functionality will be implemented in a future update");
+      // 2. Check image selected
+      if (!selectedImageId) {
+        alert("Please select an image to mint as NFT!");
+        return;
+      }
+
+      const selectedImage = generatedImages.find(img => img.id === selectedImageId);
+      if (!selectedImage) {
+        alert("Selected image not found.");
+        return;
+      }
+
+      // 3. Fetch image blob
+      const response = await fetch(selectedImage.url);
+      const blob = await response.blob();
+
+      // 4. Upload image to IPFS (Pinata)
+      const imageIpfsUrl = await uploadToIPFSUsingPinata(blob);
+      console.log("✅ Image uploaded to Pinata IPFS:", imageIpfsUrl);
+
+      // 5. Create and upload metadata to IPFS (Pinata)
+      const metadataIpfsUrl = await uploadMetadataToIPFS(
+        "SketchXpress Artwork",
+        "AI-enhanced artwork created with SketchXpress.",
+        imageIpfsUrl
+      );
+      console.log("✅ Metadata uploaded to Pinata IPFS:", metadataIpfsUrl);
+
+      // 6. Mint the NFT
+      const nftAddress = await mintNFT(metadataIpfsUrl, walletContext);
+      console.log("✅ NFT minted successfully:", nftAddress);
+
+      alert(`🎉 NFT minted successfully!\nAddress: ${nftAddress}`);
+    } catch (error) {
+      console.error("Error minting NFT:", error);
+      alert("Something went wrong while minting. Please check the console.");
+    }
   };
+
 
   const handleImageSelect = (id: number) => {
     setSelectedImageId(id === selectedImageId ? null : id);
