@@ -7,113 +7,154 @@ import {
 } from "@tldraw/tldraw";
 import { extractPromptFromSelection } from "./extractPromptFromSelection";
 import { convertBlobToBase64 } from "./convertBlobToBase64";
+import { useEnhanceStore } from "@/stores/enhanceStore";
+import { eventBus } from "./events";
 
 export async function enhanceSketch(editor: Editor) {
-  const shapes = editor.getSelectedShapes();
-  if (shapes.length === 0) throw new Error("No shapes selected.");
+  try {
+    const shapes = editor.getSelectedShapes();
+    if (shapes.length === 0) throw new Error("No shapes selected.");
 
-  const results = await editor.getSvgString(shapes, {
-    background: true,
-    scale: 1,
-  });
+    const results = await editor.getSvgString(shapes, {
+      background: true,
+      scale: 1,
+    });
 
-  if (!results) {
-    throw new Error("Failed to generate SVG from selection.");
-  }
+    if (!results) {
+      throw new Error("Failed to generate SVG from selection.");
+    }
 
-  const { svg, width, height } = results;
+    const { svg, width, height } = results;
 
-  const blob = await getSvgAsImage(svg, {
-    width,
-    height,
-    type: "png",
-    quality: 0.9,
-    pixelRatio: 1,
-  });
+    const blob = await getSvgAsImage(svg, {
+      width,
+      height,
+      type: "png",
+      quality: 0.9,
+      pixelRatio: 1,
+    });
 
-  if (!blob) {
-    throw new Error("Failed to convert SVG to PNG.");
-  }
+    if (!blob) {
+      throw new Error("Failed to convert SVG to PNG.");
+    }
 
-  // Convert PNG blob to base64
-  const image_base64 = await convertBlobToBase64(blob);
+    // Convert PNG blob to base64
+    const image_base64 = await convertBlobToBase64(blob);
 
-  // Optional text from shapes as prompt
-  const prompt = extractPromptFromSelection(editor);
+    // Get settings from the enhance store
+    const {
+      prompt: userPrompt,
+      negativePrompt,
+      temperature,
+      guidanceScale,
+      numImages,
+      steps,
+      seed,
+    } = useEnhanceStore.getState();
 
-  // Convert base64 to blob for FormData
-  const binaryString = atob(image_base64);
-  const bytes = new Uint8Array(binaryString.length);
-  for (let i = 0; i < binaryString.length; i++) {
-    bytes[i] = binaryString.charCodeAt(i);
-  }
-  const imageBlob = new Blob([bytes], { type: "image/png" });
+    // Optional text from shapes as fallback prompt
+    const extractedPrompt = extractPromptFromSelection(editor);
+    const finalPrompt = userPrompt || extractedPrompt;
 
-  // Create FormData and append sketch and prompt
-  const formData = new FormData();
-  formData.append("sketch", imageBlob, "sketch.png"); // ✅ Correct field name
-  if (prompt) {
-    formData.append("prompt", prompt);
-  }
+    // Convert base64 to blob for FormData
+    const binaryString = atob(image_base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const imageBlob = new Blob([bytes], { type: "image/png" });
 
-  // Send image to backend
-  const res = await fetch("http://localhost:8000/api/generate", {
-    method: "POST",
-    body: formData,
-  });
+    // Create FormData and append sketch and prompt
+    const formData = new FormData();
+    formData.append("sketch", imageBlob, "sketch.png");
 
-  if (!res.ok) {
-    const error = await res.json();
-    throw new Error(error.detail || "API error during enhancement.");
-  }
+    if (finalPrompt) {
+      formData.append("prompt", finalPrompt);
+    }
 
-  const { job_id } = await res.json();
+    if (negativePrompt) {
+      formData.append("negative_prompt", negativePrompt);
+    }
 
-  const result = await waitForImageGeneration(job_id);
-  if (!result) throw new Error("No enhanced image received.");
+    formData.append("temperature", temperature.toString());
+    formData.append("guidance_scale", guidanceScale.toString());
+    formData.append("num_images", numImages.toString());
+    formData.append("steps", steps.toString());
 
-  const { image, width: w, height: h } = result;
+    if (seed !== null) {
+      formData.append("seed", seed.toString());
+    }
 
-  const bounds = editor.getSelectionPageBounds();
-  if (!bounds) throw new Error("Could not get selection bounds.");
+    // Send image to backend
+    const res = await fetch("http://localhost:8000/api/generate", {
+      method: "POST",
+      body: formData,
+    });
 
-  const assetId = AssetRecordType.createId();
-  const shapeId = createShapeId();
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.detail || "API error during enhancement.");
+    }
 
-  // Create asset from enhanced image
-  editor.createAssets([
-    {
-      id: assetId,
+    const { job_id } = await res.json();
+
+    // Publish event for RightPanel to start monitoring the job
+    eventBus.publish("enhance:started", { jobId: job_id });
+
+    // For backward compatibility, also wait for the image and place on canvas
+    const result = await waitForImageGeneration(job_id);
+    if (!result) throw new Error("No enhanced image received.");
+
+    const { image, width: w, height: h } = result;
+
+    const bounds = editor.getSelectionPageBounds();
+    if (!bounds) throw new Error("Could not get selection bounds.");
+
+    const assetId = AssetRecordType.createId();
+    const shapeId = createShapeId();
+
+    // Create asset from enhanced image
+    editor.createAssets([
+      {
+        id: assetId,
+        type: "image",
+        typeName: "asset",
+        props: {
+          name: "enhanced-sketch.png",
+          src: `data:image/png;base64,${image}`,
+          w,
+          h,
+          mimeType: "image/png",
+          isAnimated: false,
+        },
+        meta: {},
+      },
+    ]);
+
+    // Insert enhanced image next to selection
+    editor.createShape<TLImageShape>({
+      id: shapeId,
       type: "image",
-      typeName: "asset",
+      x: bounds.maxX + 60,
+      y: bounds.maxY - h / 2,
       props: {
-        name: "enhanced-sketch.png",
-        src: `data:image/png;base64,${image}`, // ✅
+        assetId,
         w,
         h,
-        mimeType: "image/png",
-        isAnimated: false,
       },
-      meta: {},
-    },
-  ]);
+    });
 
-  // Insert enhanced image next to selection
-  editor.createShape<TLImageShape>({
-    id: shapeId,
-    type: "image",
-    x: bounds.maxX + 60,
-    y: bounds.maxY - h / 2,
-    props: {
-      assetId,
-      w,
-      h,
-    },
-  });
-
-  editor.select(shapeId);
+    editor.select(shapeId);
+    return job_id;
+  } catch (error) {
+    console.error("[EnhanceSketch] Error:", error);
+    // Publish failure event for RightPanel to react to
+    eventBus.publish("enhance:failed", { error: (error as Error).message });
+    throw error;
+  }
 }
 
+// Keep the existing waitForImageGeneration function which works well
 async function waitForImageGeneration(
   jobId: string
 ): Promise<{ image: string; width: number; height: number } | null> {
@@ -139,7 +180,7 @@ async function waitForImageGeneration(
         // Get the first generated image filename
         const imageFilename = data.images[0];
 
-        // ✅ Correctly extract filename
+        // Correctly extract filename
         const filename = imageFilename.split("/").pop() || "";
 
         // Fetch the actual image
@@ -149,6 +190,13 @@ async function waitForImageGeneration(
         const blob = await imageRes.blob();
         const base64 = await convertBlobToBase64(blob);
 
+        // Publish event for all generated images
+        eventBus.publish("enhance:completed", {
+          images: data.images,
+          width: data.width || 512,
+          height: data.height || 512,
+        });
+
         return {
           image: base64,
           width: data.width || 512,
@@ -157,7 +205,9 @@ async function waitForImageGeneration(
       }
 
       if (data.status === "failed") {
-        throw new Error(data.error || "Image generation failed");
+        const errorMsg = data.error || "Image generation failed";
+        eventBus.publish("enhance:failed", { error: errorMsg });
+        throw new Error(errorMsg);
       }
 
       // Wait before polling again
@@ -169,5 +219,7 @@ async function waitForImageGeneration(
     }
   }
 
-  throw new Error("Image generation timed out");
+  const timeoutError = "Image generation timed out";
+  eventBus.publish("enhance:failed", { error: timeoutError });
+  throw new Error(timeoutError);
 }
