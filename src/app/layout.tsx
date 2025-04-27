@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Header from "@/components/Header/Header";
 import "./globals.scss";
 import styles from "./layout.module.scss";
+import "../styles/walletButton.css";
 import WalletConnectionProvider from "@/wallet/WalletProvider";
 
 export const metadata: Metadata = {
