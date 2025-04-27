@@ -1,5 +1,3 @@
-// src/lib/mintNFT.ts
-
 import { Connection, Keypair, clusterApiUrl } from "@solana/web3.js";
 import { Metaplex, walletAdapterIdentity } from "@metaplex-foundation/js";
 import { WalletContextState } from "@solana/wallet-adapter-react";
@@ -25,7 +23,6 @@ export async function mintNFT(
   const { blockhash, lastValidBlockHeight } =
     await connection.getLatestBlockhash("confirmed");
 
-  // ✅ Build the transaction with proper builder
   const builder = await metaplex
     .nfts()
     .builders()
@@ -47,7 +44,7 @@ export async function mintNFT(
   const transaction = builder.toTransaction({
     blockhash,
     lastValidBlockHeight,
-  }); // ✅ Corrected!
+  });
 
   transaction.feePayer = walletContext.publicKey;
 

@@ -13,9 +13,9 @@ export function createMetadata(
 ) {
   return {
     name: name,
-    symbol: "SXP", // You can change "SXP" to whatever symbol you want
+    symbol: "SXP",
     description: description,
-    image: imageUrl, // Must be IPFS public URL
+    image: imageUrl,
     attributes: [
       {
         trait_type: "Mode",
