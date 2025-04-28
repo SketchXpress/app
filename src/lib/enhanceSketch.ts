@@ -86,10 +86,13 @@ export async function enhanceSketch(editor: Editor) {
     }
 
     // Send image to backend
-    const res = await fetch("http://localhost:8000/api/generate", {
-      method: "POST",
-      body: formData,
-    });
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`,
+      {
+        method: "POST",
+        body: formData,
+      }
+    );
 
     if (!res.ok) {
       const error = await res.json();
@@ -164,7 +167,9 @@ async function waitForImageGeneration(
 
   while (Date.now() - startTime < maxWaitTime) {
     try {
-      const res = await fetch(`http://localhost:8000/api/status/${jobId}`);
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/status/${jobId}`
+      );
 
       if (!res.ok) {
         throw new Error("Failed to check job status");
@@ -185,8 +190,9 @@ async function waitForImageGeneration(
 
         // Fetch the actual image
         const imageRes = await fetch(
-          `http://localhost:8000/generated/${filename}`
+          `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`
         );
+
         const blob = await imageRes.blob();
         const base64 = await convertBlobToBase64(blob);
 

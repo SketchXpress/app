@@ -134,7 +134,7 @@ const RightPanel: React.FC = () => {
             const filename = pathParts[pathParts.length - 1];
 
             // Construct URL directly to the /generated/ endpoint
-            const fullUrl = `http://localhost:8000/generated/${filename}`;
+            const fullUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
             console.log(`Trying to fetch image ${index + 1} from: ${fullUrl}`);
 
             // For image previews, fetch the image
@@ -189,7 +189,7 @@ const RightPanel: React.FC = () => {
 
     const pollInterval = setInterval(async () => {
       try {
-        const response = await fetch(`http://localhost:8000/api/status/${currentJobId}`);
+        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/status/${currentJobId}`);
         if (!response.ok) {
           console.error("Error polling job status:", await response.text());
           return;
@@ -211,7 +211,7 @@ const RightPanel: React.FC = () => {
               const filename = pathParts[pathParts.length - 1];
 
               // Construct URL directly to the /generated/ endpoint
-              const fullUrl = `http://localhost:8000/generated/${filename}`;
+              const fullUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
               console.log(`Polling: Trying to fetch image ${index + 1} from: ${fullUrl}`);
 
               try {

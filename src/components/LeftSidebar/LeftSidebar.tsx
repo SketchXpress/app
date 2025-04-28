@@ -179,6 +179,66 @@ const LeftSidebar = () => {
     };
   };
 
+  const handleUseExample = (example: { id: number; title: string; thumbnail: string }) => {
+    const editor = useCanvasStore.getState().editor;
+    if (!editor) return;
+
+    const assetId = AssetRecordType.createId();
+    const image = new window.Image();
+
+    image.crossOrigin = "anonymous"; // Allow loading local/public images
+    image.onload = () => {
+      const { width, height } = image;
+
+      const base64DataUrl = getBase64FromImage(image);
+
+      base64DataUrl.then((src) => {
+        editor.createAssets([
+          {
+            id: assetId,
+            type: "image",
+            typeName: "asset",
+            props: {
+              name: example.title,
+              src,
+              w: width,
+              h: height,
+              mimeType: "image/png",
+              isAnimated: false,
+            },
+            meta: {},
+          },
+        ]);
+
+        editor.createShape({
+          type: "image",
+          x: (window.innerWidth - width) / 2,
+          y: (window.innerHeight - height) / 2,
+          props: {
+            assetId,
+            w: width,
+            h: height,
+          },
+        });
+      });
+    };
+
+    image.src = example.thumbnail; // Like "/demoSketch.png"
+  };
+
+  // Helper to convert Image object to base64
+  const getBase64FromImage = (img: HTMLImageElement): Promise<string> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement("canvas");
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext("2d");
+      ctx?.drawImage(img, 0, 0);
+      resolve(canvas.toDataURL("image/png"));
+    });
+  };
+
+
 
   // Determine which tips to show based on mode
   const tipsToShow = mode === 'kids' ? drawingTips.kids : drawingTips.pro;
@@ -331,7 +391,7 @@ const LeftSidebar = () => {
                         height={100}
                         className={styles.exampleImage}
                       />
-                      <button className={styles.useThisButton}>
+                      <button className={styles.useThisButton} onClick={() => handleUseExample(example)}>
                         <span>Use this</span>
                       </button>
                     </div>
