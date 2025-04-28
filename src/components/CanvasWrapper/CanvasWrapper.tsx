@@ -64,6 +64,10 @@ const CanvasWrapper = () => {
   const handleMount = useCallback((editor: Editor) => {
     setEditor(editor);
 
+    // Set default tool to "draw" when canvas loads
+    editor.setCurrentTool('draw');
+
+
     // Listen to selection changes
     const selectionUnsubscribe = editor.store.listen(
       () => {

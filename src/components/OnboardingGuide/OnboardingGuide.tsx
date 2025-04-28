@@ -55,7 +55,7 @@ const OnboardingGuide = () => {
             />
           </div>
           <h1 className={styles.branding}>
-            <span className={styles.brandingSketch}>Draw</span>
+            <span className={styles.brandingSketch}>Sketch</span>
             <span className={styles.brandingXpress}>Xpress</span>
           </h1>
         </div>

@@ -34,13 +34,13 @@
 
 /* Icon background behind logo */
 .iconWrapper {
-  background: linear-gradient(90deg, var(--accent-cyan, #00FFFF), var(--accent-magenta, #FF00FF));
+  background: linear-gradient(45deg, var(--cyan-light, #e1f8ff), var(--magenta-light, #ffe6f2));
   padding: 8px;
   border-radius: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
-  opacity: 0.6;
+
 }
 
 /* Logo Image */
