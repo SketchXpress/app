@@ -31,12 +31,17 @@ import { uploadMetadataToIPFS } from "@/lib/uploadMetadataToIPFS";
 import { mintNFT } from "@/lib/mintNFT";
 import { uploadToIPFSUsingPinata } from "@/lib/uploadToIPFSUsingPinata";
 
+// Extend event type to include base64 data (optional chaining used in code)
+interface EnhanceCompletedEventWithBase64 extends EnhanceCompletedEvent {
+  images_base64?: string[];
+}
+
 // Image type definition
 interface GeneratedImage {
   id: number;
   title: string;
-  src: string;
-  url: string; // Full URL for the image from the backend
+  src: string; // Can be blob URL or base64 data URI
+  url: string; // Full URL for the original image from the backend (for download)
 }
 
 const RightPanel: React.FC = () => {
@@ -81,8 +86,8 @@ const RightPanel: React.FC = () => {
     };
 
     checkWidth();
-    window.addEventListener('resize', checkWidth);
-    return () => window.removeEventListener('resize', checkWidth);
+    window.addEventListener("resize", checkWidth);
+    return () => window.removeEventListener("resize", checkWidth);
   }, []);
 
   // Handle click outside to close sidebar on mobile
@@ -96,11 +101,11 @@ const RightPanel: React.FC = () => {
     };
 
     if (sidebarOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isMobile, isTablet, sidebarOpen]);
 
@@ -108,8 +113,9 @@ const RightPanel: React.FC = () => {
   useEffect(() => {
     // Handle enhance started event
     const unsubscribeStarted = subscribeToEnhanceStarted((data: EnhanceStartedEvent) => {
+      console.log("[RightPanel] Enhance started event received, Job ID:", data.jobId);
       setIsProcessing(true);
-      setGeneratedImages([]);
+      setGeneratedImages([]); // Clear previous images
       setError(null);
       setCurrentJobId(data.jobId);
 
@@ -120,154 +126,228 @@ const RightPanel: React.FC = () => {
     });
 
     // Handle enhance completed event
-    const unsubscribeCompleted = subscribeToEnhanceCompleted(async (data: EnhanceCompletedEvent) => {
+    const unsubscribeCompleted = subscribeToEnhanceCompleted(async (data: EnhanceCompletedEventWithBase64) => {
+      console.log("[RightPanel] Enhance completed event received:", data);
       setIsProcessing(false);
+      setCurrentJobId(null); // Clear job ID once completed
 
       try {
-        // Convert backend image paths to GeneratedImage format
-        const images: GeneratedImage[] = await Promise.all(
-          data.images.map(async (imagePath, index) => {
-            console.log(`Processing image path: ${imagePath}`);
+        let images: GeneratedImage[] = [];
 
-            // Extract just the filename from the path
-            const pathParts = imagePath.split('/');
-            const filename = pathParts[pathParts.length - 1];
-
-            // Construct URL directly to the /generated/ endpoint
-            const fullUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
-            console.log(`Trying to fetch image ${index + 1} from: ${fullUrl}`);
-
-            // For image previews, fetch the image
-            try {
-              const response = await fetch(fullUrl);
-              if (!response.ok) {
-                console.error(`Failed to fetch image from ${fullUrl}, status: ${response.status}`);
-                throw new Error(`Failed to fetch image: ${imagePath}`);
+        // *** USE BASE64 DATA IF AVAILABLE ***
+        if (data.images_base64 && data.images_base64.length > 0) {
+          console.log("[RightPanel] Using base64 data from event.");
+          images = data.images_base64.map((base64String, index) => {
+            const filename = data.images[index]?.split("/").pop() || `generated_${index}.png`;
+            const originalUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
+            return {
+              id: index + 1,
+              title: `Generated Image ${index + 1}`,
+              src: `data:image/png;base64,${base64String}`, // Use base64 data URI
+              url: originalUrl // Store original URL for downloads
+            };
+          });
+        }
+        // *** FALLBACK TO FETCHING FROM URL (OLD METHOD) ***
+        else if (data.images && data.images.length > 0) {
+          console.warn("[RightPanel] Base64 data not found in event, falling back to fetching URLs.");
+          images = await Promise.all(
+            data.images.map(async (imagePath, index) => {
+              const pathParts = imagePath.split("/");
+              const filename = pathParts[pathParts.length - 1];
+              const fullUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
+              console.log(`[Fallback] Fetching image ${index + 1} from: ${fullUrl}`);
+              try {
+                const response = await fetch(fullUrl);
+                if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+                const blob = await response.blob();
+                return {
+                  id: index + 1,
+                  title: `Generated Image ${index + 1}`,
+                  src: URL.createObjectURL(blob), // Create local URL for the Image component
+                  url: fullUrl // Store original URL for downloads
+                };
+              } catch (error) {
+                console.error(`[Fallback] Error fetching image ${index + 1}:`, error);
+                // Return a placeholder or skip
+                return null;
               }
+            })
+          ).then(results => results.filter(img => img !== null) as GeneratedImage[]); // Filter out nulls
+        } else {
+          console.warn("[RightPanel] No image data found in completed event.");
+        }
 
-              const blob = await response.blob();
-              console.log(`Successfully fetched image ${index + 1}, size: ${blob.size} bytes`);
+        if (images.length > 0) {
+          console.log("[RightPanel] Setting generated images:", images);
+          setGeneratedImages(images);
+          setShowGallery(true);
+        } else {
+          setError("Failed to load generated images from event.");
+        }
 
-              return {
-                id: index + 1,
-                title: `Generated Image ${index + 1}`,
-                src: URL.createObjectURL(blob), // Create local URL for the Image component
-                url: fullUrl // Store original URL for downloads
-              };
-            } catch (error) {
-              console.error(`Error fetching image ${index + 1}:`, error);
-              throw error;
-            }
-          })
-        );
-
-        setGeneratedImages(images);
-        setShowGallery(true);
       } catch (err) {
-        console.error("Error loading generated images:", err);
-        setError("Failed to load generated images");
+        console.error("[RightPanel] Error processing completed event:", err);
+        setError("Failed to process generated images");
       }
     });
 
     // Handle enhance failed event
     const unsubscribeFailed = subscribeToEnhanceFailed((data: EnhanceFailedEvent) => {
+      console.error("[RightPanel] Enhance failed event received:", data);
       setIsProcessing(false);
-      setError(data.error);
+      setCurrentJobId(null); // Clear job ID on failure
+      setError(data.error || "Image generation failed");
     });
 
     // Clean up subscriptions
     return () => {
+      console.log("[RightPanel] Cleaning up event subscriptions.");
       unsubscribeStarted();
       unsubscribeCompleted();
       unsubscribeFailed();
     };
-  }, [sidebarOpen]);
+  }, [sidebarOpen]); // Rerun if sidebarOpen changes (might affect auto-expand logic)
 
-  // Poll for job status if needed (backup in case events miss something)
+  // Polling for job status (as a backup, primarily rely on events)
   useEffect(() => {
     if (!currentJobId || !isProcessing) return;
 
-    const pollInterval = setInterval(async () => {
-      try {
-        const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/status/${currentJobId}`);
+    console.log(`[RightPanel] Starting polling for Job ID: ${currentJobId}`);
+    let pollInterval: NodeJS.Timeout | null = null;
 
-        // Check if we received HTML instead of JSON
+    const pollStatus = async () => {
+      if (!currentJobId) {
+        if (pollInterval) clearInterval(pollInterval);
+        return;
+      }
+      try {
+        const statusUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/status/${currentJobId}`;
+        console.log(`[Polling] Fetching status: ${statusUrl}`);
+        const response = await fetch(statusUrl);
+
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("text/html")) {
-          console.error("Received HTML instead of JSON - likely a ngrok limitation issue");
-          setError("Connection issue with backend - please try again later");
-          clearInterval(pollInterval);
-          setIsProcessing(false);
-          return;
+          console.error("[Polling] Received HTML instead of JSON - ngrok issue?");
+          // Don't immediately fail, maybe it's temporary
+          // setError("Connection issue with backend - ngrok limitation?");
+          // if (pollInterval) clearInterval(pollInterval);
+          // setIsProcessing(false);
+          return; // Try polling again
         }
 
         if (!response.ok) {
-          console.error("Error polling job status:", await response.text());
+          console.error("[Polling] Error polling job status:", response.status, await response.text());
+          // Keep polling unless it's a 404 (job not found)
+          if (response.status === 404) {
+            setError("Job not found. Please try again.");
+            if (pollInterval) clearInterval(pollInterval);
+            setIsProcessing(false);
+            setCurrentJobId(null);
+          }
           return;
         }
 
         const data = await response.json();
+        console.log("[Polling] Received status:", data.status);
 
         if (data.status === "completed") {
-          clearInterval(pollInterval);
+          console.log("[Polling] Job completed. Processing images...");
+          if (pollInterval) clearInterval(pollInterval); // Stop polling
           setIsProcessing(false);
+          setCurrentJobId(null); // Clear job ID
 
-          // Handle images similar to the event handler
-          const images: GeneratedImage[] = await Promise.all(
-            data.images.map(async (imagePath: string, index: number) => {
-              console.log(`Polling: Processing image path: ${imagePath}`);
-
-              // Extract just the filename from the path
-              const pathParts = imagePath.split('/');
-              const filename = pathParts[pathParts.length - 1];
-
-              // Construct URL directly to the /generated/ endpoint
-              const fullUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
-              console.log(`Polling: Trying to fetch image ${index + 1} from: ${fullUrl}`);
-
-              try {
-                const response = await fetch(fullUrl);
-                if (!response.ok) {
-                  console.error(`Polling: Failed to fetch image from ${fullUrl}, status: ${response.status}`);
-                  throw new Error(`Failed to fetch image: ${imagePath}`);
+          let images: GeneratedImage[] = [];
+          // *** USE BASE64 DATA IF AVAILABLE ***
+          if (data.images_base64 && data.images_base64.length > 0) {
+            console.log("[Polling] Using base64 data from status response.");
+            images = data.images_base64.map((base64String: string, index: number) => {
+              const filename = data.images[index]?.split("/").pop() || `generated_${index}.png`;
+              const originalUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
+              return {
+                id: index + 1,
+                title: `Generated Image ${index + 1}`,
+                src: `data:image/png;base64,${base64String}`,
+                url: originalUrl
+              };
+            });
+          }
+          // *** FALLBACK TO FETCHING FROM URL (OLD METHOD) ***
+          else if (data.images && data.images.length > 0) {
+            console.warn("[Polling] Base64 data not found in status, falling back to fetching URLs.");
+            images = await Promise.all(
+              data.images.map(async (imagePath: string, index: number) => {
+                const pathParts = imagePath.split("/");
+                const filename = pathParts[pathParts.length - 1];
+                const fullUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
+                console.log(`[Polling Fallback] Fetching image ${index + 1} from: ${fullUrl}`);
+                try {
+                  const response = await fetch(fullUrl);
+                  if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+                  const blob = await response.blob();
+                  return {
+                    id: index + 1,
+                    title: `Generated Image ${index + 1}`,
+                    src: URL.createObjectURL(blob),
+                    url: fullUrl
+                  };
+                } catch (error) {
+                  console.error(`[Polling Fallback] Error fetching image ${index + 1}:`, error);
+                  return null;
                 }
+              })
+            ).then(results => results.filter(img => img !== null) as GeneratedImage[]); // Filter out nulls
+          } else {
+            console.warn("[Polling] No image data found in completed status response.");
+          }
 
-                const blob = await response.blob();
-                console.log(`Polling: Successfully fetched image ${index + 1}, size: ${blob.size} bytes`);
+          if (images.length > 0) {
+            console.log("[Polling] Setting generated images:", images);
+            setGeneratedImages(images);
+            setShowGallery(true);
+            setError(null); // Clear any previous error
+          } else {
+            setError("Failed to load generated images from status poll.");
+          }
 
-                return {
-                  id: index + 1,
-                  title: `Generated Image ${index + 1}`,
-                  src: URL.createObjectURL(blob),
-                  url: fullUrl
-                };
-              } catch (error) {
-                console.error(`Polling: Error fetching image ${index + 1}:`, error);
-                throw error;
-              }
-            })
-          );
-
-          setGeneratedImages(images);
         } else if (data.status === "failed") {
-          clearInterval(pollInterval);
+          console.error("[Polling] Job failed:", data.error);
+          if (pollInterval) clearInterval(pollInterval);
           setIsProcessing(false);
+          setCurrentJobId(null);
           setError(data.error || "Generation failed");
+        } else if (data.status === "processing") {
+          // Continue polling
+        } else {
+          console.warn("[Polling] Unknown job status:", data.status);
+          // Continue polling for a while
         }
       } catch (err) {
-        console.error("Error polling job status:", err);
+        console.error("[Polling] Error during poll:", err);
+        // Don't stop polling immediately on generic error, could be temporary network issue
       }
-    }, 3000); // Poll every 3 seconds
+    };
 
-    return () => clearInterval(pollInterval);
-  }, [currentJobId, isProcessing]);
+    // Start polling immediately and then set interval
+    pollStatus();
+    pollInterval = setInterval(pollStatus, 5000); // Poll every 5 seconds
 
-  // Clean up object URLs on unmount
-  useEffect(() => {
+    // Cleanup function
     return () => {
-      generatedImages.forEach(image => {
-        if (image.src.startsWith('blob:')) {
-          URL.revokeObjectURL(image.src);
+      console.log(`[RightPanel] Cleaning up polling for Job ID: ${currentJobId}`);
+      if (pollInterval) clearInterval(pollInterval);
+    };
+  }, [currentJobId, isProcessing]); // Only restart polling if jobId changes or processing state changes
+
+  // Clean up object URLs on unmount or when images change
+  useEffect(() => {
+    const currentImageSrcs = generatedImages.map(img => img.src);
+    return () => {
+      console.log("[RightPanel] Cleaning up object URLs.");
+      currentImageSrcs.forEach(src => {
+        if (src.startsWith("blob:")) {
+          console.log(`Revoking blob URL: ${src}`);
+          URL.revokeObjectURL(src);
         }
       });
     };
@@ -277,69 +357,73 @@ const RightPanel: React.FC = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
+  // Download/Export uses the original URL
   const handleExport = () => {
     if (!selectedImageId) {
       alert("Please select an image to export");
       return;
     }
-
     const selectedImage = generatedImages.find(img => img.id === selectedImageId);
     if (!selectedImage) return;
 
-    // Create a temporary link to download the image
-    const link = document.createElement('a');
-    link.href = selectedImage.url;
-    link.target = '_blank';
+    console.log(`Exporting image: ${selectedImage.url}`);
+    const link = document.createElement("a");
+    link.href = selectedImage.url; // Use the original URL for download
+    link.target = "_blank"; // Open in new tab might be better for ngrok links
     link.download = `generated-image-${selectedImageId}.png`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  // Minting requires fetching the blob again from the original URL
   const handleMintNFT = async () => {
+    if (!walletContext.connected || !walletContext.publicKey) {
+      alert("Please connect your wallet first!");
+      return;
+    }
+    if (!selectedImageId) {
+      alert("Please select an image to mint!");
+      return;
+    }
+    const selectedImage = generatedImages.find(img => img.id === selectedImageId);
+    if (!selectedImage) {
+      alert("Selected image not found.");
+      return;
+    }
+
+    console.log(`Preparing to mint image: ${selectedImage.url}`);
     try {
-      // 1. Check wallet connected
-      if (!walletContext.connected || !walletContext.publicKey) {
-        alert("Please connect your wallet before minting!");
-        return;
-      }
-
-      // 2. Check image selected
-      if (!selectedImageId) {
-        alert("Please select an image to mint as NFT!");
-        return;
-      }
-
-      const selectedImage = generatedImages.find(img => img.id === selectedImageId);
-      if (!selectedImage) {
-        alert("Selected image not found.");
-        return;
-      }
-
-      // 3. Fetch image blob
+      // Fetch the image blob from the original URL
       const response = await fetch(selectedImage.url);
+      if (!response.ok) {
+        throw new Error(`Failed to fetch image for minting: ${response.status}`);
+      }
       const blob = await response.blob();
 
-      // 4. Upload image to IPFS (Pinata)
+      // Upload image to IPFS
+      console.log("Uploading image to IPFS...");
       const imageIpfsUrl = await uploadToIPFSUsingPinata(blob);
-      console.log("✅ Image uploaded to Pinata IPFS:", imageIpfsUrl);
+      console.log("Image uploaded to IPFS:", imageIpfsUrl);
 
-      // 5. Create and upload metadata to IPFS (Pinata)
+      // Upload metadata to IPFS
+      console.log("Uploading metadata to IPFS...");
       const metadataIpfsUrl = await uploadMetadataToIPFS(
         "SketchXpress Artwork",
         "AI-enhanced artwork created with SketchXpress.",
         imageIpfsUrl
       );
-      console.log("✅ Metadata uploaded to Pinata IPFS:", metadataIpfsUrl);
+      console.log("Metadata uploaded to IPFS:", metadataIpfsUrl);
 
-      // 6. Mint the NFT
+      // Mint the NFT
+      console.log("Minting NFT...");
       const nftAddress = await mintNFT(metadataIpfsUrl, walletContext);
-      console.log("✅ NFT minted successfully:", nftAddress);
+      console.log("NFT minted successfully:", nftAddress);
 
       alert(`🎉 NFT minted successfully!\nAddress: ${nftAddress}`);
     } catch (error) {
       console.error("Error minting NFT:", error);
-      alert("Something went wrong while minting. Please check the console.");
+      alert(`Minting failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
 
@@ -348,21 +432,25 @@ const RightPanel: React.FC = () => {
     setSelectedImageId(id === selectedImageId ? null : id);
   };
 
+  // Individual image download button
   const handleDownloadImage = (e: React.MouseEvent, image: GeneratedImage) => {
-    e.stopPropagation(); // Prevent selection of the image
-
-    const link = document.createElement('a');
+    e.stopPropagation();
+    console.log(`Downloading image: ${image.url}`);
+    const link = document.createElement("a");
     link.href = image.url;
     link.download = `generated-image-${image.id}.png`;
+    link.target = "_blank";
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
   };
 
+  // Individual image mint button
   const handleMintClick = (e: React.MouseEvent, imageId: number) => {
-    e.stopPropagation(); // Prevent selection of the image
-    setSelectedImageId(imageId);
-    handleMintNFT();
+    e.stopPropagation();
+    setSelectedImageId(imageId); // Select the image first
+    // Use setTimeout to allow state update before calling mint
+    setTimeout(() => handleMintNFT(), 0);
   };
 
   return (
@@ -381,7 +469,7 @@ const RightPanel: React.FC = () => {
       {/* Desktop collapse toggle */}
       {!isMobile && !isTablet && (
         <button
-          className={`${styles.collapseToggle} ${!sidebarOpen ? styles.collapsed : ''}`}
+          className={`${styles.collapseToggle} ${!sidebarOpen ? styles.collapsed : ""}`}
           onClick={toggleSidebar}
           aria-label={sidebarOpen ? "Collapse panel" : "Expand panel"}
         >
@@ -392,10 +480,10 @@ const RightPanel: React.FC = () => {
       {/* Panel content */}
       <aside
         ref={sidebarRef}
-        className={`${styles.panel} ${!sidebarOpen ? styles.collapsed : ''} ${isMobile ? styles.mobile : ''} ${isTablet ? styles.tablet : ''}`}
+        className={`${styles.panel} ${!sidebarOpen ? styles.collapsed : ""} ${isMobile ? styles.mobile : ""} ${isTablet ? styles.tablet : ""}`}
       >
         <div className={styles.panelContent}>
-          {/* Collapsed view buttons - only visible when collapsed */}
+          {/* Collapsed view buttons */}
           {!sidebarOpen && (
             <div className={styles.collapsedButtons}>
               {mode === "pro" && (
@@ -417,12 +505,13 @@ const RightPanel: React.FC = () => {
             </div>
           )}
 
-          {/* Expanded view content - only visible when expanded */}
+          {/* Expanded view content */}
           {sidebarOpen && (
             <>
-              {/* Pro mode prompt and parameters */}
+              {/* Pro mode parameters */}
               {mode === "pro" && !isProcessing && (
                 <div className={styles.section}>
+                  {/* ... (parameter inputs remain the same) ... */}
                   {/* Text Prompt Input */}
                   <div className={styles.promptInputGroup}>
                     <label htmlFor="prompt-input" className={styles.inputLabel}>Text Prompt</label>
@@ -467,6 +556,7 @@ const RightPanel: React.FC = () => {
                   {/* Advanced Parameters Panel */}
                   {showAdvanced && (
                     <div className={styles.advancedParams}>
+                      {/* Temperature Slider */}
                       <div className={styles.paramSlider}>
                         <div className={styles.paramHeader}>
                           <label htmlFor="temperature-slider">Temperature: {temperature.toFixed(2)}</label>
@@ -486,7 +576,7 @@ const RightPanel: React.FC = () => {
                           className={styles.slider}
                         />
                       </div>
-
+                      {/* Guidance Scale Slider */}
                       <div className={styles.paramSlider}>
                         <div className={styles.paramHeader}>
                           <label htmlFor="guidance-slider">Guidance Scale: {guidanceScale.toFixed(2)}</label>
@@ -506,7 +596,7 @@ const RightPanel: React.FC = () => {
                           className={styles.slider}
                         />
                       </div>
-
+                      {/* Number of Images Slider */}
                       <div className={styles.paramSlider}>
                         <div className={styles.paramHeader}>
                           <label htmlFor="num-images-slider">Number of Images: {numImages}</label>
@@ -525,12 +615,12 @@ const RightPanel: React.FC = () => {
                           {Array.from({ length: 4 }).map((_, idx) => (
                             <div
                               key={idx}
-                              className={`${styles.numBox} ${idx < numImages ? styles.active : ''}`}
+                              className={`${styles.numBox} ${idx < numImages ? styles.active : ""}`}
                             />
                           ))}
                         </div>
                       </div>
-
+                      {/* Reset Button */}
                       <button
                         className={styles.resetButton}
                         onClick={resetToDefaults}
@@ -544,12 +634,12 @@ const RightPanel: React.FC = () => {
                 </div>
               )}
 
-              {/* Loading indicator when processing */}
+              {/* Loading indicator */}
               {isProcessing && (
                 <div className={styles.processingSection}>
                   <div className={styles.spinner}></div>
                   <p className={styles.processingText}>
-                    Transforming your sketch into amazing artwork...
+                    Transforming your sketch...
                   </p>
                 </div>
               )}
@@ -559,6 +649,8 @@ const RightPanel: React.FC = () => {
                 <div className={styles.errorSection}>
                   <AlertOctagon size={24} className={styles.errorIcon} />
                   <p className={styles.errorText}>{error}</p>
+                  {/* Optionally add a retry button */}
+                  {/* <button onClick={retryLastAction}>Retry</button> */}
                 </div>
               )}
 
@@ -585,16 +677,17 @@ const RightPanel: React.FC = () => {
                       {generatedImages.map((image) => (
                         <div
                           key={image.id}
-                          className={`${styles.generatedImageCard} ${selectedImageId === image.id ? styles.selected : ''}`}
+                          className={`${styles.generatedImageCard} ${selectedImageId === image.id ? styles.selected : ""}`}
                           onClick={() => handleImageSelect(image.id)}
                         >
                           <div className={styles.imageContainer}>
                             <Image
-                              src={image.src}
+                              src={image.src} // Use the src (base64 or blob URL)
                               alt={image.title}
-                              width={150}
+                              width={150} // Adjust size as needed
                               height={150}
                               className={styles.generatedImage}
+                              unoptimized={image.src.startsWith("blob:")} // Avoid Next.js optimization for blob URLs
                             />
                             <div className={styles.imageActions}>
                               <button
@@ -625,12 +718,12 @@ const RightPanel: React.FC = () => {
                 </div>
               )}
 
-              {/* Action Buttons - only enabled when an image is selected */}
+              {/* Action Buttons */}
               {generatedImages.length > 0 && (
                 <div className={styles.section}>
                   <div className={styles.actionButtons}>
                     <button
-                      className={`${styles.actionButton} ${!selectedImageId ? styles.disabled : ''}`}
+                      className={`${styles.actionButton} ${!selectedImageId ? styles.disabled : ""}`}
                       onClick={handleExport}
                       disabled={!selectedImageId}
                       type="button"
@@ -641,7 +734,7 @@ const RightPanel: React.FC = () => {
 
                     {mode === "pro" && (
                       <button
-                        className={`${styles.actionButton} ${styles.mintButton} ${!selectedImageId ? styles.disabled : ''}`}
+                        className={`${styles.actionButton} ${styles.mintButton} ${!selectedImageId ? styles.disabled : ""}`}
                         onClick={handleMintNFT}
                         disabled={!selectedImageId}
                         type="button"
@@ -654,12 +747,12 @@ const RightPanel: React.FC = () => {
                 </div>
               )}
 
-              {/* Empty state when no images generated yet */}
+              {/* Empty state */}
               {!isProcessing && !error && generatedImages.length === 0 && (
                 <div className={styles.emptyState}>
                   <ImageIcon size={40} className={styles.emptyStateIcon} />
                   <p className={styles.emptyStateText}>
-                    Draw something and click &quot;AI Enhance&quot; to transform your sketch!
+                    Click &quot;AI Enhance&quot; to see results here.
                   </p>
                 </div>
               )}
@@ -677,3 +770,4 @@ const RightPanel: React.FC = () => {
 };
 
 export default RightPanel;
+
