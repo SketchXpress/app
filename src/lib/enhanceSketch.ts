@@ -10,13 +10,7 @@ import { convertBlobToBase64 } from "./convertBlobToBase64";
 import { useEnhanceStore } from "@/stores/enhanceStore";
 import { eventBus } from "./events";
 
-// CORS Proxy function to bypass CORS issues with ngrok
-const getProxiedUrl = (url: string): string => {
-  // Use a CORS proxy to bypass CORS issues
-  return `https://corsproxy.io/?${encodeURIComponent(url)}`;
-};
-
-// Improved fetch function with CORS handling
+// Improved fetch function without CORS proxy
 const fetchWithRetry = async (
   url: string,
   options: RequestInit = {},
@@ -24,8 +18,8 @@ const fetchWithRetry = async (
 ): Promise<Response> => {
   let attempt = 0;
 
-  // Use proxy for the URL to avoid CORS issues
-  const proxiedUrl = getProxiedUrl(url);
+  // Use the original URL directly
+  const directUrl = url;
 
   while (attempt < maxRetries) {
     try {
@@ -34,13 +28,20 @@ const fetchWithRetry = async (
         headers.set("Accept", "application/json");
       }
 
-      const response = await fetch(proxiedUrl, {
+      // Fetch directly from the URL
+      const response = await fetch(directUrl, {
         ...options,
         headers,
-        mode: "cors",
+        // mode: "cors", // mode: 'cors' is default for cross-origin requests
       });
 
       if (!response.ok) {
+        // Log the error response for debugging
+        console.error(
+          `[fetchWithRetry] HTTP error ${response.status} for URL: ${directUrl}`
+        );
+        const errorText = await response.text();
+        console.error(`[fetchWithRetry] Error response body: ${errorText}`);
         throw new Error(`HTTP error ${response.status}`);
       }
 
@@ -56,37 +57,57 @@ const fetchWithRetry = async (
           const clonedResponse = response.clone();
           const text = await clonedResponse.text();
 
-          if (text.includes("<!DOCTYPE html>") || text.includes("<html")) {
+          // Basic check if response looks like HTML (could indicate an error page)
+          if (
+            text.trim().startsWith("<!DOCTYPE html>") ||
+            text.trim().startsWith("<html")
+          ) {
+            console.warn(
+              `[fetchWithRetry] Received HTML instead of expected JSON from ${directUrl}. Retrying...`
+            );
             attempt++;
             await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
             continue;
           }
 
+          // Ensure it's valid JSON if content type indicates it
           if (contentType.includes("application/json")) {
-            JSON.parse(text);
+            JSON.parse(text); // This will throw if it's not valid JSON
           }
-        } catch {
+        } catch (jsonError) {
+          console.warn(
+            `[fetchWithRetry] Failed to parse JSON response from ${directUrl}. Error: ${jsonError}. Retrying...`
+          );
           attempt++;
           await new Promise((resolve) => setTimeout(resolve, 1000 * attempt));
           continue;
         }
       }
 
-      return response;
-    } catch {
+      return response; // Return the successful response
+    } catch (error) {
+      console.error(
+        `[fetchWithRetry] Attempt ${
+          attempt + 1
+        } failed for URL: ${directUrl}. Error: ${error}`
+      );
       attempt++;
 
       if (attempt >= maxRetries) {
+        console.error(
+          `[fetchWithRetry] Maximum retries exceeded for URL: ${directUrl}`
+        );
         throw new Error("Maximum retries exceeded");
       }
 
       // Exponential backoff
-      await new Promise((resolve) =>
-        setTimeout(resolve, 1000 * Math.pow(2, attempt - 1))
-      );
+      const delay = 1000 * Math.pow(2, attempt - 1);
+      console.log(`[fetchWithRetry] Retrying in ${delay}ms...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
 
+  // This line should technically be unreachable if maxRetries > 0, but included for safety
   throw new Error("Maximum retries exceeded");
 };
 
@@ -167,8 +188,10 @@ export async function enhanceSketch(editor: Editor): Promise<string> {
 
     // Get API URL and prepare request
     const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`;
+    console.log(`[enhanceSketch] Calling generate API: ${apiUrl}`); // Log the API URL being called
 
     const headers = new Headers();
+    // Don't set Content-Type when using FormData, the browser does it with the correct boundary
     headers.append("Accept", "application/json");
 
     const res = await fetchWithRetry(apiUrl, {
@@ -179,6 +202,7 @@ export async function enhanceSketch(editor: Editor): Promise<string> {
 
     const data = await res.json();
     const { job_id } = data;
+    console.log(`[enhanceSketch] Received job_id: ${job_id}`);
 
     // Publish event for RightPanel to start monitoring the job
     eventBus.publish("enhance:started", { jobId: job_id });
@@ -204,7 +228,7 @@ export async function enhanceSketch(editor: Editor): Promise<string> {
           typeName: "asset",
           props: {
             name: "enhanced-sketch.png",
-            src: `data:image/png;base64,${image}`,
+            src: `data:image/png;base64,${image}`, // Use base64 directly
             w,
             h,
             mimeType: "image/png",
@@ -219,7 +243,7 @@ export async function enhanceSketch(editor: Editor): Promise<string> {
         id: shapeId,
         type: "image",
         x: bounds.maxX + 60,
-        y: bounds.maxY - h / 2,
+        y: bounds.maxY - h / 2, // Adjust vertical position if needed
         props: {
           assetId,
           w,
@@ -228,12 +252,16 @@ export async function enhanceSketch(editor: Editor): Promise<string> {
       });
 
       editor.select(shapeId);
-    } catch {
+    } catch (placementError) {
+      console.error(
+        `[enhanceSketch] Failed to place image on canvas: ${placementError}`
+      );
       // Even if placing image fails, return job_id for RightPanel
     }
 
     return job_id;
   } catch (error) {
+    console.error(`[EnhanceSketch] Error: ${error}`);
     eventBus.publish("enhance:failed", { error: (error as Error).message });
     throw error;
   }
@@ -256,9 +284,12 @@ async function waitForImageGeneration(
   const maxWaitTime = 120000; // 2 minutes
   const pollInterval = 2000; // Poll every 2 seconds
 
+  console.log(`[waitForImageGeneration] Starting to poll for job_id: ${jobId}`);
+
   while (Date.now() - startTime < maxWaitTime) {
     try {
       const statusUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/status/${jobId}`;
+      console.log(`[waitForImageGeneration] Polling status URL: ${statusUrl}`);
 
       const headers = new Headers();
       headers.append("Accept", "application/json");
@@ -268,7 +299,11 @@ async function waitForImageGeneration(
       try {
         const response = await fetchWithRetry(statusUrl, { headers }, 3);
         data = await response.json();
-      } catch {
+        console.log(`[waitForImageGeneration] Received status: ${data.status}`);
+      } catch (fetchError) {
+        console.error(
+          `[waitForImageGeneration] Error fetching status for job ${jobId}: ${fetchError}. Retrying...`
+        );
         // Wait before next poll attempt
         await new Promise((resolve) => setTimeout(resolve, pollInterval));
         continue;
@@ -279,13 +314,23 @@ async function waitForImageGeneration(
         data.images &&
         data.images.length > 0
       ) {
-        const imageFilename = data.images[0];
+        console.log(
+          `[waitForImageGeneration] Job ${jobId} completed. Images:`,
+          data.images
+        );
+        const imageFilename = data.images[0]; // Assuming the first image is the one we want
+        // The backend now returns full URLs in the 'images' list if served via StaticFiles
+        // Or just filenames if you need to construct the URL
+        // Let's assume it returns relative paths like 'job_id_image_0.png'
         const filename = imageFilename.split("/").pop() || "";
 
         const imageUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
+        console.log(
+          `[waitForImageGeneration] Fetching generated image from: ${imageUrl}`
+        );
 
         const imageHeaders = new Headers();
-        imageHeaders.append("Accept", "*/*");
+        imageHeaders.append("Accept", "image/*"); // More specific accept header for image
 
         let imageBlob: Blob;
 
@@ -294,11 +339,18 @@ async function waitForImageGeneration(
             headers: imageHeaders,
           });
           imageBlob = await imageRes.blob();
-        } catch {
+          console.log(
+            `[waitForImageGeneration] Successfully fetched image blob. Size: ${imageBlob.size}`
+          );
+        } catch (imageFetchError) {
+          console.error(
+            `[waitForImageGeneration] Failed to fetch the generated image from ${imageUrl}: ${imageFetchError}`
+          );
           throw new Error("Failed to fetch the generated image");
         }
 
         const base64 = await convertBlobToBase64(imageBlob);
+        console.log(`[waitForImageGeneration] Converted image blob to base64.`);
 
         // Publish event that image generation completed
         eventBus.publish("enhance:completed", {
@@ -308,7 +360,7 @@ async function waitForImageGeneration(
         });
 
         return {
-          image: base64,
+          image: base64, // Return base64 string
           width: data.width || 512,
           height: data.height || 512,
         };
@@ -316,19 +368,33 @@ async function waitForImageGeneration(
 
       if (data.status === "failed") {
         const errorMsg = data.error || "Image generation failed";
+        console.error(
+          `[waitForImageGeneration] Job ${jobId} failed: ${errorMsg}`
+        );
         eventBus.publish("enhance:failed", { error: errorMsg });
         throw new Error(errorMsg);
       }
 
       // Still processing, wait before next poll
+      console.log(
+        `[waitForImageGeneration] Job ${jobId} status is ${data.status}. Waiting ${pollInterval}ms...`
+      );
       await new Promise((resolve) => setTimeout(resolve, pollInterval));
-    } catch {
-      // Wait before retrying
+    } catch (error) {
+      // Catch errors from within the loop (e.g., failed status, failed image fetch)
+      console.error(
+        `[waitForImageGeneration] Error during polling loop for job ${jobId}: ${error}. Retrying...`
+      );
+      // Wait before retrying the loop
       await new Promise((resolve) => setTimeout(resolve, pollInterval));
     }
   }
 
+  // Loop timed out
   const timeoutError = "Image generation timed out";
+  console.error(
+    `[waitForImageGeneration] Job ${jobId} timed out after ${maxWaitTime}ms.`
+  );
   eventBus.publish("enhance:failed", { error: timeoutError });
   throw new Error(timeoutError);
 }
