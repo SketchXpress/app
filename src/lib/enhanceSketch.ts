@@ -10,6 +10,72 @@ import { convertBlobToBase64 } from "./convertBlobToBase64";
 import { useEnhanceStore } from "@/stores/enhanceStore";
 import { eventBus } from "./events";
 
+// Helper function to handle ngrok interstitial pages
+const fetchWithNgrokBypass = async (
+  url: string,
+  options: RequestInit = {}
+): Promise<Response> => {
+  const MAX_RETRIES = 5;
+  let retries = 0;
+
+  // Add ngrok bypass attempt parameters
+  const ngrokBypass = "_ngrok_bypass=true";
+  const urlWithBypass = url.includes("?")
+    ? `${url}&${ngrokBypass}`
+    : `${url}?${ngrokBypass}`;
+
+  const headers = {
+    ...(options.headers || {}),
+    Accept: "application/json",
+  };
+
+  while (retries < MAX_RETRIES) {
+    try {
+      const response = await fetch(urlWithBypass, {
+        ...options,
+        headers,
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP error ${response.status}`);
+      }
+
+      // Check if we got JSON
+      const contentType = response.headers.get("content-type") || "";
+
+      if (contentType.includes("application/json")) {
+        return response;
+      }
+
+      // If not JSON, it's probably the ngrok interstitial
+      const text = await response.text();
+      if (text.includes("ngrok")) {
+        console.warn(
+          `[fetchWithNgrokBypass] Received ngrok interstitial page, retry ${
+            retries + 1
+          }/${MAX_RETRIES}`
+        );
+        retries++;
+
+        // Wait longer between retries
+        await new Promise((resolve) => setTimeout(resolve, 1500 * retries));
+        continue;
+      }
+
+      // Not JSON and not ngrok interstitial - something else is wrong
+      throw new Error("Unexpected response type");
+    } catch (error) {
+      retries++;
+      if (retries >= MAX_RETRIES) {
+        throw error;
+      }
+      await new Promise((resolve) => setTimeout(resolve, 1000 * retries));
+    }
+  }
+
+  throw new Error("Maximum retries exceeded");
+};
+
 export async function enhanceSketch(editor: Editor) {
   try {
     const shapes = editor.getSelectedShapes();
@@ -85,76 +151,93 @@ export async function enhanceSketch(editor: Editor) {
       formData.append("seed", seed.toString());
     }
 
-    // Send image to backend with ngrok bypass parameter
-    const ngrokBypass = "_ngrok_bypass=true";
+    // Use our custom fetch with ngrok bypass
     const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`;
-    const urlWithBypass = apiUrl.includes("?")
-      ? `${apiUrl}&${ngrokBypass}`
-      : `${apiUrl}?${ngrokBypass}`;
 
-    const res = await fetch(urlWithBypass, {
-      method: "POST",
-      body: formData,
-      headers: {
-        Accept: "application/json",
-      },
-    });
+    try {
+      // Try our enhanced fetch approach with retry logic
+      const res = await fetchWithNgrokBypass(apiUrl, {
+        method: "POST",
+        body: formData,
+      });
 
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.detail || "API error during enhancement.");
-    }
+      const data = await res.json();
+      const { job_id } = data;
 
-    const { job_id } = await res.json();
+      // Publish event for RightPanel to start monitoring the job
+      eventBus.publish("enhance:started", { jobId: job_id });
 
-    // Publish event for RightPanel to start monitoring the job
-    eventBus.publish("enhance:started", { jobId: job_id });
+      // For backward compatibility, also wait for the image and place on canvas
+      const result = await waitForImageGeneration(job_id);
+      if (!result) throw new Error("No enhanced image received.");
 
-    // For backward compatibility, also wait for the image and place on canvas
-    const result = await waitForImageGeneration(job_id);
-    if (!result) throw new Error("No enhanced image received.");
+      const { image, width: w, height: h } = result;
 
-    const { image, width: w, height: h } = result;
+      const bounds = editor.getSelectionPageBounds();
+      if (!bounds) throw new Error("Could not get selection bounds.");
 
-    const bounds = editor.getSelectionPageBounds();
-    if (!bounds) throw new Error("Could not get selection bounds.");
+      const assetId = AssetRecordType.createId();
+      const shapeId = createShapeId();
 
-    const assetId = AssetRecordType.createId();
-    const shapeId = createShapeId();
+      // Create asset from enhanced image
+      editor.createAssets([
+        {
+          id: assetId,
+          type: "image",
+          typeName: "asset",
+          props: {
+            name: "enhanced-sketch.png",
+            src: `data:image/png;base64,${image}`,
+            w,
+            h,
+            mimeType: "image/png",
+            isAnimated: false,
+          },
+          meta: {},
+        },
+      ]);
 
-    // Create asset from enhanced image
-    editor.createAssets([
-      {
-        id: assetId,
+      // Insert enhanced image next to selection
+      editor.createShape<TLImageShape>({
+        id: shapeId,
         type: "image",
-        typeName: "asset",
+        x: bounds.maxX + 60,
+        y: bounds.maxY - h / 2,
         props: {
-          name: "enhanced-sketch.png",
-          src: `data:image/png;base64,${image}`,
+          assetId,
           w,
           h,
-          mimeType: "image/png",
-          isAnimated: false,
         },
-        meta: {},
-      },
-    ]);
+      });
 
-    // Insert enhanced image next to selection
-    editor.createShape<TLImageShape>({
-      id: shapeId,
-      type: "image",
-      x: bounds.maxX + 60,
-      y: bounds.maxY - h / 2,
-      props: {
-        assetId,
-        w,
-        h,
-      },
-    });
+      editor.select(shapeId);
+      return job_id;
+    } catch (error) {
+      // Fallback to direct API call if our enhanced approach fails
+      console.warn(
+        "[enhanceSketch] Enhanced fetch failed, falling back to direct API call",
+        error
+      );
 
-    editor.select(shapeId);
-    return job_id;
+      const res = await fetch(apiUrl, {
+        method: "POST",
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.detail || "API error during enhancement.");
+      }
+
+      const { job_id } = await res.json();
+
+      // Publish event for RightPanel to start monitoring the job
+      eventBus.publish("enhance:started", { jobId: job_id });
+
+      // Return the job ID but don't wait for the image
+      // Let the RightPanel handle displaying the result
+      return job_id;
+    }
   } catch (error) {
     console.error("[EnhanceSketch] Error:", error);
     // Publish failure event for RightPanel to react to
@@ -163,7 +246,7 @@ export async function enhanceSketch(editor: Editor) {
   }
 }
 
-// Updated waitForImageGeneration function to handle ngrok interstitial pages
+// Updated waitForImageGeneration function
 type GenerationStatusResponse = {
   status: string;
   images?: string[];
@@ -171,6 +254,7 @@ type GenerationStatusResponse = {
   height?: number;
   error?: string;
 };
+
 async function waitForImageGeneration(
   jobId: string
 ): Promise<{ image: string; width: number; height: number } | null> {
@@ -180,43 +264,14 @@ async function waitForImageGeneration(
 
   while (Date.now() - startTime < maxWaitTime) {
     try {
-      // Add ngrok bypass token to avoid the interstitial page
-      const ngrokBypass = "_ngrok_bypass=true";
-      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/status/${jobId}`;
-      const urlWithBypass = url.includes("?")
-        ? `${url}&${ngrokBypass}`
-        : `${url}?${ngrokBypass}`;
+      // Use enhanced fetch with retry logic
+      const statusUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/status/${jobId}`;
 
-      const res = await fetch(urlWithBypass, {
+      const res = await fetchWithNgrokBypass(statusUrl, {
         headers: {
-          Accept: "application/json", // Explicitly request JSON
+          Accept: "application/json",
         },
       });
-
-      if (!res.ok) {
-        console.error("[waitForImageGeneration] Non-OK response:", res.status);
-        throw new Error("Failed to check job status");
-      }
-
-      const contentType = res.headers.get("content-type") || "";
-
-      // Check if we actually got JSON back
-      if (!contentType.includes("application/json")) {
-        const text = await res.text();
-        // If we got HTML instead of JSON, it might be the ngrok warning page
-        if (text.includes("ngrok")) {
-          console.warn(
-            "[waitForImageGeneration] Received ngrok interstitial page, retrying..."
-          );
-          await new Promise((resolve) => setTimeout(resolve, pollInterval));
-          continue;
-        }
-        console.error(
-          "[waitForImageGeneration] Expected JSON but got:",
-          text.substring(0, 200)
-        );
-        throw new Error("Backend did not return JSON.");
-      }
 
       const data: GenerationStatusResponse = await res.json();
 
@@ -228,13 +283,15 @@ async function waitForImageGeneration(
         const imageFilename = data.images[0];
         const filename = imageFilename.split("/").pop() || "";
 
-        // Add ngrok bypass for image fetch as well
+        // Use enhanced fetch for the image as well
         const imageUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
-        const imageUrlWithBypass = imageUrl.includes("?")
-          ? `${imageUrl}&${ngrokBypass}`
-          : `${imageUrl}?${ngrokBypass}`;
 
-        const imageRes = await fetch(imageUrlWithBypass);
+        // For image fetching, we need to accept any content type
+        const imageRes = await fetchWithNgrokBypass(imageUrl, {
+          headers: {
+            Accept: "*/*", // Accept any content type for images
+          },
+        });
 
         const blob = await imageRes.blob();
         const base64 = await convertBlobToBase64(blob);
@@ -263,8 +320,8 @@ async function waitForImageGeneration(
       await new Promise((resolve) => setTimeout(resolve, pollInterval));
     } catch (err) {
       console.error("[waitForImageGeneration] Error checking job status:", err);
-      // Wait before retrying
-      await new Promise((resolve) => setTimeout(resolve, pollInterval));
+      // Wait before retrying, with exponential backoff
+      await new Promise((resolve) => setTimeout(resolve, pollInterval * 1.5));
     }
   }
 
