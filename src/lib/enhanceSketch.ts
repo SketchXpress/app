@@ -85,14 +85,20 @@ export async function enhanceSketch(editor: Editor) {
       formData.append("seed", seed.toString());
     }
 
-    // Send image to backend
-    const res = await fetch(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`,
-      {
-        method: "POST",
-        body: formData,
-      }
-    );
+    // Send image to backend with ngrok bypass parameter
+    const ngrokBypass = "_ngrok_bypass=true";
+    const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`;
+    const urlWithBypass = apiUrl.includes("?")
+      ? `${apiUrl}&${ngrokBypass}`
+      : `${apiUrl}?${ngrokBypass}`;
+
+    const res = await fetch(urlWithBypass, {
+      method: "POST",
+      body: formData,
+      headers: {
+        Accept: "application/json",
+      },
+    });
 
     if (!res.ok) {
       const error = await res.json();
@@ -157,7 +163,7 @@ export async function enhanceSketch(editor: Editor) {
   }
 }
 
-// Keep the existing waitForImageGeneration function which works well
+// Updated waitForImageGeneration function to handle ngrok interstitial pages
 type GenerationStatusResponse = {
   status: string;
   images?: string[];
@@ -171,15 +177,21 @@ async function waitForImageGeneration(
   const startTime = Date.now();
   const maxWaitTime = 120000; // 2 minutes
   const pollInterval = 1000; // 1 second between polls
-  console.log("---------------------");
-  console.log(process.env.NEXT_PUBLIC_BACKEND_URL);
-  console.log("---------------------");
 
   while (Date.now() - startTime < maxWaitTime) {
     try {
-      const res = await fetch(
-        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/status/${jobId}`
-      );
+      // Add ngrok bypass token to avoid the interstitial page
+      const ngrokBypass = "_ngrok_bypass=true";
+      const url = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/status/${jobId}`;
+      const urlWithBypass = url.includes("?")
+        ? `${url}&${ngrokBypass}`
+        : `${url}?${ngrokBypass}`;
+
+      const res = await fetch(urlWithBypass, {
+        headers: {
+          Accept: "application/json", // Explicitly request JSON
+        },
+      });
 
       if (!res.ok) {
         console.error("[waitForImageGeneration] Non-OK response:", res.status);
@@ -188,14 +200,25 @@ async function waitForImageGeneration(
 
       const contentType = res.headers.get("content-type") || "";
 
-      let data: GenerationStatusResponse;
-      if (contentType.includes("application/json")) {
-        data = await res.json();
-      } else {
+      // Check if we actually got JSON back
+      if (!contentType.includes("application/json")) {
         const text = await res.text();
-        console.error("[waitForImageGeneration] Expected JSON but got:", text);
+        // If we got HTML instead of JSON, it might be the ngrok warning page
+        if (text.includes("ngrok")) {
+          console.warn(
+            "[waitForImageGeneration] Received ngrok interstitial page, retrying..."
+          );
+          await new Promise((resolve) => setTimeout(resolve, pollInterval));
+          continue;
+        }
+        console.error(
+          "[waitForImageGeneration] Expected JSON but got:",
+          text.substring(0, 200)
+        );
         throw new Error("Backend did not return JSON.");
       }
+
+      const data: GenerationStatusResponse = await res.json();
 
       if (
         data.status === "completed" &&
@@ -205,9 +228,13 @@ async function waitForImageGeneration(
         const imageFilename = data.images[0];
         const filename = imageFilename.split("/").pop() || "";
 
-        const imageRes = await fetch(
-          `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`
-        );
+        // Add ngrok bypass for image fetch as well
+        const imageUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
+        const imageUrlWithBypass = imageUrl.includes("?")
+          ? `${imageUrl}&${ngrokBypass}`
+          : `${imageUrl}?${ngrokBypass}`;
+
+        const imageRes = await fetch(imageUrlWithBypass);
 
         const blob = await imageRes.blob();
         const base64 = await convertBlobToBase64(blob);
