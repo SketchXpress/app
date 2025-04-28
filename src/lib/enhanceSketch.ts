@@ -158,6 +158,13 @@ export async function enhanceSketch(editor: Editor) {
 }
 
 // Keep the existing waitForImageGeneration function which works well
+type GenerationStatusResponse = {
+  status: string;
+  images?: string[];
+  width?: number;
+  height?: number;
+  error?: string;
+};
 async function waitForImageGeneration(
   jobId: string
 ): Promise<{ image: string; width: number; height: number } | null> {
@@ -172,23 +179,29 @@ async function waitForImageGeneration(
       );
 
       if (!res.ok) {
+        console.error("[waitForImageGeneration] Non-OK response:", res.status);
         throw new Error("Failed to check job status");
       }
 
-      const data = await res.json();
+      const contentType = res.headers.get("content-type") || "";
+
+      let data: GenerationStatusResponse;
+      if (contentType.includes("application/json")) {
+        data = await res.json();
+      } else {
+        const text = await res.text();
+        console.error("[waitForImageGeneration] Expected JSON but got:", text);
+        throw new Error("Backend did not return JSON.");
+      }
 
       if (
         data.status === "completed" &&
         data.images &&
         data.images.length > 0
       ) {
-        // Get the first generated image filename
         const imageFilename = data.images[0];
-
-        // Correctly extract filename
         const filename = imageFilename.split("/").pop() || "";
 
-        // Fetch the actual image
         const imageRes = await fetch(
           `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`
         );
@@ -196,7 +209,7 @@ async function waitForImageGeneration(
         const blob = await imageRes.blob();
         const base64 = await convertBlobToBase64(blob);
 
-        // Publish event for all generated images
+        // Publish event that image generation completed
         eventBus.publish("enhance:completed", {
           images: data.images,
           width: data.width || 512,
@@ -216,10 +229,10 @@ async function waitForImageGeneration(
         throw new Error(errorMsg);
       }
 
-      // Wait before polling again
+      // Still processing, wait before next poll
       await new Promise((resolve) => setTimeout(resolve, pollInterval));
     } catch (err) {
-      console.error("Error checking job status:", err);
+      console.error("[waitForImageGeneration] Error checking job status:", err);
       // Wait before retrying
       await new Promise((resolve) => setTimeout(resolve, pollInterval));
     }

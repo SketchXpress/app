@@ -190,6 +190,17 @@ const RightPanel: React.FC = () => {
     const pollInterval = setInterval(async () => {
       try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_BACKEND_URL}/api/status/${currentJobId}`);
+
+        // Check if we received HTML instead of JSON
+        const contentType = response.headers.get("content-type");
+        if (contentType && contentType.includes("text/html")) {
+          console.error("Received HTML instead of JSON - likely a ngrok limitation issue");
+          setError("Connection issue with backend - please try again later");
+          clearInterval(pollInterval);
+          setIsProcessing(false);
+          return;
+        }
+
         if (!response.ok) {
           console.error("Error polling job status:", await response.text());
           return;
