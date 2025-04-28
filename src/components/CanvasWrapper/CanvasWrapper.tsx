@@ -15,6 +15,7 @@ import { useCanvasStore } from "@/stores/canvasStore";
 import { TLShapeId } from "@tldraw/editor";
 import EnhanceButton from "../EnhanceButton/EnhanceButton";
 import { enhanceSketch } from "@/lib/enhanceSketch";
+import OnboardingGuide from "../OnboardingGuide/OnboardingGuide";
 
 // Storage key for persisting canvas state
 const CANVAS_STORAGE_KEY = 'sketchxpress-canvas-state';
@@ -133,6 +134,7 @@ const CanvasWrapper = () => {
           <p>Enhancing your artwork...</p>
         </div>
       )}
+      <OnboardingGuide />
     </div>
   );
 };

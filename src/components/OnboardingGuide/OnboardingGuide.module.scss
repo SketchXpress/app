@@ -1,0 +1,184 @@
+@import url('https://fonts.googleapis.com/css2?family=Caveat:wght@700&display=swap');
+
+/* Overall onboarding container */
+.onboardingContainer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 100;
+  background: transparent;
+  font-family: 'Caveat', 'Virgil', 'Cascadia Code', 'Segoe UI', system-ui, sans-serif;
+}
+
+/* Center logo + branding section */
+.centerContent {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.9;
+  gap: 10px;
+}
+
+/* Logo and text wrap */
+.logoWrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  animation: fadeIn 1s ease-out;
+}
+
+/* Icon background behind logo */
+.iconWrapper {
+  background: linear-gradient(90deg, var(--accent-cyan, #00FFFF), var(--accent-magenta, #FF00FF));
+  padding: 8px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+}
+
+/* Logo Image */
+.logoImage {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+/* SketchXpress Text */
+.branding {
+  font-size: 42px;
+  font-weight: bold;
+  display: flex;
+  gap: 4px;
+  background: linear-gradient(90deg, #6d6d6d, #4b4b4b);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  animation: fadeIn 1.5s ease-out;
+}
+
+
+/* Sub-Tagline under Branding */
+.subTagline {
+  font-size: 24px;
+  color: #6d6d6d;
+  opacity: 0.85;
+  margin-top: 8px;
+  text-align: center;
+  // max-width: 280px;
+}
+
+/* Fade-in animation */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Toolbar Hint (bottom center) */
+.toolbarHint {
+  position: absolute;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  gap: 6px;
+}
+
+.toolbarText {
+  font-size: 20px;
+  color: #6d6d6d;
+  opacity: 0.8;
+  text-align: center;
+}
+
+.toolbarArrow {
+  color: #6d6d6d;
+  transform: rotate(180deg); /* Arrow pointing DOWN */
+  width: 40px;
+  height: 78px;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    stroke: currentColor;
+  }
+}
+
+/* AI Enhance Hint (top center) */
+.aiEnhanceHint {
+  position: absolute;
+  top: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  pointer-events: none;
+  gap: 6px;
+}
+
+.aiEnhanceText {
+  font-size: 20px;
+  color: #6d6d6d;
+  opacity: 0.8;
+  text-align: center;
+}
+
+.aiEnhanceArrow {
+  color: #6d6d6d;
+  width: 40px;
+  height: 78px;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    stroke: currentColor;
+    transform: rotate(0deg); /* Arrow pointing UP */
+  }
+}
+
+/* Left Sidebar Single Hint */
+.leftSidebarSingleHint {
+  position: absolute;
+  top: 45%;
+  left: 10px;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #6d6d6d;
+  pointer-events: none;
+}
+
+.leftHintText {
+  font-size: 20px;
+  opacity: 0.85;
+  text-align: left;
+}
+
+.leftArrow {
+  width: 40px;
+  height: 20px;
+
+  svg {
+    width: 100%;
+    height: 100%;
+    stroke: currentColor;
+    transform: rotate(0deg);
+  }
+}
