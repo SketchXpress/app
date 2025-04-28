@@ -171,6 +171,9 @@ async function waitForImageGeneration(
   const startTime = Date.now();
   const maxWaitTime = 120000; // 2 minutes
   const pollInterval = 1000; // 1 second between polls
+  console.log("---------------------");
+  console.log(process.env.NEXT_PUBLIC_BACKEND_URL);
+  console.log("---------------------");
 
   while (Date.now() - startTime < maxWaitTime) {
     try {
