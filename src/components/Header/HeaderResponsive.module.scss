@@ -1,22 +1,32 @@
 /* Mobile and tablet breakpoints */
 @media (max-width: 768px) {
-
   .header {
     padding: 0 0.75rem;
+    /* Important to handle the absolute positioning of the MintStreet button */
+    position: relative;
   }
 
   .logoWrap {
-    flex: 1;
-  }
-
-  .menuButton {
-    display: flex;
-  }
-
-  .menuText {
-    display: inline;
+    flex: 0;
+    margin-right: auto; /* Push other elements to the right */
   }
   
+  .menuIconButton {
+    display: flex;
+    margin-left: auto; /* Ensure it stays on the right */
+    z-index: 10; /* Ensure it stays above other elements */
+  }
+  
+  .centerControls {
+    display: none; /* Hide the center mode toggle on mobile */
+  }
+  
+  .mobileMintStreetButton {
+    /* Ensure proper sizing and visibility */
+    padding: 0.3rem 0.6rem;
+    font-size: 0.85rem;
+    z-index: 5; /* Lower than menu button but higher than other elements */
+  }
 }
 
 /* Small mobile adjustments */
@@ -24,8 +34,19 @@
   .title {
     font-size: 1rem;
   }
+  
+  .mobileMintStreetButton span {
+    font-size: 0.8rem;
+  }
+}
 
-  .menuText {
-    font-size: 0.875rem;
+/* Very small screens - consider hiding text and showing only icon */
+@media (max-width: 370px) {
+  .mobileMintStreetButton span {
+    display: none;
+  }
+  
+  .mobileMintStreetButton {
+    padding: 0.3rem;
   }
 }

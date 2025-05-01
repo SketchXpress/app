@@ -1,12 +1,11 @@
 import type { Metadata } from "next";
-
-import Header from "@/components/Header/Header";
 import "./globals.scss";
 import styles from "./layout.module.scss";
 import "../styles/walletButton.css";
 import WalletConnectionProvider from "@/wallet/WalletProvider";
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import HeaderWrapper from "@/components/HeaderWrapper/HeaderWrapper";
 
 export const metadata: Metadata = {
   title: "SketchXpress",
@@ -22,7 +21,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en">
       <body>
         <WalletConnectionProvider>
-          <Header />
+          <HeaderWrapper />
           <main className={styles.main}>{children}</main>
         </WalletConnectionProvider>
 

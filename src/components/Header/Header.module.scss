@@ -5,7 +5,7 @@
   padding: 0 1rem;
   background: var(--background);
   border-bottom: 1px solid var(--border);
-  position: sticky;
+  position: relative;
   top: 0;
   z-index: 1000;
   height: 60px;
@@ -14,6 +14,41 @@
   background-color: rgba(255, 255, 255, 0.9);
   transition: all 0.2s ease;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.centerControls {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+}
+
+.mintStreetButton {
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+  z-index: 1001;
+  background: linear-gradient(45deg, #06b6d4, #d946ef);
+  border: none;
+  border-radius: 6px;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  min-width: 84px;
+  height: 36px;
+  margin-left: 8px;
+  padding: 7px 14px;
+  font-size: .875rem;
+  font-weight: 600;
+  transition: all .2s;
+  display: flex;
+  overflow: hidden;
+  box-shadow: 0 3px 12px #00000026;
+
+  &:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+  }
 }
 
 .logoWrap {
@@ -147,4 +182,44 @@
 .connectWalletDesktop {
   display: flex;
   align-items: center;
+}
+
+
+// Mobile-specific styles
+.menuIconButton {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 8px;
+  transition: background-color 0.2s;
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+}
+
+.mobileMintStreetButton {
+  color: #fff;
+  cursor: pointer;
+  white-space: nowrap;
+  z-index: 1001;
+  background: linear-gradient(45deg, #06b6d4, #d946ef);
+  border: none;
+  border-radius: 6px;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  min-width: 84px;
+  height: 36px;
+  padding: 7px 14px;
+  font-size: .875rem;
+  font-weight: 600;
+  transition: all .2s;
+  display: flex;
+  overflow: hidden;
+  box-shadow: 0 3px 12px #00000026;
+}
+.mobileSpacerRight {
+  width: 42px; 
 }

@@ -1,6 +1,5 @@
 .header .wallet-adapter-button,
 .header .wallet-adapter-button-trigger {
-  margin-left: 8px !important;
   display: flex !important;
   align-items: center !important;
   justify-content: center !important;

@@ -4,13 +4,14 @@ import Image from "next/image";
 import logo from "../../../public/logo.png";
 import styles from "./Header.module.scss";
 import responsive from "./HeaderResponsive.module.scss";
-import { Menu, X, Share2, LucideLayoutDashboard, Save } from "lucide-react";
+import { Menu, X, Share2, LucideLayoutDashboard, Save, Coins } from "lucide-react";
 import { useState, useEffect } from "react";
 import MobileMenu from "../MobileMenu/MobileMenu";
 import ModeToggle from "../ModeToggle/ModeToggle";
 import ConnectWalletButton from "@/wallet/ConnectWalletButton";
 import { useCanvasStore } from "@/stores/canvasStore";
 import { toast } from "react-toastify";
+import Link from "next/link";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -58,7 +59,6 @@ const Header = () => {
           position: "bottom-right",
           autoClose: 3000,
         });
-
       }
     } else {
       toast.error("Nothing to save yet. Try drawing something first!", {
@@ -125,10 +125,20 @@ const Header = () => {
         </span>
       </div>
 
+      {/* Mode Toggle in the middle for desktop */}
+      {!isMobile && (
+        <div className={`${styles.centerControls} ${responsive.centerControls}`}>
+          <ModeToggle />
+        </div>
+      )}
+
       {/* Desktop Controls */}
       {!isMobile && (
         <div className={`${styles.controls} ${responsive.controls}`}>
-          <ModeToggle />
+          <Link href="/mintstreet" className={styles.mintStreetButton}>
+            <Coins size={18} />
+            <span>MintStreet</span>
+          </Link>
           <div className={`${styles.actions} ${responsive.actions}`}>
             <button
               className={`${styles.actionButton} ${styles.saveButton} ${responsive.actionButton}`}
@@ -159,20 +169,29 @@ const Header = () => {
 
       {/* Mobile Controls */}
       {isMobile && (
-        <button
-          className={`${styles.menuButton} ${responsive.menuButton}`}
-          onClick={() => setIsMenuOpen(!isMenuOpen)}
-          aria-label={isMenuOpen ? "Close Menu" : "Open Menu"}
-        >
-          {isMenuOpen ? (
-            <X size={24} className={styles.menuIcon} />
-          ) : (
-            <>
-              <Menu size={20} className={styles.menuIcon} />
-              <span className={styles.menuText}>Menu</span>
-            </>
-          )}
-        </button>
+        <>
+          {/* Empty div for flex layout balance on the left */}
+          <div className={styles.mobileSpacerLeft}></div>
+
+          {/* MintStreet Button in the middle for mobile */}
+          <Link href="/mintstreet" className={styles.mobileMintStreetButton}>
+            <Coins size={18} />
+            <span>MintStreet</span>
+          </Link>
+
+          {/* Hamburger Menu Button on the right */}
+          <button
+            className={`${styles.menuIconButton} ${responsive.menuIconButton}`}
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label={isMenuOpen ? "Close Menu" : "Open Menu"}
+          >
+            {isMenuOpen ? (
+              <X size={24} className={styles.menuIcon} />
+            ) : (
+              <Menu size={24} className={styles.menuIcon} />
+            )}
+          </button>
+        </>
       )}
 
       {/* Mobile Menu */}

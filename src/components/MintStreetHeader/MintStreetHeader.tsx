@@ -1,0 +1,131 @@
+"use client";
+
+import Image from "next/image";
+import logo from "../../../public/logo.png";
+import styles from "./MintStreetHeader.module.scss";
+import { ArrowLeft, Search } from "lucide-react";
+import { useState, useEffect } from "react";
+import ConnectWalletButton from "@/wallet/ConnectWalletButton";
+import Link from "next/link";
+
+const MintStreetHeader = () => {
+  const [isMobile, setIsMobile] = useState(false);
+  const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  }, []);
+
+  const toggleSearchExpansion = () => {
+    setIsSearchExpanded(!isSearchExpanded);
+  };
+
+  return (
+    <header className={styles.header}>
+      {!isMobile && (
+        <>
+          {/* Logo */}
+          <div className={styles.logoWrap}>
+            <div className={styles.logoContainer}>
+              <Image
+                src={logo}
+                alt="SketchXpress Logo"
+                className={styles.logoImage}
+                priority
+              />
+            </div>
+            <span className={styles.title}>
+              SketchXpress
+            </span>
+          </div>
+
+          {/* Search Bar - Center for Desktop */}
+          <div className={styles.centerControls}>
+            <div className={styles.searchBar}>
+              <Search size={16} className={styles.searchIcon} />
+              <input
+                type="text"
+                placeholder="Search NFTs..."
+                className={styles.searchInput}
+              />
+            </div>
+          </div>
+
+          {/* Desktop Right Controls */}
+          <div className={styles.controls}>
+            <Link href="/" className={styles.returnButton}>
+              <ArrowLeft size={16} />
+              <span>Return to Studio</span>
+            </Link>
+            <div className={styles.connectWalletDesktop}>
+              <ConnectWalletButton />
+            </div>
+          </div>
+        </>
+      )}
+
+      {/* Mobile Layout */}
+      {isMobile && (
+        <div className={styles.mobileControls}>
+          {isSearchExpanded ? (
+            <div className={styles.expandedMobileSearchContainer}>
+              <Search size={16} className={styles.mobileSearchIcon} />
+              <input
+                type="text"
+                placeholder="Search NFTs..."
+                className={styles.mobileSearchInput}
+                autoFocus
+              />
+              <button
+                className={styles.closeSearchButton}
+                onClick={toggleSearchExpansion}
+              >
+                &times;
+              </button>
+            </div>
+          ) : (
+            <>
+              <div className={styles.mobileLeft}>
+                <div className={styles.logoWrap}>
+                  <div className={styles.logoContainer}>
+                    <Image
+                      src={logo}
+                      alt="SketchXpress Logo"
+                      className={styles.logoImage}
+                      priority
+                    />
+                  </div>
+                  <span className={styles.title}>
+                    SketchXpress
+                  </span>
+                </div>
+              </div>
+              <div className={styles.mobileCenter}>
+                <button
+                  className={styles.searchIconButton}
+                  onClick={toggleSearchExpansion}
+                >
+                  <Search size={18} />
+                </button>
+              </div>
+              <div className={styles.mobileRight}>
+                <Link href="/" className={styles.mobileReturnButton}>
+                  <ArrowLeft size={16} />
+                  <span>Return</span>
+                </Link>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </header>
+  );
+};
+
+export default MintStreetHeader;
