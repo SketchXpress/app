@@ -37,9 +37,6 @@ const fetchWithRetry = async (
 
       if (!response.ok) {
         // Log the error response for debugging
-        console.error(
-          `[fetchWithRetry] HTTP error ${response.status} for URL: ${directUrl}`
-        );
         const errorText = await response.text();
         console.error(`[fetchWithRetry] Error response body: ${errorText}`);
         throw new Error(`HTTP error ${response.status}`);
@@ -261,7 +258,6 @@ export async function enhanceSketch(editor: Editor): Promise<string> {
 
     return job_id;
   } catch (error) {
-    console.error(`[EnhanceSketch] Error: ${error}`);
     eventBus.publish("enhance:failed", { error: (error as Error).message });
     throw error;
   }

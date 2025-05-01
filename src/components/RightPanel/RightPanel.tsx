@@ -1,9 +1,11 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import styles from "./RightPanel.module.scss";
+import { useModeStore } from "@/stores/modeStore";
+import { useEnhanceStore } from "@/stores/enhanceStore";
 import Image from "next/image";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { motion } from "framer-motion";
+import { toast } from "react-toastify";
 import {
   Download,
   Coins,
@@ -15,16 +17,8 @@ import {
   ChevronUp,
   Settings,
   RefreshCw,
-  AlertOctagon,
-  Wand2,
-  Eye,
-  Share2,
-  Info
+  AlertOctagon
 } from "lucide-react";
-
-import styles from "./RightPanel.module.scss";
-import { useModeStore } from "@/stores/modeStore";
-import { useEnhanceStore } from "@/stores/enhanceStore";
 import {
   subscribeToEnhanceStarted,
   subscribeToEnhanceCompleted,
@@ -33,11 +27,12 @@ import {
   EnhanceCompletedEvent,
   EnhanceFailedEvent
 } from "@/lib/events";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { uploadMetadataToIPFS } from "@/lib/uploadMetadataToIPFS";
 import { mintNFT } from "@/lib/mintNFT";
 import { uploadToIPFSUsingPinata } from "@/lib/uploadToIPFSUsingPinata";
 
-// Extend event type to include base64 data
+// Extend event type to include base64 data (optional chaining used in code)
 interface EnhanceCompletedEventWithBase64 extends EnhanceCompletedEvent {
   images_base64?: string[];
 }
@@ -62,7 +57,6 @@ const RightPanel: React.FC = () => {
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
-  const [processingProgress, setProcessingProgress] = useState<number>(0);
   const sidebarRef = useRef<HTMLElement | null>(null);
   const walletContext = useWallet();
 
@@ -75,24 +69,6 @@ const RightPanel: React.FC = () => {
     numImages, setNumImages,
     resetToDefaults
   } = useEnhanceStore();
-
-  // Simulated processing progress
-  useEffect(() => {
-    if (isProcessing) {
-      const interval = setInterval(() => {
-        setProcessingProgress(prev => {
-          const increment = Math.random() * 5;
-          const newValue = prev + increment;
-          return newValue >= 100 ? 99 : newValue; // Cap at 99% until complete
-        });
-      }, 500);
-
-      return () => {
-        clearInterval(interval);
-        setProcessingProgress(0);
-      };
-    }
-  }, [isProcessing]);
 
   // Handle responsive behavior
   useEffect(() => {
@@ -143,12 +119,18 @@ const RightPanel: React.FC = () => {
       setGeneratedImages([]); // Clear previous images
       setError(null);
       setCurrentJobId(data.jobId);
-      setProcessingProgress(0);
 
       // Auto-expand the panel when processing starts
       if (!sidebarOpen) {
         setSidebarOpen(true);
       }
+
+      // Show toast notification for processing
+      toast.info("Starting to enhance your artwork...", {
+        position: "bottom-right",
+        autoClose: 3000,
+        icon: () => <span>🎨</span>
+      });
     });
 
     // Handle enhance completed event
@@ -156,7 +138,6 @@ const RightPanel: React.FC = () => {
       console.log("[RightPanel] Enhance completed event received:", data);
       setIsProcessing(false);
       setCurrentJobId(null); // Clear job ID once completed
-      setProcessingProgress(100);
 
       try {
         let images: GeneratedImage[] = [];
@@ -194,9 +175,7 @@ const RightPanel: React.FC = () => {
                   src: URL.createObjectURL(blob), // Create local URL for the Image component
                   url: fullUrl // Store original URL for downloads
                 };
-              } catch (error) {
-                console.error(`[Fallback] Error fetching image ${index + 1}:`, error);
-                // Return a placeholder or skip
+              } catch {
                 return null;
               }
             })
@@ -209,23 +188,45 @@ const RightPanel: React.FC = () => {
           console.log("[RightPanel] Setting generated images:", images);
           setGeneratedImages(images);
           setShowGallery(true);
+
+          // Show success toast
+          toast.success(`${images.length} image${images.length > 1 ? 's' : ''} generated successfully!`, {
+            position: "bottom-right",
+            autoClose: 4000,
+            icon: () => <span>✨</span>
+          });
         } else {
           setError("Failed to load generated images from event.");
+
+          // Show error toast
+          toast.error("Failed to load generated images", {
+            position: "bottom-right",
+            autoClose: 4000,
+          });
         }
 
-      } catch (err) {
-        console.error("[RightPanel] Error processing completed event:", err);
+      } catch {
         setError("Failed to process generated images");
+
+        // Show error toast
+        toast.error("Failed to process generated images", {
+          position: "bottom-right",
+          autoClose: 4000,
+        });
       }
     });
 
     // Handle enhance failed event
     const unsubscribeFailed = subscribeToEnhanceFailed((data: EnhanceFailedEvent) => {
-      console.error("[RightPanel] Enhance failed event received:", data);
       setIsProcessing(false);
       setCurrentJobId(null); // Clear job ID on failure
       setError(data.error || "Image generation failed");
-      setProcessingProgress(0);
+
+      // Show error toast
+      toast.error(data.error || "Image generation failed", {
+        position: "bottom-right",
+        autoClose: 5000,
+      });
     });
 
     // Clean up subscriptions
@@ -256,18 +257,28 @@ const RightPanel: React.FC = () => {
 
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("text/html")) {
-          console.error("[Polling] Received HTML instead of JSON - ngrok issue?");
+
+          // Don't immediately fail, maybe it's temporary
+          // setError("Connection issue with backend - ngrok limitation?");
+          // if (pollInterval) clearInterval(pollInterval);
+          // setIsProcessing(false);
           return; // Try polling again
         }
 
         if (!response.ok) {
-          console.error("[Polling] Error polling job status:", response.status, await response.text());
+
           // Keep polling unless it's a 404 (job not found)
           if (response.status === 404) {
             setError("Job not found. Please try again.");
             if (pollInterval) clearInterval(pollInterval);
             setIsProcessing(false);
             setCurrentJobId(null);
+
+            // Show error toast
+            toast.error("Job not found. Please try again.", {
+              position: "bottom-right",
+              autoClose: 4000,
+            });
           }
           return;
         }
@@ -280,7 +291,6 @@ const RightPanel: React.FC = () => {
           if (pollInterval) clearInterval(pollInterval); // Stop polling
           setIsProcessing(false);
           setCurrentJobId(null); // Clear job ID
-          setProcessingProgress(100);
 
           let images: GeneratedImage[] = [];
           // *** USE BASE64 DATA IF AVAILABLE ***
@@ -316,8 +326,8 @@ const RightPanel: React.FC = () => {
                     src: URL.createObjectURL(blob),
                     url: fullUrl
                   };
-                } catch (error) {
-                  console.error(`[Polling Fallback] Error fetching image ${index + 1}:`, error);
+                } catch {
+
                   return null;
                 }
               })
@@ -331,25 +341,43 @@ const RightPanel: React.FC = () => {
             setGeneratedImages(images);
             setShowGallery(true);
             setError(null); // Clear any previous error
+
+            // Show success toast
+            toast.success(`${images.length} image${images.length > 1 ? 's' : ''} generated successfully!`, {
+              position: "bottom-right",
+              autoClose: 4000,
+              icon: () => <span>✨</span>
+            });
           } else {
             setError("Failed to load generated images from status poll.");
+
+            // Show error toast
+            toast.error("Failed to load generated images", {
+              position: "bottom-right",
+              autoClose: 4000,
+            });
           }
 
         } else if (data.status === "failed") {
-          console.error("[Polling] Job failed:", data.error);
+
           if (pollInterval) clearInterval(pollInterval);
           setIsProcessing(false);
           setCurrentJobId(null);
           setError(data.error || "Generation failed");
-          setProcessingProgress(0);
+
+          // Show error toast
+          toast.error(data.error || "Generation failed", {
+            position: "bottom-right",
+            autoClose: 5000,
+          });
         } else if (data.status === "processing") {
           // Continue polling
         } else {
           console.warn("[Polling] Unknown job status:", data.status);
           // Continue polling for a while
         }
-      } catch (err) {
-        console.error("[Polling] Error during poll:", err);
+      } catch {
+
         // Don't stop polling immediately on generic error, could be temporary network issue
       }
     };
@@ -386,13 +414,24 @@ const RightPanel: React.FC = () => {
   // Download/Export uses the original URL
   const handleExport = () => {
     if (!selectedImageId) {
-      alert("Please select an image to export");
+      toast.warning("Please select an image to export", {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
       return;
     }
     const selectedImage = generatedImages.find(img => img.id === selectedImageId);
     if (!selectedImage) return;
 
     console.log(`Exporting image: ${selectedImage.url}`);
+
+    // Show a toast notification that download is starting
+    toast.info("Starting download...", {
+      position: "bottom-right",
+      autoClose: 2000,
+      icon: () => <span>📥</span>
+    });
+
     const link = document.createElement("a");
     link.href = selectedImage.url; // Use the original URL for download
     link.target = "_blank"; // Open in new tab might be better for ngrok links
@@ -400,55 +439,48 @@ const RightPanel: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    // Show a success toast
+    setTimeout(() => {
+      toast.success("Image downloaded successfully!", {
+        position: "bottom-right",
+        autoClose: 3000,
+        icon: () => <span>✅</span>
+      });
+    }, 1000); // Slight delay to avoid toast overlap
   };
 
-  // Share function (new)
-  const handleShare = () => {
-    if (!selectedImageId) {
-      alert("Please select an image to share");
-      return;
-    }
-
-    // This is a placeholder. In a real implementation, you might:
-    // 1. Upload the image to a sharing service
-    // 2. Generate a shareable link
-    // 3. Use the Web Share API if available
-
-    if (navigator.share) {
-      navigator.share({
-        title: 'My SketchXpress Creation',
-        text: 'Check out this AI-enhanced image I created with SketchXpress!',
-        url: window.location.href,
-      })
-        .then(() => console.log('Successful share'))
-        .catch((error) => console.log('Error sharing:', error));
-    } else {
-      // Fallback for browsers that don't support the Web Share API
-      alert("Sharing link copied to clipboard!");
-    }
-  };
-
-  // Minting requires fetching the blob again from the original URL
   const handleMintNFT = async () => {
     if (!walletContext.connected || !walletContext.publicKey) {
-      alert("Please connect your wallet first!");
+      toast.error("Please connect your wallet first!", {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
       return;
     }
     if (!selectedImageId) {
-      alert("Please select an image to mint!");
+      toast.warning("Please select an image to mint!", {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
       return;
     }
     const selectedImage = generatedImages.find(img => img.id === selectedImageId);
     if (!selectedImage) {
-      alert("Selected image not found.");
+      toast.error("Selected image not found.", {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
       return;
     }
 
-    // Show minting status
-    setIsProcessing(true);
-    setError(null);
-
+    console.log(`Preparing to mint image: ${selectedImage.url}`);
     try {
+      // Show a loading toast that we can update later
+      const mintingToastId = toast.loading("Starting the NFT minting process...", {
+        position: "bottom-right",
+      });
+
       // Fetch the image blob from the original URL
       const response = await fetch(selectedImage.url);
       if (!response.ok) {
@@ -458,11 +490,21 @@ const RightPanel: React.FC = () => {
 
       // Upload image to IPFS
       console.log("Uploading image to IPFS...");
+      toast.update(mintingToastId, {
+        render: "Uploading image to IPFS...",
+        type: "info",
+        isLoading: true
+      });
       const imageIpfsUrl = await uploadToIPFSUsingPinata(blob);
       console.log("Image uploaded to IPFS:", imageIpfsUrl);
 
       // Upload metadata to IPFS
       console.log("Uploading metadata to IPFS...");
+      toast.update(mintingToastId, {
+        render: "Uploading metadata to IPFS...",
+        type: "info",
+        isLoading: true
+      });
       const metadataIpfsUrl = await uploadMetadataToIPFS(
         "SketchXpress Artwork",
         "AI-enhanced artwork created with SketchXpress.",
@@ -472,29 +514,58 @@ const RightPanel: React.FC = () => {
 
       // Mint the NFT
       console.log("Minting NFT...");
+      toast.update(mintingToastId, {
+        render: "Creating your NFT on the blockchain...",
+        type: "info",
+        isLoading: true
+      });
       const nftAddress = await mintNFT(metadataIpfsUrl, walletContext);
       console.log("NFT minted successfully:", nftAddress);
 
-      // Hide the processing state
-      setIsProcessing(false);
-
-      // Show success message
-      alert(`🎉 NFT minted successfully!\nAddress: ${nftAddress}`);
+      // Success toast
+      toast.update(mintingToastId, {
+        render: `🎉 NFT minted successfully!\nAddress: ${nftAddress}`,
+        type: 'success',
+        isLoading: false,
+        autoClose: 5000,
+        closeButton: true,
+        draggable: true,
+        icon: () => <span>🖼️</span>
+      });
     } catch (error) {
-      console.error("Error minting NFT:", error);
-      setIsProcessing(false);
-      setError(`Minting failed: ${error instanceof Error ? error.message : String(error)}`);
+
+      toast.error(`Minting failed: ${error instanceof Error ? error.message : String(error)}`, {
+        position: "bottom-right",
+        autoClose: 5000,
+      });
     }
   };
 
   const handleImageSelect = (id: number) => {
     setSelectedImageId(id === selectedImageId ? null : id);
+
+    // Optional: Show toast when selecting image
+    if (id !== selectedImageId) {
+      toast.info(`Image ${id} selected`, {
+        position: "bottom-right",
+        autoClose: 1500,
+        hideProgressBar: true
+      });
+    }
   };
 
   // Individual image download button
   const handleDownloadImage = (e: React.MouseEvent, image: GeneratedImage) => {
     e.stopPropagation();
     console.log(`Downloading image: ${image.url}`);
+
+    // Show downloading toast
+    toast.info("Starting download...", {
+      position: "bottom-right",
+      autoClose: 2000,
+      icon: () => <span>📥</span>
+    });
+
     const link = document.createElement("a");
     link.href = image.url;
     link.download = `generated-image-${image.id}.png`;
@@ -502,23 +573,31 @@ const RightPanel: React.FC = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+
+    // Show success toast
+    setTimeout(() => {
+      toast.success("Image downloaded successfully!", {
+        position: "bottom-right",
+        autoClose: 3000,
+        icon: () => <span>✅</span>
+      });
+    }, 1000); // Slight delay to avoid toast overlap
   };
 
   // Individual image mint button
   const handleMintClick = (e: React.MouseEvent, imageId: number) => {
     e.stopPropagation();
     setSelectedImageId(imageId); // Select the image first
+
+    // Show a toast notification
+    toast.info("Preparing to mint image...", {
+      position: "bottom-right",
+      autoClose: 2000,
+      icon: () => <RefreshCw size={16} />
+    });
+
     // Use setTimeout to allow state update before calling mint
     setTimeout(() => handleMintNFT(), 0);
-  };
-
-  // New preview function
-  const handlePreview = (e: React.MouseEvent, image: GeneratedImage) => {
-    e.stopPropagation();
-    // Select the image and show full screen preview
-    setSelectedImageId(image.id);
-    // Here you would implement a full-screen preview modal
-    // For now, we're just selecting the image
   };
 
   return (
@@ -555,43 +634,30 @@ const RightPanel: React.FC = () => {
           {!sidebarOpen && (
             <div className={styles.collapsedButtons}>
               {mode === "pro" && (
-                <motion.button
+                <button
                   className={styles.iconButton}
                   onClick={() => setSidebarOpen(true)}
                   title="AI Parameters"
-                  whileHover={{ y: -2, boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}
                 >
                   <Settings size={20} />
-                </motion.button>
+                </button>
               )}
-              <motion.button
+              <button
                 className={styles.iconButton}
                 onClick={() => setSidebarOpen(true)}
                 title="Generated Images"
-                whileHover={{ y: -2, boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}
               >
                 <ImageIcon size={20} />
-              </motion.button>
+              </button>
             </div>
           )}
 
           {/* Expanded view content */}
           {sidebarOpen && (
-            <div>
+            <>
               {/* Pro mode parameters */}
               {mode === "pro" && !isProcessing && (
-                <motion.div
-                  className={styles.section}
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -10 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <div className={styles.sectionTitle}>
-                    <Settings size={14} className={styles.sectionIcon} />
-                    <span>AI Configuration</span>
-                  </div>
-
+                <div className={styles.section}>
                   {/* Text Prompt Input */}
                   <div className={styles.promptInputGroup}>
                     <label htmlFor="prompt-input" className={styles.inputLabel}>Text Prompt</label>
@@ -622,425 +688,233 @@ const RightPanel: React.FC = () => {
 
                   {/* Advanced Parameters Toggle */}
                   <div className={styles.parametersToggle}>
-                    <motion.button
+                    <button
                       className={styles.toggleButton}
                       onClick={() => setShowAdvanced(!showAdvanced)}
                       type="button"
-                      whileHover={{ backgroundColor: "rgba(0, 0, 0, 0.05)" }}
                     >
                       <Settings size={14} className={styles.settingsIcon} />
                       <span>Advanced Parameters</span>
                       {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </motion.button>
+                    </button>
                   </div>
 
                   {/* Advanced Parameters Panel */}
-                  <div>
-                    {showAdvanced && (
-                      <motion.div
-                        className={styles.advancedParams}
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.3 }}
+                  {showAdvanced && (
+                    <div className={styles.advancedParams}>
+                      {/* Temperature Slider */}
+                      <div className={styles.paramSlider}>
+                        <div className={styles.paramHeader}>
+                          <label htmlFor="temperature-slider">Temperature: {temperature.toFixed(2)}</label>
+                          <div className={styles.paramLabels}>
+                            <span>Precise</span>
+                            <span>Creative</span>
+                          </div>
+                        </div>
+                        <input
+                          id="temperature-slider"
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.01"
+                          value={temperature}
+                          onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                          className={styles.slider}
+                        />
+                      </div>
+                      {/* Guidance Scale Slider */}
+                      <div className={styles.paramSlider}>
+                        <div className={styles.paramHeader}>
+                          <label htmlFor="guidance-slider">Guidance Scale: {guidanceScale.toFixed(2)}</label>
+                          <div className={styles.paramLabels}>
+                            <span>Creative</span>
+                            <span>Precise</span>
+                          </div>
+                        </div>
+                        <input
+                          id="guidance-slider"
+                          type="range"
+                          min="1"
+                          max="15"
+                          step="0.5"
+                          value={guidanceScale}
+                          onChange={(e) => setGuidanceScale(parseFloat(e.target.value))}
+                          className={styles.slider}
+                        />
+                      </div>
+                      {/* Number of Images Slider */}
+                      <div className={styles.paramSlider}>
+                        <div className={styles.paramHeader}>
+                          <label htmlFor="num-images-slider">Number of Images: {numImages}</label>
+                        </div>
+                        <input
+                          id="num-images-slider"
+                          type="range"
+                          min="1"
+                          max="4"
+                          step="1"
+                          value={numImages}
+                          onChange={(e) => setNumImages(parseInt(e.target.value, 10))}
+                          className={styles.slider}
+                        />
+                        <div className={styles.numImagesIndicator}>
+                          {Array.from({ length: 4 }).map((_, idx) => (
+                            <div
+                              key={idx}
+                              className={`${styles.numBox} ${idx < numImages ? styles.active : ""}`}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                      {/* Reset Button */}
+                      <button
+                        className={styles.resetButton}
+                        onClick={() => {
+                          resetToDefaults();
+                          toast.info("Parameters reset to defaults", {
+                            position: "bottom-right",
+                            autoClose: 2000,
+                            icon: () => <RefreshCw size={16} />
+                          });
+                        }}
+                        type="button"
                       >
-                        {/* Temperature Slider */}
-                        <div className={styles.paramSlider}>
-                          <div className={styles.paramHeader}>
-                            <label htmlFor="temperature-slider">Temperature: {temperature.toFixed(2)}</label>
-                            <div className={styles.paramLabels}>
-                              <span>Precise</span>
-                              <span>Creative</span>
-                            </div>
-                          </div>
-                          <input
-                            id="temperature-slider"
-                            type="range"
-                            min="0"
-                            max="1"
-                            step="0.01"
-                            value={temperature}
-                            onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                            className={styles.slider}
-                          />
-                        </div>
-
-                        {/* Guidance Scale Slider */}
-                        <div className={styles.paramSlider}>
-                          <div className={styles.paramHeader}>
-                            <label htmlFor="guidance-slider">Guidance Scale: {guidanceScale.toFixed(2)}</label>
-                            <div className={styles.paramLabels}>
-                              <span>Creative</span>
-                              <span>Precise</span>
-                            </div>
-                          </div>
-                          <input
-                            id="guidance-slider"
-                            type="range"
-                            min="1"
-                            max="15"
-                            step="0.5"
-                            value={guidanceScale}
-                            onChange={(e) => setGuidanceScale(parseFloat(e.target.value))}
-                            className={styles.slider}
-                          />
-                        </div>
-
-                        {/* Number of Images Slider */}
-                        <div className={styles.paramSlider}>
-                          <div className={styles.paramHeader}>
-                            <label htmlFor="num-images-slider">Number of Images: {numImages}</label>
-                          </div>
-                          <input
-                            id="num-images-slider"
-                            type="range"
-                            min="1"
-                            max="4"
-                            step="1"
-                            value={numImages}
-                            onChange={(e) => setNumImages(parseInt(e.target.value, 10))}
-                            className={styles.slider}
-                          />
-                          <div className={styles.numImagesIndicator}>
-                            {Array.from({ length: 4 }).map((_, idx) => (
-                              <motion.div
-                                key={idx}
-                                className={`${styles.numBox} ${idx < numImages ? styles.active : ""}`}
-                                animate={{
-                                  backgroundColor: idx < numImages ? 'var(--accent-cyan)' : 'var(--border)',
-                                  scale: idx < numImages ? 1.1 : 1
-                                }}
-                                transition={{ duration: 0.2 }}
-                              />
-                            ))}
-                          </div>
-                        </div>
-
-                        {/* Reset Button */}
-                        <motion.button
-                          className={styles.resetButton}
-                          onClick={resetToDefaults}
-                          type="button"
-                          whileHover={{
-                            backgroundColor: "rgba(0, 0, 0, 0.05)",
-                            scale: 1.02,
-                            opacity: 0.9
-                          }}
-                          whileTap={{ scale: 0.98 }}
-                        >
-                          <RefreshCw size={14} />
-                          <span>Reset to Defaults</span>
-                        </motion.button>
-
-                        {/* Help tooltip */}
-                        <div className={styles.parameterHelp}>
-                          <Info size={14} />
-                          <span>Higher temperature and lower guidance produces more creative, varied results.</span>
-                        </div>
-                      </motion.div>
-                    )}
-                  </div>
-                </motion.div>
+                        <RefreshCw size={14} />
+                        <span>Reset to Defaults</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Loading indicator */}
               {isProcessing && (
-                <motion.div
-                  className={styles.processingSection}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  exit={{ opacity: 0 }}
-                >
-                  <div className={styles.progressContainer}>
-                    <motion.div
-                      className={styles.progressBar}
-                      initial={{ width: 0 }}
-                      animate={{ width: `${processingProgress}%` }}
-                      transition={{ ease: "easeInOut" }}
-                    />
-                  </div>
-
-                  <div className={styles.spinnerContainer}>
-                    <div className={styles.spinner}></div>
-                    <Wand2 className={styles.magicWandIcon} size={20} />
-                  </div>
-
-                  <motion.p
-                    className={styles.processingText}
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    {processingProgress < 30 && "Analyzing your sketch..."}
-                    {processingProgress >= 30 && processingProgress < 65 && "Enhancing details..."}
-                    {processingProgress >= 65 && processingProgress < 95 && "Adding final touches..."}
-                    {processingProgress >= 95 && "Almost done!"}
-                  </motion.p>
-
-                  <motion.p
-                    className={styles.processingSubtext}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.7 }}
-                    transition={{ delay: 0.5 }}
-                  >
-                    Creating high-quality artwork just for you
-                  </motion.p>
-                </motion.div>
+                <div className={styles.processingSection}>
+                  <div className={styles.spinner}></div>
+                  <p className={styles.processingText}>
+                    Transforming your sketch...
+                  </p>
+                </div>
               )}
 
               {/* Error display */}
               {error && !isProcessing && (
-                <motion.div
-                  className={styles.errorSection}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
+                <div className={styles.errorSection}>
                   <AlertOctagon size={24} className={styles.errorIcon} />
                   <p className={styles.errorText}>{error}</p>
-                  <motion.button
-                    className={styles.retryButton}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    <RefreshCw size={16} />
-                    <span>Try Again</span>
-                  </motion.button>
-                </motion.div>
+                </div>
               )}
 
               {/* Generated Images Section */}
               {generatedImages.length > 0 && (
-                <motion.div
-                  className={styles.section}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.1 }}
-                >
+                <div className={styles.section}>
                   <div className={styles.galleryHeader}>
                     <h3 className={styles.sectionTitle}>
                       <ImageIcon size={16} className={styles.sectionIcon} />
-                      <span>Your Creations</span>
-                      <div className={styles.imageCount}>{generatedImages.length}</div>
+                      <span>Generated Images</span>
                     </h3>
-                    <motion.button
+                    <button
                       className={styles.toggleGallery}
                       onClick={() => setShowGallery(!showGallery)}
                       type="button"
                       aria-label={showGallery ? "Hide gallery" : "Show gallery"}
-                      whileHover={{ scale: 1.1 }}
-                      whileTap={{ scale: 0.9 }}
                     >
                       {showGallery ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </motion.button>
+                    </button>
                   </div>
 
-                  <div>
-                    {showGallery && (
-                      <motion.div
-                        className={styles.generatedImagesGrid}
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                        transition={{ duration: 0.3 }}
-                      >
-                        {generatedImages.map((image) => (
-                          <motion.div
-                            key={image.id}
-                            className={`${styles.generatedImageCard} ${selectedImageId === image.id ? styles.selected : ""}`}
-                            onClick={() => handleImageSelect(image.id)}
-                            initial={{ scale: 0.9, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            transition={{ duration: 0.3 }}
-                            whileHover={{ y: -4, boxShadow: "0 8px 20px rgba(0,0,0,0.1)" }}
-                          >
-                            <div className={styles.imageContainer}>
-                              <Image
-                                src={image.src}
-                                alt={image.title}
-                                width={150}
-                                height={150}
-                                className={styles.generatedImage}
-                                unoptimized={image.src.startsWith("blob:")}
-                              />
-                              <div className={styles.imageActions}>
-                                <motion.button
+                  {showGallery && (
+                    <div className={styles.generatedImagesGrid}>
+                      {generatedImages.map((image) => (
+                        <div
+                          key={image.id}
+                          className={`${styles.generatedImageCard} ${selectedImageId === image.id ? styles.selected : ""}`}
+                          onClick={() => handleImageSelect(image.id)}
+                        >
+                          <div className={styles.imageContainer}>
+                            <Image
+                              src={image.src} // Use the src (base64 or blob URL)
+                              alt={image.title}
+                              width={150} // Adjust size as needed
+                              height={150}
+                              className={styles.generatedImage}
+                              unoptimized={image.src.startsWith("blob:")} // Avoid Next.js optimization for blob URLs
+                            />
+                            <div className={styles.imageActions}>
+                              <button
+                                className={styles.imageActionButton}
+                                title="Download"
+                                onClick={(e) => handleDownloadImage(e, image)}
+                                type="button"
+                              >
+                                <Download size={14} />
+                              </button>
+                              {mode === "pro" && (
+                                <button
                                   className={styles.imageActionButton}
-                                  title="Preview"
-                                  onClick={(e) => handlePreview(e, image)}
+                                  title="Mint as NFT"
+                                  onClick={(e) => handleMintClick(e, image.id)}
                                   type="button"
-                                  whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.4)" }}
                                 >
-                                  <Eye size={14} />
-                                </motion.button>
-                                <motion.button
-                                  className={styles.imageActionButton}
-                                  title="Download"
-                                  onClick={(e) => handleDownloadImage(e, image)}
-                                  type="button"
-                                  whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.4)" }}
-                                >
-                                  <Download size={14} />
-                                </motion.button>
-                                {mode === "pro" && (
-                                  <motion.button
-                                    className={styles.imageActionButton}
-                                    title="Mint as NFT"
-                                    onClick={(e) => handleMintClick(e, image.id)}
-                                    type="button"
-                                    whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.4)" }}
-                                  >
-                                    <Coins size={14} />
-                                  </motion.button>
-                                )}
-                              </div>
-                              {selectedImageId === image.id && (
-                                <motion.div
-                                  className={styles.selectedIndicator}
-                                  initial={{ opacity: 0 }}
-                                  animate={{ opacity: 1 }}
-                                  exit={{ opacity: 0 }}
-                                  transition={{ duration: 0.2 }}
-                                />
+                                  <Coins size={14} />
+                                </button>
                               )}
                             </div>
-                            <div className={styles.imageDetails}>
-                              <div className={styles.imageTitle}>{image.title}</div>
-                              {selectedImageId === image.id && (
-                                <div className={styles.selectedBadge}>Selected</div>
-                              )}
-                            </div>
-                          </motion.div>
-                        ))}
-                      </motion.div>
-                    )}
-                  </div>
-                </motion.div>
+                          </div>
+                          <div className={styles.imageTitle}>{image.title}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               )}
 
               {/* Action Buttons */}
               {generatedImages.length > 0 && (
-                <motion.div
-                  className={styles.section}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3, delay: 0.2 }}
-                >
+                <div className={styles.section}>
                   <div className={styles.actionButtons}>
-                    <motion.button
+                    <button
                       className={`${styles.actionButton} ${!selectedImageId ? styles.disabled : ""}`}
                       onClick={handleExport}
                       disabled={!selectedImageId}
                       type="button"
-                      whileHover={selectedImageId ? { y: -3, boxShadow: "0 6px 10px rgba(0,0,0,0.1)" } : {}}
-                      whileTap={selectedImageId ? { y: -1, boxShadow: "0 2px 5px rgba(0,0,0,0.1)" } : {}}
                     >
                       <Download size={18} />
-                      <span>Download</span>
-                    </motion.button>
-
-                    <motion.button
-                      className={`${styles.actionButton} ${!selectedImageId ? styles.disabled : ""}`}
-                      onClick={handleShare}
-                      disabled={!selectedImageId}
-                      type="button"
-                      whileHover={selectedImageId ? { y: -3, boxShadow: "0 6px 10px rgba(0,0,0,0.1)" } : {}}
-                      whileTap={selectedImageId ? { y: -1, boxShadow: "0 2px 5px rgba(0,0,0,0.1)" } : {}}
-                    >
-                      <Share2 size={18} />
-                      <span>Share</span>
-                    </motion.button>
+                      <span>Export</span>
+                    </button>
 
                     {mode === "pro" && (
-                      <motion.button
+                      <button
                         className={`${styles.actionButton} ${styles.mintButton} ${!selectedImageId ? styles.disabled : ""}`}
                         onClick={handleMintNFT}
                         disabled={!selectedImageId}
                         type="button"
-                        whileHover={selectedImageId ? { y: -3, boxShadow: "0 6px 12px rgba(0,0,0,0.15)" } : {}}
-                        whileTap={selectedImageId ? { y: -1, boxShadow: "0 2px 5px rgba(0,0,0,0.15)" } : {}}
                       >
                         <Coins size={18} />
                         <span>Mint NFT</span>
-                      </motion.button>
+                      </button>
                     )}
                   </div>
-
-                  {selectedImageId && (
-                    <div className={styles.previewFrame}>
-                      {generatedImages
-                        .filter(img => img.id === selectedImageId)
-                        .map(image => (
-                          <div key={image.id} className={styles.selectedPreview}>
-                            <Image
-                              src={image.src}
-                              alt={image.title}
-                              width={280}
-                              height={280}
-                              className={styles.previewImage}
-                              unoptimized={image.src.startsWith("blob:")}
-                            />
-                            <p className={styles.previewTitle}>{image.title}</p>
-                          </div>
-                        ))
-                      }
-                    </div>
-                  )}
-                </motion.div>
+                </div>
               )}
 
               {/* Empty state */}
               {!isProcessing && !error && generatedImages.length === 0 && (
-                <motion.div
-                  className={styles.emptyState}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ duration: 0.5 }}
-                >
-                  <div className={styles.emptyStateIconWrapper}>
-                    <motion.div
-                      animate={{
-                        scale: [1, 1.05, 1],
-                        rotate: [0, 5, 0, -5, 0]
-                      }}
-                      transition={{
-                        duration: 4,
-                        repeat: Infinity
-                      }}
-                    >
-                      <Wand2 size={40} className={styles.emptyStateIcon} />
-                    </motion.div>
-                  </div>
-                  <motion.p
-                    className={styles.emptyStateText}
-                    initial={{ y: 10, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.2 }}
-                  >
-                    Click &quot;{mode === "kids" ? "Magic Enhance" : "AI Enhance"}&quot; to transform your artwork
-                  </motion.p>
-                  <motion.p
-                    className={styles.emptyStateSubtext}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 0.7 }}
-                    transition={{ delay: 0.5 }}
-                  >
-                    Draw something first, then let AI do the magic
-                  </motion.p>
-                </motion.div>
+                <div className={styles.emptyState}>
+                  <ImageIcon size={40} className={styles.emptyStateIcon} />
+                  <p className={styles.emptyStateText}>
+                    Click &quot;AI Enhance&quot; to see results here.
+                  </p>
+                </div>
               )}
-            </div>
+            </>
           )}
         </div>
       </aside>
 
       {/* Mobile overlay */}
       {isMobile && sidebarOpen && (
-        <div
-          className={styles.sidebarOverlay}
-          onClick={() => setSidebarOpen(false)}
-        />
+        <div className={styles.sidebarOverlay} onClick={() => setSidebarOpen(false)} />
       )}
     </>
   );

@@ -4,6 +4,7 @@ import { Wand2 } from "lucide-react";
 import styles from "./EnhanceButton.module.scss";
 import { useModeStore } from "@/stores/modeStore";
 import { useCanvasStore } from "@/stores/canvasStore";
+import { toast } from "react-toastify";
 
 interface EnhanceButtonProps {
   onClick: () => void;
@@ -26,11 +27,22 @@ const EnhanceButton = ({ onClick }: EnhanceButtonProps) => {
         // Select all shapes before enhancing
         editor.selectAll();
 
+        // Show a toast notification
+        toast.info(mode === "kids" ? "Adding some magic to your drawing..." : "Enhancing your artwork...", {
+          position: "bottom-right",
+          autoClose: 3000,
+          icon: <span>{mode === "kids" ? "✨" : "🎨"}</span>
+        });
+
         // Now call the original onClick handler (which will enhance the selection)
         onClick();
       } else {
         // If no shapes, show a message
-        alert("Please draw something first!");
+        toast.info("Please draw something first!", {
+          position: "bottom-right",
+          autoClose: 3000,
+          icon: <span>✏️</span>
+        });
       }
     } else {
       // Fallback to original onClick if editor isn't available

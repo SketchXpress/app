@@ -53,12 +53,12 @@ const Header = () => {
           draggable: true,
           icon: <span>🎨</span>,
         });
-      } catch (error) {
+      } catch {
         toast.error("Failed to save project. Please try again.", {
           position: "bottom-right",
           autoClose: 3000,
         });
-        console.error("Save error:", error);
+
       }
     } else {
       toast.error("Nothing to save yet. Try drawing something first!", {
