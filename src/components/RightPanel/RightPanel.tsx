@@ -17,7 +17,8 @@ import {
   ChevronUp,
   Settings,
   RefreshCw,
-  AlertOctagon
+  AlertOctagon,
+  Star // Add the Star icon for Kids mode NFT button
 } from "lucide-react";
 import {
   subscribeToEnhanceStarted,
@@ -31,6 +32,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { uploadMetadataToIPFS } from "@/lib/uploadMetadataToIPFS";
 import { mintNFT } from "@/lib/mintNFT";
 import { uploadToIPFSUsingPinata } from "@/lib/uploadToIPFSUsingPinata";
+import ParentalControl from "../ParentalControl/ParentalContrl";
 
 // Extend event type to include base64 data (optional chaining used in code)
 interface EnhanceCompletedEventWithBase64 extends EnhanceCompletedEvent {
@@ -57,6 +59,10 @@ const RightPanel: React.FC = () => {
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  // Parental control state
+  const [showParentalDialog, setShowParentalDialog] = useState<boolean>(false);
+  const [mintingImage, setMintingImage] = useState<GeneratedImage | null>(null);
+
   const sidebarRef = useRef<HTMLElement | null>(null);
   const walletContext = useWallet();
 
@@ -541,6 +547,31 @@ const RightPanel: React.FC = () => {
     }
   };
 
+  // Handle Kids Mode mint button click with parental control
+  const handleKidsMintClick = (imageId: number) => {
+    const selectedImage = generatedImages.find(img => img.id === imageId);
+    if (!selectedImage) return;
+
+    setSelectedImageId(imageId);
+    setMintingImage(selectedImage);
+    setShowParentalDialog(true);
+  };
+
+  // Handle parental approval
+  const handleParentalApproval = () => {
+    // Close dialog first
+    setShowParentalDialog(false);
+
+    // Then proceed with minting
+    setTimeout(() => handleMintNFT(), 100);
+  };
+
+  // Handle parental dialog close
+  const handleCloseParentalDialog = () => {
+    setShowParentalDialog(false);
+    setMintingImage(null);
+  };
+
   const handleImageSelect = (id: number) => {
     setSelectedImageId(id === selectedImageId ? null : id);
 
@@ -589,15 +620,20 @@ const RightPanel: React.FC = () => {
     e.stopPropagation();
     setSelectedImageId(imageId); // Select the image first
 
-    // Show a toast notification
-    toast.info("Preparing to mint image...", {
-      position: "bottom-right",
-      autoClose: 2000,
-      icon: () => <RefreshCw size={16} />
-    });
+    if (mode === "pro") {
+      // Pro mode: Direct minting
+      toast.info("Preparing to mint image...", {
+        position: "bottom-right",
+        autoClose: 2000,
+        icon: () => <RefreshCw size={16} />
+      });
 
-    // Use setTimeout to allow state update before calling mint
-    setTimeout(() => handleMintNFT(), 0);
+      // Use setTimeout to allow state update before calling mint
+      setTimeout(() => handleMintNFT(), 0);
+    } else {
+      // Kids mode: Show parental control dialog
+      handleKidsMintClick(imageId);
+    }
   };
 
   return (
@@ -864,16 +900,16 @@ const RightPanel: React.FC = () => {
                               >
                                 <Download size={14} />
                               </button>
-                              {mode === "pro" && (
-                                <button
-                                  className={styles.imageActionButton}
-                                  title="Mint as NFT"
-                                  onClick={(e) => handleMintClick(e, image.id)}
-                                  type="button"
-                                >
-                                  <Coins size={14} />
-                                </button>
-                              )}
+                              {/* Display mint button for both modes, but with different behaviors */}
+                              <button
+                                className={styles.imageActionButton}
+                                title={mode === "pro" ? "Mint as NFT" : "Mint as NFT (Parent Approval Required)"}
+                                onClick={(e) => handleMintClick(e, image.id)}
+                                type="button"
+                              >
+                                <Coins size={14} />
+                                {mode === "kids" && <span className={styles.parentalStar}><Star size={8} /></span>}
+                              </button>
                             </div>
                           </div>
                           <div className={styles.imageTitle}>{image.title}</div>
@@ -898,7 +934,8 @@ const RightPanel: React.FC = () => {
                       <span>Export</span>
                     </button>
 
-                    {mode === "pro" && (
+                    {/* Modify the mint button to work with both modes */}
+                    {mode === "pro" ? (
                       <button
                         className={`${styles.actionButton} ${styles.mintButton} ${!selectedImageId ? styles.disabled : ""}`}
                         onClick={handleMintNFT}
@@ -907,6 +944,17 @@ const RightPanel: React.FC = () => {
                       >
                         <Coins size={18} />
                         <span>Mint NFT</span>
+                      </button>
+                    ) : (
+                      <button
+                        className={`${styles.actionButton} ${styles.kidsMintButton} ${!selectedImageId ? styles.disabled : ""}`}
+                        onClick={() => selectedImageId && handleKidsMintClick(selectedImageId)}
+                        disabled={!selectedImageId}
+                        type="button"
+                      >
+                        <Coins size={18} />
+                        <span>Mint NFT</span>
+                        <span className={styles.parentalStar}><Star size={10} /></span>
                       </button>
                     )}
                   </div>
@@ -926,6 +974,14 @@ const RightPanel: React.FC = () => {
           )}
         </div>
       </aside>
+
+      {/* Parental Control Dialog Component */}
+      <ParentalControl
+        isOpen={showParentalDialog}
+        onClose={handleCloseParentalDialog}
+        onApprove={handleParentalApproval}
+        image={mintingImage}
+      />
 
       {/* Mobile overlay */}
       {isMobile && sidebarOpen && (

@@ -1105,3 +1105,55 @@
     height: 38px;
   }
 }
+
+/* Add these styles to your RightPanel.module.scss file */
+
+/* Kids Mode Mint Button */
+.kidsMintButton {
+  background: linear-gradient(45deg, #3ABFF8, #FBAE3C);
+  color: white;
+  border: none;
+  position: relative;
+  overflow: hidden;
+  
+  &:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    transform: translateY(-2px);
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+  
+  &.disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+    
+    &:hover {
+      box-shadow: none;
+      transform: none;
+    }
+  }
+}
+
+/* Star indicator for parental control */
+.parentalStar {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  color: white;
+  filter: drop-shadow(0 0 2px rgba(0, 0, 0, 0.3));
+  animation: twinkle 1.5s infinite alternate;
+}
+
+@keyframes twinkle {
+  from {
+    opacity: 0.7;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1.1);
+  }
+}

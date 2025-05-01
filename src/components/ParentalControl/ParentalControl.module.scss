@@ -1,0 +1,207 @@
+/* src/components/ParentalControl/ParentalControl.module.scss */
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  animation: fadeIn 0.2s ease;
+}
+
+.parentalDialog {
+  background: white;
+  border-radius: 16px;
+  width: 90%;
+  max-width: 400px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  animation: slideUp 0.3s ease;
+}
+
+.parentalTitle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(to right, var(--accent-cyan), var(--accent-magenta));
+  color: white;
+  margin: 0;
+  padding: 16px;
+  font-size: 1rem;
+  font-weight: 600;
+  
+  .lockIcon {
+    filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
+  }
+}
+
+.parentalContent {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.parentalText {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #333;
+}
+
+.previewImage {
+  align-self: center;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+}
+
+.mintPreview {
+  display: block;
+  object-fit: contain;
+}
+
+.pinInputGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pinLabel {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #555;
+}
+
+.pinInput {
+  padding: 10px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  font-size: 1rem;
+  text-align: center;
+  letter-spacing: 4px;
+  
+  &:focus {
+    outline: none;
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 2px rgba(0, 183, 225, 0.2);
+  }
+  
+  &.pinError {
+    border-color: #ff4d4f;
+    animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) both;
+  }
+}
+
+.errorText {
+  color: #ff4d4f;
+  font-size: 0.8rem;
+  margin: 0;
+}
+
+.pinHint {
+  font-size: 0.75rem;
+  color: #999;
+  font-style: italic;
+  margin: 0;
+}
+
+.parentalActions {
+  display: flex;
+  padding: 16px 20px;
+  border-top: 1px solid var(--border);
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.cancelButton {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: white;
+  color: #555;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #f5f5f5;
+  }
+}
+
+.approveButton {
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: none;
+  background: var(--accent-cyan);
+  color: white;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    background: #00a5cd;
+  }
+}
+
+.infoBox {
+  background: #f8f9fa;
+  display: flex;
+  padding: 12px 20px;
+  gap: 10px;
+  border-top: 1px solid var(--border);
+  
+  .infoIcon {
+    color: var(--accent-cyan);
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+  
+  .infoText {
+    margin: 0;
+    font-size: 0.75rem;
+    color: #555;
+    line-height: 1.4;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes shake {
+  10%, 90% {
+    transform: translateX(-1px);
+  }
+  20%, 80% {
+    transform: translateX(2px);
+  }
+  30%, 50%, 70% {
+    transform: translateX(-3px);
+  }
+  40%, 60% {
+    transform: translateX(3px);
+  }
+}
