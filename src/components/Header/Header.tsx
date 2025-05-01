@@ -51,7 +51,7 @@ const Header = () => {
           closeOnClick: true,
           pauseOnHover: true,
           draggable: true,
-          icon: <>🎨</>, // ✅ FIXED (string → JSX)
+          icon: <span>🎨</span>,
         });
       } catch (error) {
         toast.error("Failed to save project. Please try again.", {
@@ -97,7 +97,7 @@ const Header = () => {
         toast.info("Link copied to clipboard!", {
           position: "bottom-right",
           autoClose: 3000,
-          icon: <>📋</>, // ✅ FIXED (string → JSX)
+          icon: <span>📋</span>,
         });
       }).catch(() => {
         toast.error("Could not copy the link", {

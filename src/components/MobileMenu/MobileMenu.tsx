@@ -4,6 +4,7 @@ import { X, Save, Share2, LucideLayoutDashboard } from "lucide-react";
 import styles from "./MobileMenu.module.scss";
 import ConnectWalletButton from "@/wallet/ConnectWalletButton";
 import { useModeStore } from "@/stores/modeStore";
+import { toast } from "react-toastify";
 
 type Props = {
   isOpen: boolean;
@@ -16,11 +17,24 @@ const MobileMenu = ({ isOpen, onClose }: Props) => {
 
   const handleSave = () => {
     const snapshot = localStorage.getItem("sketchxpress-manual-save");
-    alert(snapshot ? "Project saved!" : "Nothing to save yet.");
+
+    if (snapshot) {
+      toast.success("Project saved successfully!", {
+        position: "bottom-right",
+        autoClose: 2000,
+        icon: <span>🎨</span>,
+      });
+    } else {
+      toast.info("Nothing to save yet.", {
+        position: "bottom-right",
+        autoClose: 2000,
+      });
+    }
   };
 
   const handleShare = () => {
     const url = window.location.href;
+
     if (navigator.share) {
       navigator
         .share({
@@ -28,10 +42,34 @@ const MobileMenu = ({ isOpen, onClose }: Props) => {
           text: "Check my creation on SketchXpress!",
           url,
         })
-        .catch(() => { });
+        .then(() => {
+          toast.success("Shared successfully!", {
+            position: "bottom-right",
+            autoClose: 2000,
+          });
+        })
+        .catch(() => {
+          toast.error("Could not share content", {
+            position: "bottom-right",
+            autoClose: 3000,
+          });
+        });
     } else {
-      navigator.clipboard.writeText(url);
-      alert("Link copied to clipboard!");
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          toast.info("Link copied to clipboard!", {
+            position: "bottom-right",
+            autoClose: 2000,
+            icon: <span>📋</span>,
+          });
+        })
+        .catch(() => {
+          toast.error("Could not copy the link", {
+            position: "bottom-right",
+            autoClose: 3000,
+          });
+        });
     }
   };
 
