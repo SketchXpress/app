@@ -789,11 +789,26 @@ const RightPanel: React.FC = () => {
 
               {/* Loading indicator */}
               {isProcessing && (
-                <div className={styles.processingSection}>
-                  <div className={styles.spinner}></div>
-                  <p className={styles.processingText}>
-                    Transforming your sketch...
-                  </p>
+                <div className={styles.processingOverlay}>
+                  <div className={styles.processingContent}>
+                    <div className={styles.spinnerContainer}>
+                      <div className={styles.spinner}></div>
+                      <div className={styles.spinnerInner}></div>
+                    </div>
+                    <div>
+                      <h3 className={styles.processingTitle}>
+                        {useModeStore.getState().mode === "kids" ? "Magic Happening!" : "AI Enhancement"}
+                      </h3>
+                      <p className={styles.processingText}>
+                        {useModeStore.getState().mode === "kids"
+                          ? "Your sketch is being transformed into something amazing..."
+                          : "Applying AI enhancement to your artwork..."}
+                      </p>
+                      <div className={styles.progressBar}>
+                        <div className={styles.progressFill}></div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               )}
 

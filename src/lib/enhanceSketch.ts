@@ -185,10 +185,8 @@ export async function enhanceSketch(editor: Editor): Promise<string> {
 
     // Get API URL and prepare request
     const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`;
-    console.log(`[enhanceSketch] Calling generate API: ${apiUrl}`); // Log the API URL being called
-
+    console.log(`[enhanceSketch] Calling generate API: ${apiUrl}`);
     const headers = new Headers();
-    // Don't set Content-Type when using FormData, the browser does it with the correct boundary
     headers.append("Accept", "application/json");
 
     const res = await fetchWithRetry(apiUrl, {
@@ -326,7 +324,7 @@ async function waitForImageGeneration(
         );
 
         const imageHeaders = new Headers();
-        imageHeaders.append("Accept", "image/*"); // More specific accept header for image
+        imageHeaders.append("Accept", "image/*");
 
         let imageBlob: Blob;
 

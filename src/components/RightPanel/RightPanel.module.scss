@@ -478,22 +478,153 @@
   border-radius: 3px;
 }
 
-.spinnerContainer {
-  position: relative;
-  width: 60px;
-  height: 60px;
+/* Add or update these styles in CanvasWrapper.module.scss */
+
+.processingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
+  z-index: 1100;
+  backdrop-filter: blur(8px);
+  animation: fadeIn 0.3s ease;
+}
+
+.processingContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 24px;
+  max-width: 320px;
+  text-align: center;
+  padding: 32px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+.spinnerContainer {
+  position: relative;
+  width: 80px;
+  height: 80px;
 }
 
 .spinner {
+  position: absolute;
   width: 100%;
   height: 100%;
-  border: 3px solid rgba(0, 183, 225, 0.1);
   border-radius: 50%;
+  border: 3px solid transparent;
   border-top-color: var(--accent-cyan);
-  animation: spin 1.2s ease-in-out infinite;
+  border-right-color: var(--accent-magenta);
+  animation: spin 1.5s linear infinite;
+}
+
+.spinnerInner {
+  position: absolute;
+  width: 70%;
+  height: 70%;
+  top: 15%;
+  left: 15%;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--accent-magenta);
+  border-right-color: var(--accent-cyan);
+  animation: spin 1s linear infinite reverse;
+}
+
+.processingTitle {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.processingText {
+  font-size: 0.875rem;
+  color: #555;
+  margin: 0;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+.progressBar {
+  width: 180px;
+  height: 4px;
+  background: rgba(0, 0, 0, 0.06);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-top: 12px;
+}
+
+.progressFill {
+  height: 100%;
+  width: 30%;
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+  border-radius: 2px;
+  animation: progress 2s ease-in-out infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes progress {
+  0% {
+    width: 0%;
+    opacity: 0.8;
+  }
+  50% {
+    width: 70%;
+    opacity: 1;
+  }
+  100% {
+    width: 100%;
+    opacity: 0.8;
+  }
+}
+
+/* Responsive adjustments */
+@media (max-width: 640px) {
+  .processingContent {
+    padding: 24px;
+    max-width: 280px;
+  }
+  
+  .spinnerContainer {
+    width: 70px;
+    height: 70px;
+  }
+
+  .processingTitle {
+    font-size: 1.125rem;
+  }
+
+  .processingText {
+    font-size: 0.8125rem;
+  }
 }
 
 .magicWandIcon {
