@@ -182,3 +182,16 @@
     transform: rotate(0deg);
   }
 }
+
+@media (max-width: 768px) {
+  .toolbarHint,
+  .aiEnhanceHint,
+  .leftSidebarSingleHint {
+    display: none;
+  }
+
+  .iconWrapper {
+    width: max-content;
+  
+  }
+}
