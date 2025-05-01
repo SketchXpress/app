@@ -91,6 +91,7 @@
     top: var(--header-height, 60px);
     z-index: 2; 
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
+    border-radius: 0 16px 16px 0;
     
     &.collapsed {
       transform: translateX(-100%);
@@ -107,11 +108,12 @@
     width: 280px;
     height: calc(100vh - var(--header-height, 60px));
     box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
-    z-index: 1000; // Ensure it's above content when open
+    z-index: 1000;
+    border-radius: 0 16px 16px 0;
     
     &.collapsed {
       transform: translateX(-100%);
-      box-shadow: none; // Hide shadow when collapsed off-screen
+      box-shadow: none;
     }
   }
 }
@@ -127,6 +129,7 @@
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.15);
   z-index: 1000; 
   transition: transform 0.25s ease;
+  border-radius: 0 16px 16px 0;
 
   &.collapsed {
     transform: translateX(-100%);
@@ -236,7 +239,7 @@
   padding: 0.75rem;
   background: var(--card-bg);
   border: 1px solid var(--border);
-  border-radius: var(--border-radius-md, 10px);
+  border-radius: 12px;
   color: var(--foreground);
   cursor: pointer;
   transition: all 0.2s ease;
@@ -301,7 +304,7 @@
   padding: 0.75rem 1rem;
   background: none;
   border: 1px solid var(--border);
-  border-radius: var(--border-radius-md, 10px);
+  border-radius: 12px;
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--foreground);
@@ -357,7 +360,7 @@
   padding: 0.5rem;
   background: none;
   border: none;
-  border-radius: var(--border-radius-sm, 6px);
+  border-radius: 8px;
   font-size: 0.875rem;
   font-weight: 500;
   color: var(--foreground);
@@ -411,7 +414,7 @@
   padding: 0.5rem;
   animation: slideDown 0.3s ease;
   background: rgba(250, 250, 250, 0.5);
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .tips {
@@ -430,7 +433,7 @@
   color: var(--foreground);
   line-height: 1.5;
   padding: 0.75rem;
-  border-radius: var(--border-radius-sm, 6px);
+  border-radius: 10px;
   background: white;
   transition: all 0.2s ease;
   border: 1px solid rgba(0, 0, 0, 0.03);
@@ -460,7 +463,7 @@
   font-weight: 500;
   background: linear-gradient(45deg, var(--yellow-light, #FFF8E1), var(--magenta-light, #FFE6F2));
   padding: 0.75rem 1rem;
-  border-radius: var(--border-radius-md, 10px);
+  border-radius: 12px;
   color: var(--foreground);
   display: flex;
   align-items: center;
@@ -482,7 +485,7 @@
   padding: 0.75rem 0.5rem;
   animation: slideDown 0.3s ease;
   background: rgba(250, 250, 250, 0.5);
-  border-radius: 8px;
+  border-radius: 10px;
 }
 
 .galleryItem {
@@ -493,7 +496,7 @@
 
 .imageContainer {
   position: relative;
-  border-radius: 8px;
+  border-radius: 10px;
   overflow: hidden;
   box-shadow: 0 3px 8px rgba(0, 0, 0, 0.06);
   transition: all 0.2s ease;
@@ -545,7 +548,7 @@
   font-size: 0.7rem;
   font-weight: 600;
   border: none;
-  border-radius: 4px;
+  border-radius: 6px;
   cursor: pointer;
   opacity: 0;
   width: max-content;
@@ -593,4 +596,3 @@
     opacity: 1;
   }
 }
-

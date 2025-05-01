@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import styles from "./RightPanel.module.scss";
-import { useModeStore } from "@/stores/modeStore";
-import { useEnhanceStore } from "@/stores/enhanceStore";
 import Image from "next/image";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { motion } from "framer-motion";
 import {
   Download,
   Coins,
@@ -16,8 +15,16 @@ import {
   ChevronUp,
   Settings,
   RefreshCw,
-  AlertOctagon
+  AlertOctagon,
+  Wand2,
+  Eye,
+  Share2,
+  Info
 } from "lucide-react";
+
+import styles from "./RightPanel.module.scss";
+import { useModeStore } from "@/stores/modeStore";
+import { useEnhanceStore } from "@/stores/enhanceStore";
 import {
   subscribeToEnhanceStarted,
   subscribeToEnhanceCompleted,
@@ -26,12 +33,11 @@ import {
   EnhanceCompletedEvent,
   EnhanceFailedEvent
 } from "@/lib/events";
-import { useWallet } from "@solana/wallet-adapter-react";
 import { uploadMetadataToIPFS } from "@/lib/uploadMetadataToIPFS";
 import { mintNFT } from "@/lib/mintNFT";
 import { uploadToIPFSUsingPinata } from "@/lib/uploadToIPFSUsingPinata";
 
-// Extend event type to include base64 data (optional chaining used in code)
+// Extend event type to include base64 data
 interface EnhanceCompletedEventWithBase64 extends EnhanceCompletedEvent {
   images_base64?: string[];
 }
@@ -56,6 +62,7 @@ const RightPanel: React.FC = () => {
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [processingProgress, setProcessingProgress] = useState<number>(0);
   const sidebarRef = useRef<HTMLElement | null>(null);
   const walletContext = useWallet();
 
@@ -68,6 +75,24 @@ const RightPanel: React.FC = () => {
     numImages, setNumImages,
     resetToDefaults
   } = useEnhanceStore();
+
+  // Simulated processing progress
+  useEffect(() => {
+    if (isProcessing) {
+      const interval = setInterval(() => {
+        setProcessingProgress(prev => {
+          const increment = Math.random() * 5;
+          const newValue = prev + increment;
+          return newValue >= 100 ? 99 : newValue; // Cap at 99% until complete
+        });
+      }, 500);
+
+      return () => {
+        clearInterval(interval);
+        setProcessingProgress(0);
+      };
+    }
+  }, [isProcessing]);
 
   // Handle responsive behavior
   useEffect(() => {
@@ -118,6 +143,7 @@ const RightPanel: React.FC = () => {
       setGeneratedImages([]); // Clear previous images
       setError(null);
       setCurrentJobId(data.jobId);
+      setProcessingProgress(0);
 
       // Auto-expand the panel when processing starts
       if (!sidebarOpen) {
@@ -130,6 +156,7 @@ const RightPanel: React.FC = () => {
       console.log("[RightPanel] Enhance completed event received:", data);
       setIsProcessing(false);
       setCurrentJobId(null); // Clear job ID once completed
+      setProcessingProgress(100);
 
       try {
         let images: GeneratedImage[] = [];
@@ -198,6 +225,7 @@ const RightPanel: React.FC = () => {
       setIsProcessing(false);
       setCurrentJobId(null); // Clear job ID on failure
       setError(data.error || "Image generation failed");
+      setProcessingProgress(0);
     });
 
     // Clean up subscriptions
@@ -229,10 +257,6 @@ const RightPanel: React.FC = () => {
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("text/html")) {
           console.error("[Polling] Received HTML instead of JSON - ngrok issue?");
-          // Don't immediately fail, maybe it's temporary
-          // setError("Connection issue with backend - ngrok limitation?");
-          // if (pollInterval) clearInterval(pollInterval);
-          // setIsProcessing(false);
           return; // Try polling again
         }
 
@@ -256,6 +280,7 @@ const RightPanel: React.FC = () => {
           if (pollInterval) clearInterval(pollInterval); // Stop polling
           setIsProcessing(false);
           setCurrentJobId(null); // Clear job ID
+          setProcessingProgress(100);
 
           let images: GeneratedImage[] = [];
           // *** USE BASE64 DATA IF AVAILABLE ***
@@ -316,6 +341,7 @@ const RightPanel: React.FC = () => {
           setIsProcessing(false);
           setCurrentJobId(null);
           setError(data.error || "Generation failed");
+          setProcessingProgress(0);
         } else if (data.status === "processing") {
           // Continue polling
         } else {
@@ -376,6 +402,32 @@ const RightPanel: React.FC = () => {
     document.body.removeChild(link);
   };
 
+  // Share function (new)
+  const handleShare = () => {
+    if (!selectedImageId) {
+      alert("Please select an image to share");
+      return;
+    }
+
+    // This is a placeholder. In a real implementation, you might:
+    // 1. Upload the image to a sharing service
+    // 2. Generate a shareable link
+    // 3. Use the Web Share API if available
+
+    if (navigator.share) {
+      navigator.share({
+        title: 'My SketchXpress Creation',
+        text: 'Check out this AI-enhanced image I created with SketchXpress!',
+        url: window.location.href,
+      })
+        .then(() => console.log('Successful share'))
+        .catch((error) => console.log('Error sharing:', error));
+    } else {
+      // Fallback for browsers that don't support the Web Share API
+      alert("Sharing link copied to clipboard!");
+    }
+  };
+
   // Minting requires fetching the blob again from the original URL
   const handleMintNFT = async () => {
     if (!walletContext.connected || !walletContext.publicKey) {
@@ -392,7 +444,10 @@ const RightPanel: React.FC = () => {
       return;
     }
 
-    console.log(`Preparing to mint image: ${selectedImage.url}`);
+    // Show minting status
+    setIsProcessing(true);
+    setError(null);
+
     try {
       // Fetch the image blob from the original URL
       const response = await fetch(selectedImage.url);
@@ -420,13 +475,17 @@ const RightPanel: React.FC = () => {
       const nftAddress = await mintNFT(metadataIpfsUrl, walletContext);
       console.log("NFT minted successfully:", nftAddress);
 
+      // Hide the processing state
+      setIsProcessing(false);
+
+      // Show success message
       alert(`🎉 NFT minted successfully!\nAddress: ${nftAddress}`);
     } catch (error) {
       console.error("Error minting NFT:", error);
-      alert(`Minting failed: ${error instanceof Error ? error.message : String(error)}`);
+      setIsProcessing(false);
+      setError(`Minting failed: ${error instanceof Error ? error.message : String(error)}`);
     }
   };
-
 
   const handleImageSelect = (id: number) => {
     setSelectedImageId(id === selectedImageId ? null : id);
@@ -451,6 +510,15 @@ const RightPanel: React.FC = () => {
     setSelectedImageId(imageId); // Select the image first
     // Use setTimeout to allow state update before calling mint
     setTimeout(() => handleMintNFT(), 0);
+  };
+
+  // New preview function
+  const handlePreview = (e: React.MouseEvent, image: GeneratedImage) => {
+    e.stopPropagation();
+    // Select the image and show full screen preview
+    setSelectedImageId(image.id);
+    // Here you would implement a full-screen preview modal
+    // For now, we're just selecting the image
   };
 
   return (
@@ -487,31 +555,43 @@ const RightPanel: React.FC = () => {
           {!sidebarOpen && (
             <div className={styles.collapsedButtons}>
               {mode === "pro" && (
-                <button
+                <motion.button
                   className={styles.iconButton}
                   onClick={() => setSidebarOpen(true)}
                   title="AI Parameters"
+                  whileHover={{ y: -2, boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}
                 >
                   <Settings size={20} />
-                </button>
+                </motion.button>
               )}
-              <button
+              <motion.button
                 className={styles.iconButton}
                 onClick={() => setSidebarOpen(true)}
                 title="Generated Images"
+                whileHover={{ y: -2, boxShadow: "0 4px 8px rgba(0,0,0,0.1)" }}
               >
                 <ImageIcon size={20} />
-              </button>
+              </motion.button>
             </div>
           )}
 
           {/* Expanded view content */}
           {sidebarOpen && (
-            <>
+            <div>
               {/* Pro mode parameters */}
               {mode === "pro" && !isProcessing && (
-                <div className={styles.section}>
-                  {/* ... (parameter inputs remain the same) ... */}
+                <motion.div
+                  className={styles.section}
+                  initial={{ opacity: 0, y: -10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -10 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <div className={styles.sectionTitle}>
+                    <Settings size={14} className={styles.sectionIcon} />
+                    <span>AI Configuration</span>
+                  </div>
+
                   {/* Text Prompt Input */}
                   <div className={styles.promptInputGroup}>
                     <label htmlFor="prompt-input" className={styles.inputLabel}>Text Prompt</label>
@@ -542,232 +622,428 @@ const RightPanel: React.FC = () => {
 
                   {/* Advanced Parameters Toggle */}
                   <div className={styles.parametersToggle}>
-                    <button
+                    <motion.button
                       className={styles.toggleButton}
                       onClick={() => setShowAdvanced(!showAdvanced)}
                       type="button"
+                      whileHover={{ backgroundColor: "rgba(0, 0, 0, 0.05)" }}
                     >
                       <Settings size={14} className={styles.settingsIcon} />
                       <span>Advanced Parameters</span>
                       {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                    </button>
+                    </motion.button>
                   </div>
 
                   {/* Advanced Parameters Panel */}
-                  {showAdvanced && (
-                    <div className={styles.advancedParams}>
-                      {/* Temperature Slider */}
-                      <div className={styles.paramSlider}>
-                        <div className={styles.paramHeader}>
-                          <label htmlFor="temperature-slider">Temperature: {temperature.toFixed(2)}</label>
-                          <div className={styles.paramLabels}>
-                            <span>Precise</span>
-                            <span>Creative</span>
-                          </div>
-                        </div>
-                        <input
-                          id="temperature-slider"
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.01"
-                          value={temperature}
-                          onChange={(e) => setTemperature(parseFloat(e.target.value))}
-                          className={styles.slider}
-                        />
-                      </div>
-                      {/* Guidance Scale Slider */}
-                      <div className={styles.paramSlider}>
-                        <div className={styles.paramHeader}>
-                          <label htmlFor="guidance-slider">Guidance Scale: {guidanceScale.toFixed(2)}</label>
-                          <div className={styles.paramLabels}>
-                            <span>Creative</span>
-                            <span>Precise</span>
-                          </div>
-                        </div>
-                        <input
-                          id="guidance-slider"
-                          type="range"
-                          min="1"
-                          max="15"
-                          step="0.5"
-                          value={guidanceScale}
-                          onChange={(e) => setGuidanceScale(parseFloat(e.target.value))}
-                          className={styles.slider}
-                        />
-                      </div>
-                      {/* Number of Images Slider */}
-                      <div className={styles.paramSlider}>
-                        <div className={styles.paramHeader}>
-                          <label htmlFor="num-images-slider">Number of Images: {numImages}</label>
-                        </div>
-                        <input
-                          id="num-images-slider"
-                          type="range"
-                          min="1"
-                          max="4"
-                          step="1"
-                          value={numImages}
-                          onChange={(e) => setNumImages(parseInt(e.target.value, 10))}
-                          className={styles.slider}
-                        />
-                        <div className={styles.numImagesIndicator}>
-                          {Array.from({ length: 4 }).map((_, idx) => (
-                            <div
-                              key={idx}
-                              className={`${styles.numBox} ${idx < numImages ? styles.active : ""}`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      {/* Reset Button */}
-                      <button
-                        className={styles.resetButton}
-                        onClick={resetToDefaults}
-                        type="button"
+                  <div>
+                    {showAdvanced && (
+                      <motion.div
+                        className={styles.advancedParams}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
                       >
-                        <RefreshCw size={14} />
-                        <span>Reset to Defaults</span>
-                      </button>
-                    </div>
-                  )}
-                </div>
+                        {/* Temperature Slider */}
+                        <div className={styles.paramSlider}>
+                          <div className={styles.paramHeader}>
+                            <label htmlFor="temperature-slider">Temperature: {temperature.toFixed(2)}</label>
+                            <div className={styles.paramLabels}>
+                              <span>Precise</span>
+                              <span>Creative</span>
+                            </div>
+                          </div>
+                          <input
+                            id="temperature-slider"
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={temperature}
+                            onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                            className={styles.slider}
+                          />
+                        </div>
+
+                        {/* Guidance Scale Slider */}
+                        <div className={styles.paramSlider}>
+                          <div className={styles.paramHeader}>
+                            <label htmlFor="guidance-slider">Guidance Scale: {guidanceScale.toFixed(2)}</label>
+                            <div className={styles.paramLabels}>
+                              <span>Creative</span>
+                              <span>Precise</span>
+                            </div>
+                          </div>
+                          <input
+                            id="guidance-slider"
+                            type="range"
+                            min="1"
+                            max="15"
+                            step="0.5"
+                            value={guidanceScale}
+                            onChange={(e) => setGuidanceScale(parseFloat(e.target.value))}
+                            className={styles.slider}
+                          />
+                        </div>
+
+                        {/* Number of Images Slider */}
+                        <div className={styles.paramSlider}>
+                          <div className={styles.paramHeader}>
+                            <label htmlFor="num-images-slider">Number of Images: {numImages}</label>
+                          </div>
+                          <input
+                            id="num-images-slider"
+                            type="range"
+                            min="1"
+                            max="4"
+                            step="1"
+                            value={numImages}
+                            onChange={(e) => setNumImages(parseInt(e.target.value, 10))}
+                            className={styles.slider}
+                          />
+                          <div className={styles.numImagesIndicator}>
+                            {Array.from({ length: 4 }).map((_, idx) => (
+                              <motion.div
+                                key={idx}
+                                className={`${styles.numBox} ${idx < numImages ? styles.active : ""}`}
+                                animate={{
+                                  backgroundColor: idx < numImages ? 'var(--accent-cyan)' : 'var(--border)',
+                                  scale: idx < numImages ? 1.1 : 1
+                                }}
+                                transition={{ duration: 0.2 }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Reset Button */}
+                        <motion.button
+                          className={styles.resetButton}
+                          onClick={resetToDefaults}
+                          type="button"
+                          whileHover={{
+                            backgroundColor: "rgba(0, 0, 0, 0.05)",
+                            scale: 1.02,
+                            opacity: 0.9
+                          }}
+                          whileTap={{ scale: 0.98 }}
+                        >
+                          <RefreshCw size={14} />
+                          <span>Reset to Defaults</span>
+                        </motion.button>
+
+                        {/* Help tooltip */}
+                        <div className={styles.parameterHelp}>
+                          <Info size={14} />
+                          <span>Higher temperature and lower guidance produces more creative, varied results.</span>
+                        </div>
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.div>
               )}
 
               {/* Loading indicator */}
               {isProcessing && (
-                <div className={styles.processingSection}>
-                  <div className={styles.spinner}></div>
-                  <p className={styles.processingText}>
-                    Transforming your sketch...
-                  </p>
-                </div>
+                <motion.div
+                  className={styles.processingSection}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                >
+                  <div className={styles.progressContainer}>
+                    <motion.div
+                      className={styles.progressBar}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${processingProgress}%` }}
+                      transition={{ ease: "easeInOut" }}
+                    />
+                  </div>
+
+                  <div className={styles.spinnerContainer}>
+                    <div className={styles.spinner}></div>
+                    <Wand2 className={styles.magicWandIcon} size={20} />
+                  </div>
+
+                  <motion.p
+                    className={styles.processingText}
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    {processingProgress < 30 && "Analyzing your sketch..."}
+                    {processingProgress >= 30 && processingProgress < 65 && "Enhancing details..."}
+                    {processingProgress >= 65 && processingProgress < 95 && "Adding final touches..."}
+                    {processingProgress >= 95 && "Almost done!"}
+                  </motion.p>
+
+                  <motion.p
+                    className={styles.processingSubtext}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.7 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    Creating high-quality artwork just for you
+                  </motion.p>
+                </motion.div>
               )}
 
               {/* Error display */}
               {error && !isProcessing && (
-                <div className={styles.errorSection}>
+                <motion.div
+                  className={styles.errorSection}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
                   <AlertOctagon size={24} className={styles.errorIcon} />
                   <p className={styles.errorText}>{error}</p>
-                  {/* Optionally add a retry button */}
-                  {/* <button onClick={retryLastAction}>Retry</button> */}
-                </div>
+                  <motion.button
+                    className={styles.retryButton}
+                    whileHover={{ scale: 1.05 }}
+                    whileTap={{ scale: 0.95 }}
+                  >
+                    <RefreshCw size={16} />
+                    <span>Try Again</span>
+                  </motion.button>
+                </motion.div>
               )}
 
               {/* Generated Images Section */}
               {generatedImages.length > 0 && (
-                <div className={styles.section}>
+                <motion.div
+                  className={styles.section}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.1 }}
+                >
                   <div className={styles.galleryHeader}>
                     <h3 className={styles.sectionTitle}>
                       <ImageIcon size={16} className={styles.sectionIcon} />
-                      <span>Generated Images</span>
+                      <span>Your Creations</span>
+                      <div className={styles.imageCount}>{generatedImages.length}</div>
                     </h3>
-                    <button
+                    <motion.button
                       className={styles.toggleGallery}
                       onClick={() => setShowGallery(!showGallery)}
                       type="button"
                       aria-label={showGallery ? "Hide gallery" : "Show gallery"}
+                      whileHover={{ scale: 1.1 }}
+                      whileTap={{ scale: 0.9 }}
                     >
                       {showGallery ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </button>
+                    </motion.button>
                   </div>
 
-                  {showGallery && (
-                    <div className={styles.generatedImagesGrid}>
-                      {generatedImages.map((image) => (
-                        <div
-                          key={image.id}
-                          className={`${styles.generatedImageCard} ${selectedImageId === image.id ? styles.selected : ""}`}
-                          onClick={() => handleImageSelect(image.id)}
-                        >
-                          <div className={styles.imageContainer}>
-                            <Image
-                              src={image.src} // Use the src (base64 or blob URL)
-                              alt={image.title}
-                              width={150} // Adjust size as needed
-                              height={150}
-                              className={styles.generatedImage}
-                              unoptimized={image.src.startsWith("blob:")} // Avoid Next.js optimization for blob URLs
-                            />
-                            <div className={styles.imageActions}>
-                              <button
-                                className={styles.imageActionButton}
-                                title="Download"
-                                onClick={(e) => handleDownloadImage(e, image)}
-                                type="button"
-                              >
-                                <Download size={14} />
-                              </button>
-                              {mode === "pro" && (
-                                <button
+                  <div>
+                    {showGallery && (
+                      <motion.div
+                        className={styles.generatedImagesGrid}
+                        initial={{ opacity: 0, height: 0 }}
+                        animate={{ opacity: 1, height: "auto" }}
+                        exit={{ opacity: 0, height: 0 }}
+                        transition={{ duration: 0.3 }}
+                      >
+                        {generatedImages.map((image) => (
+                          <motion.div
+                            key={image.id}
+                            className={`${styles.generatedImageCard} ${selectedImageId === image.id ? styles.selected : ""}`}
+                            onClick={() => handleImageSelect(image.id)}
+                            initial={{ scale: 0.9, opacity: 0 }}
+                            animate={{ scale: 1, opacity: 1 }}
+                            transition={{ duration: 0.3 }}
+                            whileHover={{ y: -4, boxShadow: "0 8px 20px rgba(0,0,0,0.1)" }}
+                          >
+                            <div className={styles.imageContainer}>
+                              <Image
+                                src={image.src}
+                                alt={image.title}
+                                width={150}
+                                height={150}
+                                className={styles.generatedImage}
+                                unoptimized={image.src.startsWith("blob:")}
+                              />
+                              <div className={styles.imageActions}>
+                                <motion.button
                                   className={styles.imageActionButton}
-                                  title="Mint as NFT"
-                                  onClick={(e) => handleMintClick(e, image.id)}
+                                  title="Preview"
+                                  onClick={(e) => handlePreview(e, image)}
                                   type="button"
+                                  whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.4)" }}
                                 >
-                                  <Coins size={14} />
-                                </button>
+                                  <Eye size={14} />
+                                </motion.button>
+                                <motion.button
+                                  className={styles.imageActionButton}
+                                  title="Download"
+                                  onClick={(e) => handleDownloadImage(e, image)}
+                                  type="button"
+                                  whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.4)" }}
+                                >
+                                  <Download size={14} />
+                                </motion.button>
+                                {mode === "pro" && (
+                                  <motion.button
+                                    className={styles.imageActionButton}
+                                    title="Mint as NFT"
+                                    onClick={(e) => handleMintClick(e, image.id)}
+                                    type="button"
+                                    whileHover={{ scale: 1.1, backgroundColor: "rgba(255,255,255,0.4)" }}
+                                  >
+                                    <Coins size={14} />
+                                  </motion.button>
+                                )}
+                              </div>
+                              {selectedImageId === image.id && (
+                                <motion.div
+                                  className={styles.selectedIndicator}
+                                  initial={{ opacity: 0 }}
+                                  animate={{ opacity: 1 }}
+                                  exit={{ opacity: 0 }}
+                                  transition={{ duration: 0.2 }}
+                                />
                               )}
                             </div>
-                          </div>
-                          <div className={styles.imageTitle}>{image.title}</div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
+                            <div className={styles.imageDetails}>
+                              <div className={styles.imageTitle}>{image.title}</div>
+                              {selectedImageId === image.id && (
+                                <div className={styles.selectedBadge}>Selected</div>
+                              )}
+                            </div>
+                          </motion.div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </div>
+                </motion.div>
               )}
 
               {/* Action Buttons */}
               {generatedImages.length > 0 && (
-                <div className={styles.section}>
+                <motion.div
+                  className={styles.section}
+                  initial={{ opacity: 0, y: 10 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3, delay: 0.2 }}
+                >
                   <div className={styles.actionButtons}>
-                    <button
+                    <motion.button
                       className={`${styles.actionButton} ${!selectedImageId ? styles.disabled : ""}`}
                       onClick={handleExport}
                       disabled={!selectedImageId}
                       type="button"
+                      whileHover={selectedImageId ? { y: -3, boxShadow: "0 6px 10px rgba(0,0,0,0.1)" } : {}}
+                      whileTap={selectedImageId ? { y: -1, boxShadow: "0 2px 5px rgba(0,0,0,0.1)" } : {}}
                     >
                       <Download size={18} />
-                      <span>Export</span>
-                    </button>
+                      <span>Download</span>
+                    </motion.button>
+
+                    <motion.button
+                      className={`${styles.actionButton} ${!selectedImageId ? styles.disabled : ""}`}
+                      onClick={handleShare}
+                      disabled={!selectedImageId}
+                      type="button"
+                      whileHover={selectedImageId ? { y: -3, boxShadow: "0 6px 10px rgba(0,0,0,0.1)" } : {}}
+                      whileTap={selectedImageId ? { y: -1, boxShadow: "0 2px 5px rgba(0,0,0,0.1)" } : {}}
+                    >
+                      <Share2 size={18} />
+                      <span>Share</span>
+                    </motion.button>
 
                     {mode === "pro" && (
-                      <button
+                      <motion.button
                         className={`${styles.actionButton} ${styles.mintButton} ${!selectedImageId ? styles.disabled : ""}`}
                         onClick={handleMintNFT}
                         disabled={!selectedImageId}
                         type="button"
+                        whileHover={selectedImageId ? { y: -3, boxShadow: "0 6px 12px rgba(0,0,0,0.15)" } : {}}
+                        whileTap={selectedImageId ? { y: -1, boxShadow: "0 2px 5px rgba(0,0,0,0.15)" } : {}}
                       >
                         <Coins size={18} />
                         <span>Mint NFT</span>
-                      </button>
+                      </motion.button>
                     )}
                   </div>
-                </div>
+
+                  {selectedImageId && (
+                    <div className={styles.previewFrame}>
+                      {generatedImages
+                        .filter(img => img.id === selectedImageId)
+                        .map(image => (
+                          <div key={image.id} className={styles.selectedPreview}>
+                            <Image
+                              src={image.src}
+                              alt={image.title}
+                              width={280}
+                              height={280}
+                              className={styles.previewImage}
+                              unoptimized={image.src.startsWith("blob:")}
+                            />
+                            <p className={styles.previewTitle}>{image.title}</p>
+                          </div>
+                        ))
+                      }
+                    </div>
+                  )}
+                </motion.div>
               )}
 
               {/* Empty state */}
               {!isProcessing && !error && generatedImages.length === 0 && (
-                <div className={styles.emptyState}>
-                  <ImageIcon size={40} className={styles.emptyStateIcon} />
-                  <p className={styles.emptyStateText}>
-                    Click &quot;AI Enhance&quot; to see results here.
-                  </p>
-                </div>
+                <motion.div
+                  className={styles.emptyState}
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  transition={{ duration: 0.5 }}
+                >
+                  <div className={styles.emptyStateIconWrapper}>
+                    <motion.div
+                      animate={{
+                        scale: [1, 1.05, 1],
+                        rotate: [0, 5, 0, -5, 0]
+                      }}
+                      transition={{
+                        duration: 4,
+                        repeat: Infinity
+                      }}
+                    >
+                      <Wand2 size={40} className={styles.emptyStateIcon} />
+                    </motion.div>
+                  </div>
+                  <motion.p
+                    className={styles.emptyStateText}
+                    initial={{ y: 10, opacity: 0 }}
+                    animate={{ y: 0, opacity: 1 }}
+                    transition={{ delay: 0.2 }}
+                  >
+                    Click &quot;{mode === "kids" ? "Magic Enhance" : "AI Enhance"}&quot; to transform your artwork
+                  </motion.p>
+                  <motion.p
+                    className={styles.emptyStateSubtext}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 0.7 }}
+                    transition={{ delay: 0.5 }}
+                  >
+                    Draw something first, then let AI do the magic
+                  </motion.p>
+                </motion.div>
               )}
-            </>
+            </div>
           )}
         </div>
       </aside>
 
       {/* Mobile overlay */}
       {isMobile && sidebarOpen && (
-        <div className={styles.sidebarOverlay} onClick={() => setSidebarOpen(false)} />
+        <div
+          className={styles.sidebarOverlay}
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
     </>
   );
 };
 
 export default RightPanel;
-
