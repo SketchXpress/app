@@ -5,10 +5,29 @@ interface CanvasState {
   editor: Editor | null;
   activeTool: string;
   selectedShapeIds: TLShapeId[];
+  lastAction: string;
 
   setEditor: (editor: Editor | null) => void;
   setActiveTool: (tool: string) => void;
   setSelectedShapeIds: (ids: TLShapeId[]) => void;
+  setLastAction: (action: string) => void;
+
+  clearCanvas: () => void;
+  undoAction: () => void;
+  redoAction: () => void;
+  deleteSelected: () => void;
+}
+
+interface CanvasState {
+  editor: Editor | null;
+  activeTool: string;
+  selectedShapeIds: TLShapeId[];
+  lastAction: string; // NEW
+
+  setEditor: (editor: Editor | null) => void;
+  setActiveTool: (tool: string) => void;
+  setSelectedShapeIds: (ids: TLShapeId[]) => void;
+  setLastAction: (action: string) => void; // NEW
 
   clearCanvas: () => void;
   undoAction: () => void;
@@ -18,18 +37,20 @@ interface CanvasState {
 
 export const useCanvasStore = create<CanvasState>((set, get) => ({
   editor: null,
-  activeTool: "select",
+  activeTool: "draw",
   selectedShapeIds: [],
+  lastAction: "draw", // default to draw
 
   setEditor: (editor) => set({ editor }),
 
   setActiveTool: (tool) => {
     const { editor } = get();
     if (editor) editor.setCurrentTool(tool);
-    set({ activeTool: tool });
+    set({ activeTool: tool, lastAction: tool });
   },
 
   setSelectedShapeIds: (ids) => set({ selectedShapeIds: ids }),
+  setLastAction: (action) => set({ lastAction: action }),
 
   clearCanvas: () => {
     const { editor } = get();
@@ -43,6 +64,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const editor = get().editor;
     if (editor) {
       editor.undo();
+      set({ lastAction: "undo" });
     }
   },
 
@@ -50,6 +72,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
     const editor = get().editor;
     if (editor) {
       editor.redo();
+      set({ lastAction: "redo" });
     }
   },
 

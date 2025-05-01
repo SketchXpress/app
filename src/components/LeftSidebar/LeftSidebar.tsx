@@ -11,43 +11,19 @@ import {
   Image as ImageIcon,
   ChevronDown,
   ChevronUp,
-  Zap,
   PenTool,
   Eraser,
   Undo2,
   Redo2,
   Trash2,
-  Brush,
   X,
-  Layers,
   ChevronsLeft,
   ChevronsRight
 } from "lucide-react";
 import { useCanvasStore } from "@/stores/canvasStore";
+import { examples, drawingTips } from "./data";
 
-const examples = [
-  { id: 1, title: "Robot Sketch", thumbnail: "/demoSketch.png" },
-  { id: 2, title: "Space Explorer", thumbnail: "/demoSketch.png" },
-  { id: 3, title: "Fantasy Castle", thumbnail: "/demoSketch.png" },
-  { id: 4, title: "Friendly Monster", thumbnail: "/demoSketch.png" }
-];
 
-// Drawing tips for kids and pro modes
-const drawingTips = {
-  kids: [
-    { tip: "Use bold lines for better results", icon: <PenTool size={14} /> },
-    { tip: "Draw one thing at a time (like a robot)", icon: <Layers size={14} /> },
-    { tip: "Keep it simple, no tiny details", icon: <Zap size={14} /> },
-    { tip: "Erase and restart anytime", icon: <Eraser size={14} /> }
-  ],
-  pro: [
-    { tip: "Use strong contours for better AI detection", icon: <PenTool size={14} /> },
-    { tip: "Try cross-hatching for detailed shading", icon: <Brush size={14} /> },
-    { tip: "Separate subjects from background", icon: <Layers size={14} /> },
-    { tip: "Add visual hints for style (geometric/organic)", icon: <Zap size={14} /> },
-    { tip: "Include text notes for specific details", icon: <Lightbulb size={14} /> }
-  ]
-};
 
 const LeftSidebar = () => {
   const mode = useModeStore((s) => s.mode);
@@ -57,12 +33,34 @@ const LeftSidebar = () => {
   const [isTablet, setIsTablet] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const sidebarRef = useRef<HTMLElement | null>(null);
+  const activeTool = useCanvasStore((state) => state.activeTool);
+  const lastAction = useCanvasStore((state) => state.lastAction);
 
   const clearCanvas = useCanvasStore((state) => state.clearCanvas);
   const undoAction = useCanvasStore((state) => state.undoAction);
   const redoAction = useCanvasStore((state) => state.redoAction);
   const setActiveTool = useCanvasStore((state) => state.setActiveTool);
-  const activeTool = useCanvasStore((state) => state.activeTool);
+
+  useEffect(() => {
+    // When the editor becomes available, set the default tool
+    const editor = useCanvasStore.getState().editor;
+    if (editor && activeTool === "draw") {
+      editor.setCurrentTool("draw");
+    }
+  }, [activeTool]);
+
+  useEffect(() => {
+    if (lastAction === 'undo' || lastAction === 'redo') {
+      const timeout = setTimeout(() => {
+        useCanvasStore.getState().setLastAction('none');
+      }, 500);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [lastAction]);
+
+
+
 
   // Handle responsive behavior
   useEffect(() => {
@@ -150,7 +148,7 @@ const LeftSidebar = () => {
               typeName: "asset",
               props: {
                 name: file.name,
-                src: base64DataUrl, // ✅ valid src now
+                src: base64DataUrl,
                 w: width,
                 h: height,
                 mimeType: file.type,
@@ -175,7 +173,7 @@ const LeftSidebar = () => {
         image.src = base64DataUrl;
       };
 
-      reader.readAsDataURL(file); // ✅ convert to base64
+      reader.readAsDataURL(file);
     };
   };
 
@@ -186,7 +184,7 @@ const LeftSidebar = () => {
     const assetId = AssetRecordType.createId();
     const image = new window.Image();
 
-    image.crossOrigin = "anonymous"; // Allow loading local/public images
+    image.crossOrigin = "anonymous";
     image.onload = () => {
       const { width, height } = image;
 
@@ -223,7 +221,7 @@ const LeftSidebar = () => {
       });
     };
 
-    image.src = example.thumbnail; // Like "/demoSketch.png"
+    image.src = example.thumbnail;
   };
 
   // Helper to convert Image object to base64
@@ -294,15 +292,28 @@ const LeftSidebar = () => {
                 <span className={styles.toolLabel}>Erase</span>
               </button>
 
-              <button className={styles.toolButton} onClick={undoAction}>
+              <button
+                className={`
+    ${styles.toolButton} 
+    ${styles.toolButtonHistory} 
+    ${lastAction === 'undo' ? styles.toolButtonUndoActive : ''}`}
+                onClick={undoAction}
+              >
                 <Undo2 size={20} />
                 <span className={styles.toolLabel}>Undo</span>
               </button>
 
-              <button className={styles.toolButton} onClick={redoAction}>
+              <button
+                className={`
+    ${styles.toolButton} 
+    ${styles.toolButtonHistory} 
+    ${lastAction === 'redo' ? styles.toolButtonRedoActive : ''}`}
+                onClick={redoAction}
+              >
                 <Redo2 size={20} />
                 <span className={styles.toolLabel}>Redo</span>
               </button>
+
             </div>
 
             <button

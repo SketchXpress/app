@@ -1,10 +1,12 @@
 "use client";
 
+import { createPortal } from "react-dom";
 import { X, Save, Share2, LucideLayoutDashboard } from "lucide-react";
 import styles from "./MobileMenu.module.scss";
 import ConnectWalletButton from "@/wallet/ConnectWalletButton";
 import { useModeStore } from "@/stores/modeStore";
 import { toast } from "react-toastify";
+import { useEffect, useState } from "react";
 
 type Props = {
   isOpen: boolean;
@@ -12,8 +14,13 @@ type Props = {
 };
 
 const MobileMenu = ({ isOpen, onClose }: Props) => {
+  const [mounted, setMounted] = useState(false);
   const mode = useModeStore((state) => state.mode);
   const setMode = useModeStore((state) => state.setMode);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   const handleSave = () => {
     const snapshot = localStorage.getItem("sketchxpress-manual-save");
@@ -55,27 +62,19 @@ const MobileMenu = ({ isOpen, onClose }: Props) => {
           });
         });
     } else {
-      navigator.clipboard
-        .writeText(url)
-        .then(() => {
-          toast.info("Link copied to clipboard!", {
-            position: "bottom-right",
-            autoClose: 2000,
-            icon: <span>📋</span>,
-          });
-        })
-        .catch(() => {
-          toast.error("Could not copy the link", {
-            position: "bottom-right",
-            autoClose: 3000,
-          });
+      navigator.clipboard.writeText(url).then(() => {
+        toast.info("Link copied to clipboard!", {
+          position: "bottom-right",
+          autoClose: 2000,
+          icon: <span>📋</span>,
         });
+      });
     }
   };
 
-  if (!isOpen) return null;
+  if (!isOpen || !mounted) return null;
 
-  return (
+  return createPortal(
     <div className={styles.overlay}>
       <div className={styles.menu}>
         <div className={styles.header}>
@@ -122,7 +121,8 @@ const MobileMenu = ({ isOpen, onClose }: Props) => {
           <ConnectWalletButton />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 
