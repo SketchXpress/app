@@ -1,5 +1,5 @@
-.wallet-adapter-button,
-.wallet-adapter-button-trigger {
+.header .wallet-adapter-button,
+.header .wallet-adapter-button-trigger {
   margin-left: 8px !important;
   display: flex !important;
   align-items: center !important;
@@ -22,32 +22,32 @@
   overflow: hidden !important;
 }
 
-.wallet-adapter-button:hover,
-.wallet-adapter-button-trigger:hover {
+.header .wallet-adapter-button:hover,
+.header .wallet-adapter-button-trigger:hover {
   transform: translateY(-2px) !important;
   box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25) !important;
 }
 
-.wallet-adapter-button:active,
-.wallet-adapter-button-trigger:active {
+.header .wallet-adapter-button:active,
+.header .wallet-adapter-button-trigger:active {
   transform: translateY(0) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2) !important;
 }
 
-.wallet-adapter-button svg,
-.wallet-adapter-button-trigger svg {
+.header .wallet-adapter-button svg,
+.header .wallet-adapter-button-trigger svg {
   animation: glow 2s infinite alternate !important;
 }
 
 /* Hide text on very small screens */
 @media (max-width: 360px) {
-  .wallet-adapter-button span,
-  .wallet-adapter-button-trigger span {
+  .header .wallet-adapter-button span,
+  .header .wallet-adapter-button-trigger span {
     display: none !important;
   }
 
-  .wallet-adapter-button svg,
-  .wallet-adapter-button-trigger svg {
+  .header .wallet-adapter-button svg,
+  .header .wallet-adapter-button-trigger svg {
     margin: 0 !important;
   }
 }

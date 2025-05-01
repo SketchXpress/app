@@ -1,0 +1,138 @@
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 1.25rem;
+}
+
+.logoText {
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--foreground);
+  padding: 0.25rem;
+
+  svg {
+    width: 24px;
+    height: 24px;
+    color: var(--foreground);
+  }
+
+  &:hover svg {
+    color: var(--accent-magenta);
+  }
+}
+
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(6px);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.menu {
+  background: var(--background);
+  border-radius: 16px;
+  width: 90%;
+  max-width: 400px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+  font-size: 1.25rem;
+}
+
+.logoText {
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.modeToggle {
+  display: flex;
+  justify-content: space-between;
+  background: var(--card-bg);
+  padding: 0.5rem;
+  border-radius: 8px;
+
+  button {
+    flex: 1;
+    padding: 0.5rem 0;
+    background: transparent;
+    border: none;
+    color: var(--foreground);
+    font-weight: 600;
+    border-radius: 6px;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+
+    &.active {
+      background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+      color: white;
+    }
+  }
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  button {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: var(--card-bg);
+    border: none;
+    color: var(--foreground);
+    font-weight: 500;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.2s;
+
+    &:hover {
+      background-color: rgba(0, 0, 0, 0.05);
+    }
+  }
+}
+
+.walletConnect {
+  margin-top: auto;
+margin-left: auto;
+
+  button {
+    width: 100%;
+    padding: 0.75rem;
+    border-radius: 8px;
+    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
+  }
+}

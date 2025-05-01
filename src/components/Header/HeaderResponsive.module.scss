@@ -1,0 +1,31 @@
+/* Mobile and tablet breakpoints */
+@media (max-width: 768px) {
+
+  .header {
+    padding: 0 0.75rem;
+  }
+
+  .logoWrap {
+    flex: 1;
+  }
+
+  .menuButton {
+    display: flex;
+  }
+
+  .menuText {
+    display: inline;
+  }
+  
+}
+
+/* Small mobile adjustments */
+@media (max-width: 640px) {
+  .title {
+    font-size: 1rem;
+  }
+
+  .menuText {
+    font-size: 0.875rem;
+  }
+}
