@@ -10,7 +10,7 @@ import MobileMenu from "../MobileMenu/MobileMenu";
 import ModeToggle from "../ModeToggle/ModeToggle";
 import ConnectWalletButton from "@/wallet/ConnectWalletButton";
 import { useCanvasStore } from "@/stores/canvasStore";
-import { toast } from "react-hot-toast"
+import { toast } from "react-toastify";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -28,19 +28,49 @@ const Header = () => {
 
   const handleSave = () => {
     const editor = useCanvasStore.getState().editor;
-    if (editor) {
-      const snapshot = editor.store.getSnapshot();
-      const serializedState = JSON.stringify(snapshot);
-      localStorage.setItem("sketchxpress-manual-save", serializedState);
 
-      toast("Project saved successfully!");
+    if (editor) {
+      try {
+        const snapshot = editor.store.getSnapshot();
+        const serializedState = JSON.stringify(snapshot);
+
+        if (serializedState.length > 4.5 * 1024 * 1024) {
+          toast.warning("Your project is too large to save locally. Consider exporting instead.", {
+            position: "bottom-right",
+            autoClose: 5000,
+          });
+          return;
+        }
+
+        localStorage.setItem("sketchxpress-manual-save", serializedState);
+
+        toast.success("Project saved successfully!", {
+          position: "bottom-right",
+          autoClose: 3000,
+          hideProgressBar: false,
+          closeOnClick: true,
+          pauseOnHover: true,
+          draggable: true,
+          icon: <>🎨</>, // ✅ FIXED (string → JSX)
+        });
+      } catch (error) {
+        toast.error("Failed to save project. Please try again.", {
+          position: "bottom-right",
+          autoClose: 3000,
+        });
+        console.error("Save error:", error);
+      }
     } else {
-      toast.error("Nothing to save yet.");
+      toast.error("Nothing to save yet. Try drawing something first!", {
+        position: "bottom-right",
+        autoClose: 3000,
+      });
     }
   };
 
   const handleShare = () => {
     const url = window.location.href;
+
     if (navigator.share) {
       navigator
         .share({
@@ -48,14 +78,35 @@ const Header = () => {
           text: "Check out what I made with SketchXpress!",
           url,
         })
-        .catch(() => { });
+        .then(() => {
+          toast.success("Shared successfully!", {
+            position: "bottom-right",
+            autoClose: 2000,
+          });
+        })
+        .catch((error) => {
+          if (error.name !== "AbortError") {
+            toast.error("Could not share content", {
+              position: "bottom-right",
+              autoClose: 3000,
+            });
+          }
+        });
     } else {
       navigator.clipboard.writeText(url).then(() => {
-        toast("Link copied to clipboard!");
+        toast.info("Link copied to clipboard!", {
+          position: "bottom-right",
+          autoClose: 3000,
+          icon: <>📋</>, // ✅ FIXED (string → JSX)
+        });
+      }).catch(() => {
+        toast.error("Could not copy the link", {
+          position: "bottom-right",
+          autoClose: 3000,
+        });
       });
     }
   };
-
 
   return (
     <header className={`${styles.header} ${responsive.header} header`}>
@@ -74,11 +125,10 @@ const Header = () => {
         </span>
       </div>
 
-      {/* Desktop View */}
+      {/* Desktop Controls */}
       {!isMobile && (
         <div className={`${styles.controls} ${responsive.controls}`}>
           <ModeToggle />
-
           <div className={`${styles.actions} ${responsive.actions}`}>
             <button
               className={`${styles.actionButton} ${styles.saveButton} ${responsive.actionButton}`}
@@ -87,7 +137,6 @@ const Header = () => {
             >
               <Save size={18} />
             </button>
-
             <button
               className={`${styles.actionButton} ${styles.shareButton} ${responsive.actionButton}`}
               aria-label="Share"
@@ -95,7 +144,6 @@ const Header = () => {
             >
               <Share2 size={18} />
             </button>
-
             <button
               className={`${styles.dashboardButton} ${responsive.dashboardButton}`}
               aria-label="Dashboard"
@@ -103,14 +151,13 @@ const Header = () => {
               <LucideLayoutDashboard size={18} />
             </button>
           </div>
-
           <div className={styles.connectWalletDesktop}>
             <ConnectWalletButton />
           </div>
         </div>
       )}
 
-      {/* Mobile View → Show Menu / Close */}
+      {/* Mobile Controls */}
       {isMobile && (
         <button
           className={`${styles.menuButton} ${responsive.menuButton}`}
@@ -127,7 +174,6 @@ const Header = () => {
           )}
         </button>
       )}
-
 
       {/* Mobile Menu */}
       <MobileMenu isOpen={isMenuOpen} onClose={() => setIsMenuOpen(false)} />

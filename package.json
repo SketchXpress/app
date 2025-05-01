@@ -21,6 +21,7 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "react-hot-toast": "^2.5.2",
+    "react-toastify": "^11.0.5",
     "web3.storage": "^4.5.5",
     "zustand": "^5.0.3"
   },

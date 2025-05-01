@@ -5,6 +5,8 @@ import "./globals.scss";
 import styles from "./layout.module.scss";
 import "../styles/walletButton.css";
 import WalletConnectionProvider from "@/wallet/WalletProvider";
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 export const metadata: Metadata = {
   title: "SketchXpress",
@@ -23,6 +25,19 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <Header />
           <main className={styles.main}>{children}</main>
         </WalletConnectionProvider>
+
+        <ToastContainer
+          position="bottom-right"
+          autoClose={4000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+          theme="light"
+        />
       </body>
     </html>
   )

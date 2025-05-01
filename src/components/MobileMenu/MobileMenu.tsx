@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { X, Save, Share2, LucideLayoutDashboard } from "lucide-react";
 import styles from "./MobileMenu.module.scss";
-import { Save, Share2, LucideLayoutDashboard, X } from "lucide-react";
 import ConnectWalletButton from "@/wallet/ConnectWalletButton";
+import { useModeStore } from "@/stores/modeStore";
 
 type Props = {
   isOpen: boolean;
@@ -11,7 +11,8 @@ type Props = {
 };
 
 const MobileMenu = ({ isOpen, onClose }: Props) => {
-  const [mode, setMode] = useState<"kids" | "pro">("pro");
+  const mode = useModeStore((state) => state.mode);
+  const setMode = useModeStore((state) => state.setMode);
 
   const handleSave = () => {
     const snapshot = localStorage.getItem("sketchxpress-manual-save");
@@ -21,11 +22,13 @@ const MobileMenu = ({ isOpen, onClose }: Props) => {
   const handleShare = () => {
     const url = window.location.href;
     if (navigator.share) {
-      navigator.share({
-        title: "SketchXpress Creation",
-        text: "Check my creation on SketchXpress!",
-        url,
-      }).catch(() => { });
+      navigator
+        .share({
+          title: "SketchXpress Creation",
+          text: "Check my creation on SketchXpress!",
+          url,
+        })
+        .catch(() => { });
     } else {
       navigator.clipboard.writeText(url);
       alert("Link copied to clipboard!");
