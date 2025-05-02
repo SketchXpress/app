@@ -1,0 +1,385 @@
+// Define gradient variables
+$accent-cyan: #06b6d4;
+$accent-magenta: #d946ef;
+
+.heroContainer {
+  width: 100%;
+  padding: 3.5rem 0;
+  background: #121220; // Dark background that doesn't depend on theme
+  position: relative;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  overflow: hidden;
+  
+  @media (max-width: 768px) {
+    padding: 2rem 0;
+  }
+  
+  // Gradient border at top
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 1px;
+    width: 100%;
+    background: linear-gradient(135deg, $accent-cyan 0%, $accent-magenta 100%);
+  }
+}
+
+// Subtle glow effect
+.glowEffect {
+  position: absolute;
+  width: 800px;
+  height: 800px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(6, 182, 212, 0.05) 0%, rgba(217, 70, 239, 0.05) 80%, rgba(0, 0, 0, 0) 100%);
+  top: -400px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1;
+  filter: blur(80px);
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.carouselContainer {
+  width: 100%;
+  max-width: 1920px;
+  position: relative;
+  margin: 0 auto;
+  padding: 0 4rem;
+  z-index: 5;
+  
+  @media (max-width: 768px) {
+    padding: 0 1rem;
+  }
+}
+
+.embla {
+  overflow: hidden;
+  width: 100%;
+}
+
+.emblaContainer {
+  display: flex;
+  gap: 20px;
+  
+  @media (max-width: 768px) {
+    gap: 10px;
+  }
+}
+
+.emblaSlide {
+  flex: 0 0 auto;
+  min-width: 0;
+  padding: 0.25rem 0;
+  
+  @media (min-width: 1536px) {
+    width: calc(25% - 15px);
+  }
+  
+  @media (min-width: 1024px) and (max-width: 1535px) {
+    width: calc(33.333% - 14px);
+  }
+  
+  @media (min-width: 640px) and (max-width: 1023px) {
+    width: calc(50% - 10px);
+  }
+  
+  @media (max-width: 639px) {
+    width: 90%;
+  }
+}
+
+.card {
+  position: relative;
+  height: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transform: translateY(0);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  cursor: pointer;
+  
+  &:hover {
+    transform: translateY(-6px);
+    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.3), 0 5px 15px rgba(6, 182, 212, 0.15);
+    
+    .nftImage {
+      transform: scale(1.08);
+    }
+    
+    .infoOverlay {
+      background: rgba(18, 18, 32, 0.85);
+      backdrop-filter: blur(8px);
+      
+      &::before {
+        opacity: 1;
+      }
+    }
+    
+    .viewButton {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+}
+
+.imageWrapper {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+}
+
+.nftImage {
+  object-fit: cover;
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.trendingBadge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: linear-gradient(135deg, $accent-cyan, $accent-magenta);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  z-index: 5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  
+  svg {
+    color: white;
+  }
+}
+
+.infoOverlay {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  padding: 1rem;
+  background: rgba(18, 18, 32, 0.75);
+  color: white;
+  z-index: 3;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, $accent-cyan, $accent-magenta, transparent);
+    opacity: 0;
+    transition: opacity 0.4s ease;
+  }
+}
+
+.infoContent {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-width: 70%;
+}
+
+.nftTitle {
+  font-size: 1rem;
+  font-weight: 700;
+  margin: 0;
+  color: white;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.floorPriceWrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.floorLabel {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.floorPrice {
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: linear-gradient(135deg, $accent-cyan, $accent-magenta);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.viewButton {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: white;
+  font-weight: 600;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  cursor: pointer;
+  transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  opacity: 0.9;
+  
+  svg {
+    color: $accent-cyan;
+    transition: transform 0.3s ease;
+  }
+  
+  &:hover {
+    background: rgba(6, 182, 212, 0.1);
+    border: 1px solid rgba(6, 182, 212, 0.3);
+    
+    svg {
+      transform: translateX(2px);
+    }
+  }
+}
+
+.arrowButton {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  border: none;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  
+  @media (max-width: 768px) {
+    width: 34px;
+    height: 34px;
+    background: rgba(255, 255, 255, 0.1);
+    display: none;
+  }
+  
+  svg {
+    color: white;
+    width: 18px;
+    height: 18px;
+    transition: transform 0.3s ease;
+  }
+  
+  &:hover {
+    background: linear-gradient(135deg, $accent-cyan, $accent-magenta);
+    box-shadow: 0 4px 15px rgba(6, 182, 212, 0.2);
+    transform: translateY(-50%) scale(1.05);
+    
+    @media (max-width: 768px) {
+      transform: scale(1.05);
+    }
+  }
+}
+
+.arrowLeft {
+  left: 0;
+  
+  @media (max-width: 768px) {
+    left: 0.25rem;
+  }
+  
+  &:hover svg {
+    transform: translateX(-2px);
+  }
+}
+
+.arrowRight {
+  right: 0;
+  
+  @media (max-width: 768px) {
+    right: 0.25rem;
+  }
+  
+  &:hover svg {
+    transform: translateX(2px);
+  }
+}
+
+.progressIndicator {
+  margin-top: 1.5rem;
+  display: flex;
+  justify-content: center;
+  z-index: 5;
+  
+  @media (max-width: 768px) {
+    margin-top: 1rem;
+  }
+}
+
+.progressWrapper {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.progressDot {
+  width: 24px;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  border-radius: 2px;
+  padding: 0;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.3s ease;
+  
+  @media (max-width: 768px) {
+    width: 16px;
+  }
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(90deg, $accent-cyan, $accent-magenta);
+    transform: translateX(-101%);
+    transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  &.activeDot {
+    &::before {
+      transform: translateX(0);
+    }
+  }
+  
+  &:hover:not(.activeDot) {
+    background: rgba(255, 255, 255, 0.2);
+  }
+}
+
+.dotInner {
+  display: block;
+  height: 100%;
+  width: 100%;
+}
