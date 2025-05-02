@@ -1,0 +1,566 @@
+// components/MyNFT/MyNFT.module.scss
+// Base variables for consistent styling
+:root {
+  --card-radius: 8px;
+  --accent-gradient: linear-gradient(135deg, var(--accent-cyan, #06b6d4), var(--accent-magenta, #d946ef));
+  --hover-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+// Matching the TrendingCollections structure
+.trendingSection {
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 2rem;
+  margin-top: 2rem;
+}
+
+.container {
+  width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
+  
+  // Add padding for mobile view
+  @media (max-width: 768px) {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  
+  @media (max-width: 640px) {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  
+  @media (max-width: 640px) {
+    align-items: flex-start;
+  }
+}
+
+.tabButton {
+  font-size: 1.125rem;
+  font-weight: 700;
+  background: transparent;
+  border: none;
+  padding: 1rem 0.5rem;
+  cursor: pointer;
+  color: var(--foreground-muted, #6b7280);
+  transition: color 0.2s ease;
+  position: relative;
+  
+  &::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: transparent;
+    transition: background-color 0.2s ease;
+  }
+  
+  &:hover {
+    color: var(--foreground, #1f2937);
+  }
+  
+  &.activeTab {
+    color: var(--foreground, #1f2937);
+    background: var(--accent-gradient);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    
+    &::after {
+      background: var(--accent-gradient);
+    }
+  }
+  
+  @media (max-width: 640px) {
+    font-size: 1rem;
+    padding: 0.75rem 0;
+  }
+}
+
+.statsCounter {
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+  
+  @media (max-width: 640px) {
+    margin-left: auto;
+  }
+}
+
+.nftsCount, .totalValue {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground-muted, #6b7280);
+  display: flex;
+  align-items: center;
+  padding: 0.25rem 0.75rem;
+  background-color: var(--card-bg, #f5f5f5);
+  border-radius: 8px;
+  
+  &::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    background-color: var(--accent-cyan, #06b6d4);
+    border-radius: 8px;
+    margin-right: 6px;
+  }
+}
+
+.totalValue::before {
+  background-color: var(--accent-magenta, #d946ef);
+}
+
+// NFT Grid Styling
+.nftGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 1.5rem;
+  
+  @media (max-width: 768px) {
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+  
+  @media (max-width: 480px) {
+    grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+    gap: 0.75rem;
+  }
+}
+
+.nftCard {
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  background-color: var(--card-bg, #f9fafb);
+  border: 1px solid var(--border, rgba(0, 0, 0, 0.05));
+  transition: var(--hover-transition);
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
+  
+  &:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+    
+    .viewDetailsButton {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    
+    .nftImage {
+      transform: scale(1.05);
+    }
+  }
+}
+
+.nftImageContainer {
+  position: relative;
+  width: 100%;
+  height: auto;
+  padding-bottom: 100%; // 1:1 aspect ratio
+  overflow: hidden;
+}
+
+// Update the nftImage to work with both img tag and properly position it
+.nftImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.nftCard {
+  &:hover {
+    .nftImage {
+      transform: scale(1.05);
+    }
+  }
+}
+
+.priceTag {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  background: rgba(0, 0, 0, 0.6);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  backdrop-filter: blur(4px);
+}
+
+.gemIcon {
+  color: var(--accent-cyan, #06b6d4);
+}
+
+.nftInfo {
+  padding: 1rem;
+  position: relative;
+}
+
+.nftName {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0 0 0.25rem 0;
+  color: var(--foreground, #1f2937);
+  
+  @media (max-width: 480px) {
+    font-size: 0.9rem;
+  }
+}
+
+.collectionName {
+  font-size: 0.85rem;
+  color: var(--foreground-muted, #6b7280);
+  margin: 0 0 1rem 0;
+  
+  @media (max-width: 480px) {
+    font-size: 0.75rem;
+    margin-bottom: 0.75rem;
+  }
+}
+
+.viewDetailsButton {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--accent-cyan, #06b6d4);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: var(--hover-transition);
+  opacity: 0.8;
+  transform: translateY(4px);
+  
+  .arrowIcon {
+    transition: transform 0.2s ease;
+  }
+  
+  &:hover .arrowIcon {
+    transform: translateX(4px);
+  }
+}
+
+// Wallet Not Connected State
+.walletNotConnected {
+  padding: 3rem 2rem;
+  border-radius: var(--card-radius);
+  background-color: var(--background, #ffffff);
+  margin-bottom: 2rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
+  text-align: center;
+  
+  @media (max-width: 768px) {
+    padding: 2rem 1.5rem;
+  }
+  
+  @media (max-width: 480px) {
+    padding: 1.5rem 1rem;
+  }
+}
+
+.messageContainer {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.iconWrapper {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  background: var(--accent-gradient);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 1.5rem;
+  
+  .walletIcon {
+    color: white;
+  }
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.message {
+  font-size: 1.1rem;
+  color: var(--foreground-muted, #6b7280);
+  margin-bottom: 2rem;
+  
+  @media (max-width: 480px) {
+    font-size: 1rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+.previewGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-bottom: 2rem;
+  
+  @media (max-width: 480px) {
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+}
+
+.previewCard {
+  border-radius: var(--card-radius);
+  overflow: hidden;
+  background-color: var(--card-bg, #f9fafb);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  position: relative;
+  
+  &::before {
+    content: '';
+    display: block;
+    padding-top: 100%; // 1:1 aspect ratio
+  }
+}
+
+.previewImageContainer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(45deg, rgba(6, 182, 212, 0.1), rgba(217, 70, 239, 0.1));
+  
+  .placeholderIcon {
+    color: var(--foreground-muted, #6b7280);
+    opacity: 0.4;
+  }
+}
+
+.connectButton {
+  background: var(--accent-gradient);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: var(--hover-transition);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  
+  &:hover {
+    box-shadow: 0 8px 20px rgba(6, 182, 212, 0.3);
+    transform: translateY(-2px);
+    
+    .arrowIcon {
+      transition: transform 0.2s ease;
+    }
+  }
+  
+  .arrowIcon {
+    transition: transform 0.2s ease;
+  }
+}
+
+// Loading State
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 200px;
+  color: var(--foreground-muted, #6b7280);
+}
+
+.loadingSpinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(6, 182, 212, 0.2);
+  border-radius: 8px;
+  border-top-color: var(--accent-cyan, #06b6d4);
+  animation: spin 1s ease-in-out infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+// Error State
+.errorContainer {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.errorMessage {
+  color: #ef4444;
+  margin-bottom: 1rem;
+}
+
+.retryButton {
+  background: var(--accent-gradient);
+  color: white;
+  border: none;
+  padding: 0.5rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--hover-transition);
+  
+  &:hover {
+    box-shadow: 0 8px 20px rgba(6, 182, 212, 0.3);
+    transform: translateY(-2px);
+  }
+}
+
+// Empty State
+.emptyState {
+  text-align: center;
+  padding: 3rem 0;
+  color: var(--foreground-muted, #6b7280);
+  font-size: 1.1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  
+  @media (max-width: 480px) {
+    padding: 2rem 0;
+  }
+}
+
+.emptyStateIcon {
+  width: 80px;
+  height: 80px;
+  border-radius: 8px;
+  background-color: rgba(6, 182, 212, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+  color: var(--accent-cyan, #06b6d4);
+}
+
+.emptyStateSubtext {
+  color: var(--foreground-muted, #6b7280);
+  opacity: 0.7;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+.exploreButton {
+  background: var(--accent-gradient);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 0.75rem 1.5rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: var(--hover-transition);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  
+  &:hover {
+    box-shadow: 0 8px 20px rgba(6, 182, 212, 0.3);
+    transform: translateY(-2px);
+    
+    .arrowIcon {
+      transform: translateX(4px);
+    }
+  }
+  
+  .arrowIcon {
+    transition: transform 0.2s ease;
+  }
+}
+
+/* NEW STYLES FOR LOAD MORE FUNCTIONALITY */
+
+.loadMoreContainer {
+  display: flex;
+  justify-content: center;
+  margin-top: 2rem;
+  margin-bottom: 2rem;
+}
+
+.loadMoreButton {
+  background: transparent;
+  color: var(--foreground, #1f2937);
+  border: 2px solid var(--border, rgba(0, 0, 0, 0.1));
+  border-radius: 8px;
+  padding: 0.75rem 2rem;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: var(--hover-transition);
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--accent-gradient);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    z-index: -1;
+  }
+  
+  &:hover {
+    color: white;
+    border-color: transparent;
+    box-shadow: 0 8px 16px rgba(6, 182, 212, 0.2);
+    transform: translateY(-2px);
+    
+    &::before {
+      opacity: 1;
+    }
+    
+    .chevronIcon {
+      transform: translateY(4px);
+    }
+  }
+}
+
+.chevronIcon {
+  transition: transform 0.3s ease;
+}

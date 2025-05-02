@@ -1,0 +1,258 @@
+$accent-cyan: #06b6d4;
+$accent-magenta: #d946ef;
+
+.trendingSection {
+  width: 100%;
+  padding: 2rem 1rem;
+  background-color: #ffffff;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.tabs {
+  display: flex;
+  background-color: #f3f4f6;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.tabButton {
+  padding: 8px 16px;
+  color: #6b7280;
+  font-size: 14px;
+  font-weight: 600;
+  background: transparent;
+  border: none;
+  border-radius: 6px; // 6px border-radius as requested
+  cursor: pointer;
+  
+  &.activeTab {
+    background-color: white;
+    color: #111827;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.viewAllButton {
+  padding: 8px 16px;
+  color: #111827;
+  font-size: 14px;
+  font-weight: 600;
+  background-color: white;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px; // 6px border-radius as requested
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    border-color: #d1d5db;
+    background-color: #f9fafb;
+  }
+}
+
+/* Desktop Layout */
+.tableContainer {
+  display: block;
+  width: 100%;
+  
+  @media (max-width: 768px) {
+    display: none;
+  }
+}
+
+.tableLayout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: auto 1fr;
+  grid-template-areas: 
+    "left-header right-header"
+    "left-content right-content";
+  column-gap: 100px; // Gap between left and right columns
+  background-color: #ffffff;
+  border-radius: 12px;
+  // border: 1px solid #f0f0f0;
+  overflow: hidden;
+}
+
+.columnHeader {
+  display: grid;
+  grid-template-columns: 80px 1fr 120px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #ffffff;
+  
+  &:first-child {
+    grid-area: left-header;
+  }
+  
+  &:last-child {
+    grid-area: right-header;
+  }
+}
+
+.rankHeader, .collectionHeader, .priceHeader {
+  font-size: 12px;
+  font-weight: 600;
+  color: #9ca3af;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.collectionHeader {
+  padding-left: 10px;
+}
+
+.priceHeader {
+  text-align: right;
+}
+
+.columnContent {
+  display: flex;
+  flex-direction: column;
+  
+  &:first-child {
+    grid-area: left-content;
+  }
+  
+  &:last-child {
+    grid-area: right-content;
+  }
+}
+
+.collectionRow {
+  display: grid;
+  grid-template-columns: 80px 1fr 120px;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s ease;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+  
+  &:hover {
+    background-color: #f9fafb;
+  }
+}
+
+.rankCell {
+  font-size: 16px;
+  font-weight: 700;
+  color: #111827;
+}
+
+.collectionCell {
+  padding-left: 10px;
+}
+
+.collectionInfo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.imageContainer {
+  flex-shrink: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  overflow: hidden;
+  background-color: #f3f4f6;
+}
+
+.collectionImage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.collectionName {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #111827;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.verifiedIcon {
+  color: $accent-cyan;
+  flex-shrink: 0;
+}
+
+.priceCell {
+  font-size: 15px;
+  font-weight: 600;
+  text-align: right;
+  color: $accent-magenta;
+  // color: #10b981;
+}
+
+/* Mobile Layout */
+.mobileContainer {
+  display: none;
+  width: 100%;
+  background-color: #ffffff;
+  border-radius: 12px;
+  border: 1px solid #f0f0f0;
+  overflow: hidden;
+  
+  @media (max-width: 768px) {
+    display: block;
+  }
+}
+
+.mobileHeader {
+  display: grid;
+  grid-template-columns: 50px 1fr 100px;
+  padding: 12px 16px;
+  border-bottom: 1px solid #f0f0f0;
+  background-color: #ffffff;
+  
+  .rankHeader, .collectionHeader, .priceHeader {
+    font-size: 12px;
+  }
+  
+  .priceHeader {
+    text-align: right;
+  }
+}
+
+.mobileContent {
+  .collectionRow {
+    grid-template-columns: 50px 1fr 100px;
+    padding: 12px 16px;
+  }
+  
+  .rankCell {
+    font-size: 14px;
+  }
+  
+  .collectionName {
+    font-size: 14px;
+  }
+  
+  .priceCell {
+    font-size: 14px;
+  }
+  
+  .imageContainer {
+    width: 32px;
+    height: 32px;
+  }
+}
