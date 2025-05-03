@@ -29,8 +29,5 @@ export async function uploadToIPFSUsingPinata(
 
   const data = await response.json();
   const cid = data.IpfsHash;
-
-  console.log("✅ Uploaded to Pinata! CID:", cid);
-
   return `https://gateway.pinata.cloud/ipfs/${cid}`;
 }

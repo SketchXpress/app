@@ -2,7 +2,12 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   images: {
-    domains: ["gateway.pinata.cloud"],
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "gateway.pinata.cloud",
+      },
+    ],
   },
 };
 

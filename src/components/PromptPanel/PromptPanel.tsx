@@ -13,7 +13,6 @@ const PromptPanel = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Submitting Prompt: ", prompt);
 
     // TODO: We have to connect this to API
   }

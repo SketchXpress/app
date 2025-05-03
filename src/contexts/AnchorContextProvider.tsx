@@ -1,9 +1,10 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 'use client';
 
-import { FC, ReactNode, useMemo } from 'react';
+import { FC, ReactNode, useMemo, useEffect } from 'react';
 import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { AnchorProvider, Program } from '@coral-xyz/anchor';
-import { PublicKey } from '@solana/web3.js';
+import { PublicKey, Connection } from '@solana/web3.js';
 import { createContext, useContext } from 'react';
 import { IDL } from '@/utils/idl';
 
@@ -14,7 +15,7 @@ interface AnchorContextProviderProps {
   children: ReactNode;
 }
 
-export interface AnchorContextState { // Export the interface
+export interface AnchorContextState {
   program: Program | null;
   provider: AnchorProvider | null;
   initialized: boolean;
@@ -28,40 +29,84 @@ const AnchorContext = createContext<AnchorContextState>({
 
 export const useAnchorContext = () => useContext(AnchorContext);
 
+// Create a read-only AnchorProvider for fetching data
+const createReadOnlyProvider = (connection: Connection) => {
+  return new AnchorProvider(
+    connection,
+    {
+      publicKey: PublicKey.default,
+      signTransaction: (_tx) => Promise.reject(new Error("Read-only provider cannot sign")),
+      signAllTransactions: (_txs) => Promise.reject(new Error("Read-only provider cannot sign")),
+    },
+    { commitment: 'confirmed' }
+  );
+};
+
 export const AnchorContextProvider: FC<AnchorContextProviderProps> = ({ children }) => {
   const { connection } = useConnection();
   const wallet = useWallet();
 
   const { provider, program, initialized } = useMemo(() => {
-    if (!wallet.publicKey || !wallet.signAllTransactions || !wallet.signTransaction) {
+    // Log the wallet state to help diagnose issues
+    console.log('Wallet state:', {
+      connected: wallet.connected,
+      publicKey: !!wallet.publicKey,
+      signTransaction: !!wallet.signTransaction,
+      signAllTransactions: !!wallet.signAllTransactions,
+    });
+
+    try {
+      let provider: AnchorProvider;
+
+      // If wallet is connected and has all required methods, use it
+      if (wallet.publicKey && wallet.signTransaction && wallet.signAllTransactions) {
+        provider = new AnchorProvider(
+          connection,
+          {
+            publicKey: wallet.publicKey || PublicKey.default,
+            signTransaction: wallet.signTransaction || ((tx) => Promise.resolve(tx)),
+            signAllTransactions: wallet.signAllTransactions || ((txs) => Promise.resolve(txs)),
+          },
+          { commitment: 'confirmed' }
+        );
+        console.log('Created provider with connected wallet');
+      } else {
+        // Otherwise use a read-only provider
+        provider = createReadOnlyProvider(connection);
+        console.log('Created read-only provider');
+      }
+
+      // Create the program with the IDL
+      const programId = new PublicKey(PROGRAM_ID);
+      // @ts-expect-error - Ignoring type error for now to allow build to complete
+      const program = new Program(IDL, programId, provider);
+
+      console.log('Program initialized successfully');
+
+      return {
+        provider,
+        program,
+        initialized: true,
+      };
+    } catch (error) {
+      console.error('Error initializing Anchor context:', error);
       return {
         provider: null,
         program: null,
         initialized: false,
       };
     }
-
-    // Create the provider
-    const provider = new AnchorProvider(
-      connection,
-      {
-        publicKey: wallet.publicKey,
-        signAllTransactions: wallet.signAllTransactions,
-        signTransaction: wallet.signTransaction,
-      },
-      { commitment: 'confirmed' }
-    );
-
-    // Create the program with the IDL
-    // @ts-expect-error - Ignoring type error for now to allow build to complete
-    const program = new Program(IDL, new PublicKey(PROGRAM_ID), provider);
-
-    return {
-      provider,
-      program,
-      initialized: true,
-    };
   }, [connection, wallet]);
+
+  // Additional effect to log when the context changes
+  useEffect(() => {
+    console.log('AnchorContext updated:', {
+      initialized,
+      providerExists: !!provider,
+      programExists: !!program,
+      isReadOnly: provider && (!wallet.publicKey || !wallet.signTransaction || !wallet.signAllTransactions),
+    });
+  }, [initialized, provider, program, wallet]);
 
   return (
     <AnchorContext.Provider value={{ provider, program, initialized }}>

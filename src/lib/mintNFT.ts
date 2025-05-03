@@ -16,8 +16,6 @@ export async function mintNFT(
     walletAdapterIdentity(walletContext)
   );
 
-  console.log("Minting NFT with metadata:", metadataUrl);
-
   const mintKeypair = Keypair.generate();
 
   const { blockhash, lastValidBlockHeight } =
@@ -61,9 +59,6 @@ export async function mintNFT(
     },
     "confirmed"
   );
-
-  console.log("✅ NFT minted successfully!");
-  console.log("Transaction Signature:", txSignature);
 
   return mintKeypair.publicKey.toString();
 }

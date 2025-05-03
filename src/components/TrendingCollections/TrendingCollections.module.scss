@@ -256,3 +256,58 @@ $accent-magenta: #d946ef;
     height: 32px;
   }
 }
+
+// Additional styles for dynamic content loading states
+
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 300px;
+  color: var(--foreground-muted, #6b7280);
+}
+
+.loadingSpinner {
+  animation: spin 1s linear infinite;
+  margin-bottom: 1rem;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.errorContainer {
+  text-align: center;
+  padding: 2rem 0;
+  color: #ef4444;
+}
+
+.retryButton {
+  padding: 0.5rem 1rem;
+  background: var(--accent-gradient, linear-gradient(135deg, var(--accent-cyan, #06b6d4), var(--accent-magenta, #d946ef)));
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  margin-top: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.emptyContainer {
+  text-align: center;
+  padding: 3rem 0;
+  color: var(--foreground-muted, #6b7280);
+  font-size: 1rem;
+}

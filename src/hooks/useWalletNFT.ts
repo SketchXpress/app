@@ -97,8 +97,6 @@ export function useWalletNFTs() {
       setError(null);
 
       try {
-        console.log("Fetching NFTs for wallet:", publicKey.toString());
-
         // Use the Helius RPC endpoint directly with the getAssetsByOwner method
         const HELIUS_API_KEY = process.env.NEXT_PUBLIC_HELIUS_API_KEY;
         const RPC_URL = `https://devnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
@@ -128,7 +126,6 @@ export function useWalletNFTs() {
         }
 
         const data = (await response.json()) as HeliusRPCResponse;
-        console.log("RPC response:", data);
 
         if (data.error) {
           throw new Error(`RPC Error: ${JSON.stringify(data.error)}`);
@@ -168,8 +165,6 @@ export function useWalletNFTs() {
             };
           }
         );
-
-        console.log("Formatted NFTs:", formattedNfts);
         setNfts(formattedNfts);
       } catch (err) {
         console.error("Error fetching wallet NFTs:", err);
@@ -182,10 +177,10 @@ export function useWalletNFTs() {
     fetchWalletNFTs();
 
     // Set up an interval to refresh NFTs periodically (every 30 seconds)
-    const intervalId = setInterval(fetchWalletNFTs, 30000);
+    // const intervalId = setInterval(fetchWalletNFTs, 30000);
 
     // Clean up interval on component unmount
-    return () => clearInterval(intervalId);
+    // return () => clearInterval(intervalId);
   }, [publicKey, connected]);
 
   return { nfts, loading, error };

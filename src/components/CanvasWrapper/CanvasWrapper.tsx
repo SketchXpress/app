@@ -85,7 +85,6 @@ const CanvasWrapper = () => {
         if (savedState) {
           const parsedState = JSON.parse(savedState);
           newStore.loadSnapshot(parsedState);
-          console.log('Restored canvas state from localStorage');
         }
       } catch (err) {
         console.warn('Failed to restore canvas state:', err);
@@ -132,7 +131,6 @@ const CanvasWrapper = () => {
         }
 
         localStorage.setItem(CANVAS_STORAGE_KEY, serializedState);
-        console.log('Saved canvas state to localStorage');
       } catch {
         toast.error("Failed to save your work. Consider exporting your drawing.", {
           position: "bottom-right",

@@ -19,13 +19,10 @@ export async function GET(request: Request) {
     // Use Helius RPC directly to get NFTs (for testnet)
     const url = `https://api-devnet.helius-rpc.com/v0/addresses/${walletAddress}/tokens?api-key=${HELIUS_API_KEY}`;
 
-    console.log(`Fetching NFTs from testnet for wallet: ${walletAddress}`);
-
     const response = await fetch(url);
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("Helius API error response:", errorText);
       return NextResponse.json(
         { error: `Helius API error: ${response.status}`, details: errorText },
         { status: response.status }
@@ -35,7 +32,6 @@ export async function GET(request: Request) {
     const data = await response.json();
     return NextResponse.json(data);
   } catch (error) {
-    console.error("Error fetching NFTs:", error);
     return NextResponse.json(
       {
         error: "Failed to fetch NFTs from Helius API",

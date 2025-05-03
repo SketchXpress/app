@@ -99,7 +99,6 @@ const fetchWithRetry = async (
 
       // Exponential backoff
       const delay = 1000 * Math.pow(2, attempt - 1);
-      console.log(`[fetchWithRetry] Retrying in ${delay}ms...`);
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
@@ -185,7 +184,6 @@ export async function enhanceSketch(editor: Editor): Promise<string> {
 
     // Get API URL and prepare request
     const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`;
-    console.log(`[enhanceSketch] Calling generate API: ${apiUrl}`);
     const headers = new Headers();
     headers.append("Accept", "application/json");
 
@@ -197,7 +195,6 @@ export async function enhanceSketch(editor: Editor): Promise<string> {
 
     const data = await res.json();
     const { job_id } = data;
-    console.log(`[enhanceSketch] Received job_id: ${job_id}`);
 
     // Publish event for RightPanel to start monitoring the job
     eventBus.publish("enhance:started", { jobId: job_id });
@@ -278,12 +275,9 @@ async function waitForImageGeneration(
   const maxWaitTime = 120000; // 2 minutes
   const pollInterval = 2000; // Poll every 2 seconds
 
-  console.log(`[waitForImageGeneration] Starting to poll for job_id: ${jobId}`);
-
   while (Date.now() - startTime < maxWaitTime) {
     try {
       const statusUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/status/${jobId}`;
-      console.log(`[waitForImageGeneration] Polling status URL: ${statusUrl}`);
 
       const headers = new Headers();
       headers.append("Accept", "application/json");
@@ -293,7 +287,6 @@ async function waitForImageGeneration(
       try {
         const response = await fetchWithRetry(statusUrl, { headers }, 3);
         data = await response.json();
-        console.log(`[waitForImageGeneration] Received status: ${data.status}`);
       } catch (fetchError) {
         console.error(
           `[waitForImageGeneration] Error fetching status for job ${jobId}: ${fetchError}. Retrying...`
@@ -308,10 +301,6 @@ async function waitForImageGeneration(
         data.images &&
         data.images.length > 0
       ) {
-        console.log(
-          `[waitForImageGeneration] Job ${jobId} completed. Images:`,
-          data.images
-        );
         const imageFilename = data.images[0]; // Assuming the first image is the one we want
         // The backend now returns full URLs in the 'images' list if served via StaticFiles
         // Or just filenames if you need to construct the URL
@@ -319,9 +308,6 @@ async function waitForImageGeneration(
         const filename = imageFilename.split("/").pop() || "";
 
         const imageUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
-        console.log(
-          `[waitForImageGeneration] Fetching generated image from: ${imageUrl}`
-        );
 
         const imageHeaders = new Headers();
         imageHeaders.append("Accept", "image/*");
@@ -333,9 +319,6 @@ async function waitForImageGeneration(
             headers: imageHeaders,
           });
           imageBlob = await imageRes.blob();
-          console.log(
-            `[waitForImageGeneration] Successfully fetched image blob. Size: ${imageBlob.size}`
-          );
         } catch (imageFetchError) {
           console.error(
             `[waitForImageGeneration] Failed to fetch the generated image from ${imageUrl}: ${imageFetchError}`
@@ -344,7 +327,6 @@ async function waitForImageGeneration(
         }
 
         const base64 = await convertBlobToBase64(imageBlob);
-        console.log(`[waitForImageGeneration] Converted image blob to base64.`);
 
         // Publish event that image generation completed
         eventBus.publish("enhance:completed", {
@@ -369,10 +351,6 @@ async function waitForImageGeneration(
         throw new Error(errorMsg);
       }
 
-      // Still processing, wait before next poll
-      console.log(
-        `[waitForImageGeneration] Job ${jobId} status is ${data.status}. Waiting ${pollInterval}ms...`
-      );
       await new Promise((resolve) => setTimeout(resolve, pollInterval));
     } catch (error) {
       // Catch errors from within the loop (e.g., failed status, failed image fetch)

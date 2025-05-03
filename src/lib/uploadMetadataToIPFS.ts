@@ -25,7 +25,5 @@ export async function uploadMetadataToIPFS(
   // 3. Upload the Blob to Pinata IPFS
   const metadataUrl = await uploadToIPFSUsingPinata(metadataBlob);
 
-  console.log("✅ Metadata uploaded to IPFS (Pinata):", metadataUrl);
-
   return metadataUrl;
 }

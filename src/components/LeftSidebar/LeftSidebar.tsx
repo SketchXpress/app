@@ -113,7 +113,6 @@ const LeftSidebar = () => {
   }, []);
 
   const toggleSidebar = () => {
-    console.log("Toggle sidebar clicked, current state:", sidebarOpen);
     setSidebarOpen(!sidebarOpen);
   };
 
