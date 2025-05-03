@@ -7,7 +7,6 @@ import styles from './TrendingCollections.module.scss';
 import { useBondingCurveHistory, HistoryItem } from '@/hooks/useBondingCurveHistory';
 import { usePoolPrices } from '@/hooks/usePoolPrices';
 import { useAnchorContext } from '@/contexts/AnchorContextProvider';
-import { useWallet } from '@solana/wallet-adapter-react';
 
 // Define a type for our collection data
 interface DynamicCollection {
@@ -22,7 +21,7 @@ interface DynamicCollection {
 
 // Helper to organize transactions by pool and extract collection names
 const processTrendingCollections = (transactions: HistoryItem[]) => {
-  console.log("Processing transactions:", transactions);
+
 
   // Group transactions by pool address
   const poolMap = new Map<string, {
@@ -52,7 +51,7 @@ const processTrendingCollections = (transactions: HistoryItem[]) => {
       if (tx.accounts && tx.accounts.length > 1) {
         const collectionMintAddress = tx.accounts[1].toString(); // Collection mint is typically the second account
         collectionCreations.set(collectionMintAddress, { name, symbol });
-        console.log(`Found collection: ${name} (${symbol}) with mint ${collectionMintAddress}`);
+
       }
     }
   });
@@ -69,7 +68,7 @@ const processTrendingCollections = (transactions: HistoryItem[]) => {
         const collection = collectionCreations.get(collectionMintAddress);
         if (collection) {
           poolToCollectionMap.set(poolAddress, collection.name);
-          console.log(`Linked pool ${poolAddress} to collection ${collection.name}`);
+
         }
       }
     }
@@ -116,7 +115,7 @@ const processTrendingCollections = (transactions: HistoryItem[]) => {
     }
   });
 
-  console.log("Processed pools:", Array.from(poolMap.values()));
+
   return Array.from(poolMap.values());
 };
 
@@ -128,20 +127,12 @@ const TrendingCollections: React.FC = () => {
   const [poolAddresses, setPoolAddresses] = useState<string[]>([]);
 
   // Get wallet and Anchor context
-  const wallet = useWallet();
   const { program } = useAnchorContext();
   const { prices, loading: pricesLoading } = usePoolPrices(poolAddresses);
 
   // Check wallet and program state
-  const isWalletConnected = wallet.connected;
   const isProgramInitialized = !!program;
 
-  // Log current state for debugging
-  useEffect(() => {
-    console.log("Wallet connected:", isWalletConnected);
-    console.log("Program initialized:", isProgramInitialized);
-    console.log("Provider available:", !!program?.provider);
-  }, [isWalletConnected, isProgramInitialized, program]);
 
   // Use the hook to get history data
   const {
@@ -194,10 +185,6 @@ const TrendingCollections: React.FC = () => {
           totalVolume: pool.totalVolume // Include totalVolume for fallback
         }));
 
-        console.log("Formatted collections:", formattedCollections);
-
-        // Update pool addresses for price fetching
-        console.log("Setting pool addresses:", formattedCollections.map(c => c.id));
         setPoolAddresses(formattedCollections.map(collection => collection.id));
 
         setCollections(formattedCollections);

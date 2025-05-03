@@ -13,22 +13,15 @@ export const usePoolPrices = (poolAddresses: string[]) => {
 
   useEffect(() => {
     const fetchPoolPrices = async () => {
-      console.log("🔄 [usePoolPrices] Fetch triggered...");
-      console.log("Pool Addresses:", poolAddresses);
-      console.log("Program exists:", !!program);
-
       if (!poolAddresses.length) {
-        console.log("⛔ No pool addresses. Exiting early.");
         return;
       }
 
       if (!program) {
-        console.log("⏳ Program not ready yet. Will retry later...");
         return;
       }
 
       if (!program.account?.bondingCurvePool?.fetch) {
-        console.log("⏳ bondingCurvePool not ready yet. Waiting...");
         return;
       }
 
@@ -40,11 +33,8 @@ export const usePoolPrices = (poolAddresses: string[]) => {
         const poolPromises = poolAddresses
           .filter((address) => {
             const isValid = isValidPublicKeyFormat(address);
-            console.log(
-              `✅ Validating address: ${address} → Valid? ${isValid}`
-            );
+
             if (!isValid) {
-              console.warn(`❗ Invalid address format: ${address}`);
               newPrices[address] = "Invalid address";
             }
             return isValid;
@@ -57,20 +47,12 @@ export const usePoolPrices = (poolAddresses: string[]) => {
                 return { address, price: "Invalid address" as const };
               }
 
-              console.log(
-                `📡 Fetching bondingCurvePool for address: ${address}`
-              );
               const poolData = await program.account.bondingCurvePool.fetch(
                 pool
               );
-              console.log(`✅ Pool data fetched for ${address}:`, poolData);
 
               const totalEscrowed = poolData.totalEscrowed as BN;
               const totalEscrowedSOL = totalEscrowed.toNumber() / 1_000_000_000;
-
-              console.log(
-                `💰 Total Escrowed SOL for ${address}: ${totalEscrowedSOL}`
-              );
 
               return { address, price: totalEscrowedSOL };
             } catch (err) {
@@ -79,11 +61,9 @@ export const usePoolPrices = (poolAddresses: string[]) => {
             }
           });
 
-        console.log("⏳ Waiting for all pool fetches to complete...");
         const results = await Promise.all(poolPromises);
 
         results.forEach((result) => {
-          console.log(`📌 Setting price for ${result.address}:`, result.price);
           newPrices[result.address] = result.price;
         });
 
@@ -97,11 +77,11 @@ export const usePoolPrices = (poolAddresses: string[]) => {
         );
       } finally {
         setLoading(false);
-        console.log("✅ Finished fetching pool prices.");
       }
     };
 
     fetchPoolPrices();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [program?.provider, poolAddresses]);
 
   return { prices, loading, error };

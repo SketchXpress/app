@@ -47,13 +47,7 @@ export const AnchorContextProvider: FC<AnchorContextProviderProps> = ({ children
   const wallet = useWallet();
 
   const { provider, program, initialized } = useMemo(() => {
-    // Log the wallet state to help diagnose issues
-    console.log('Wallet state:', {
-      connected: wallet.connected,
-      publicKey: !!wallet.publicKey,
-      signTransaction: !!wallet.signTransaction,
-      signAllTransactions: !!wallet.signAllTransactions,
-    });
+
 
     try {
       let provider: AnchorProvider;
@@ -69,11 +63,11 @@ export const AnchorContextProvider: FC<AnchorContextProviderProps> = ({ children
           },
           { commitment: 'confirmed' }
         );
-        console.log('Created provider with connected wallet');
+
       } else {
         // Otherwise use a read-only provider
         provider = createReadOnlyProvider(connection);
-        console.log('Created read-only provider');
+
       }
 
       // Create the program with the IDL
@@ -81,7 +75,7 @@ export const AnchorContextProvider: FC<AnchorContextProviderProps> = ({ children
       // @ts-expect-error - Ignoring type error for now to allow build to complete
       const program = new Program(IDL, programId, provider);
 
-      console.log('Program initialized successfully');
+
 
       return {
         provider,
@@ -97,16 +91,6 @@ export const AnchorContextProvider: FC<AnchorContextProviderProps> = ({ children
       };
     }
   }, [connection, wallet]);
-
-  // Additional effect to log when the context changes
-  useEffect(() => {
-    console.log('AnchorContext updated:', {
-      initialized,
-      providerExists: !!provider,
-      programExists: !!program,
-      isReadOnly: provider && (!wallet.publicKey || !wallet.signTransaction || !wallet.signAllTransactions),
-    });
-  }, [initialized, provider, program, wallet]);
 
   return (
     <AnchorContext.Provider value={{ provider, program, initialized }}>

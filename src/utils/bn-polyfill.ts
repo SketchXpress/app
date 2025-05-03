@@ -36,7 +36,6 @@ if (typeof global !== "undefined") {
       configurable: true,
       enumerable: false,
     });
-    console.log("Added _bn property to BN.prototype");
   }
 }
 
@@ -434,7 +433,6 @@ export function patchBigintBuffer() {
       patchExistingInstances(window);
     }
 
-    console.log("bigint-buffer patched successfully");
     return true;
   } catch (error) {
     console.error("Failed to patch bigint-buffer:", error);
@@ -466,7 +464,6 @@ function patchExistingInstances(
     if (hasToBN(obj) && obj._bn === undefined) {
       // Fix the object by setting a default _bn
       obj._bn = new BN(0);
-      console.log("Fixed undefined _bn property on object");
     }
 
     // Check if this is a BN instance without _bn property
@@ -483,7 +480,6 @@ function patchExistingInstances(
         configurable: true,
         enumerable: false,
       });
-      console.log("Fixed BN instance without _bn property");
     }
 
     // Recursively check properties
@@ -538,8 +534,6 @@ if (typeof BN === "function") {
   if (typeof global !== "undefined") {
     (global as Record<string, unknown>).BN = PatchedBN;
   }
-
-  console.log("Monkey patched BN constructor to ensure _bn property");
 }
 
 export default SafeBN;

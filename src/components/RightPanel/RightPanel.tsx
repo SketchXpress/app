@@ -120,7 +120,6 @@ const RightPanel: React.FC = () => {
   useEffect(() => {
     // Handle enhance started event
     const unsubscribeStarted = subscribeToEnhanceStarted((data: EnhanceStartedEvent) => {
-      console.log("[RightPanel] Enhance started event received, Job ID:", data.jobId);
       setIsProcessing(true);
       setGeneratedImages([]); // Clear previous images
       setError(null);
@@ -141,7 +140,6 @@ const RightPanel: React.FC = () => {
 
     // Handle enhance completed event
     const unsubscribeCompleted = subscribeToEnhanceCompleted(async (data: EnhanceCompletedEventWithBase64) => {
-      console.log("[RightPanel] Enhance completed event received:", data);
       setIsProcessing(false);
       setCurrentJobId(null); // Clear job ID once completed
 
@@ -150,7 +148,6 @@ const RightPanel: React.FC = () => {
 
         // *** USE BASE64 DATA IF AVAILABLE ***
         if (data.images_base64 && data.images_base64.length > 0) {
-          console.log("[RightPanel] Using base64 data from event.");
           images = data.images_base64.map((base64String, index) => {
             const filename = data.images[index]?.split("/").pop() || `generated_${index}.png`;
             const originalUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
@@ -170,7 +167,7 @@ const RightPanel: React.FC = () => {
               const pathParts = imagePath.split("/");
               const filename = pathParts[pathParts.length - 1];
               const fullUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
-              console.log(`[Fallback] Fetching image ${index + 1} from: ${fullUrl}`);
+
               try {
                 const response = await fetch(fullUrl);
                 if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
@@ -191,7 +188,6 @@ const RightPanel: React.FC = () => {
         }
 
         if (images.length > 0) {
-          console.log("[RightPanel] Setting generated images:", images);
           setGeneratedImages(images);
           setShowGallery(true);
 
@@ -237,7 +233,6 @@ const RightPanel: React.FC = () => {
 
     // Clean up subscriptions
     return () => {
-      console.log("[RightPanel] Cleaning up event subscriptions.");
       unsubscribeStarted();
       unsubscribeCompleted();
       unsubscribeFailed();
@@ -248,7 +243,6 @@ const RightPanel: React.FC = () => {
   useEffect(() => {
     if (!currentJobId || !isProcessing) return;
 
-    console.log(`[RightPanel] Starting polling for Job ID: ${currentJobId}`);
     let pollInterval: NodeJS.Timeout | null = null;
 
     const pollStatus = async () => {
@@ -258,7 +252,7 @@ const RightPanel: React.FC = () => {
       }
       try {
         const statusUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/status/${currentJobId}`;
-        console.log(`[Polling] Fetching status: ${statusUrl}`);
+
         const response = await fetch(statusUrl);
 
         const contentType = response.headers.get("content-type");
@@ -290,10 +284,10 @@ const RightPanel: React.FC = () => {
         }
 
         const data = await response.json();
-        console.log("[Polling] Received status:", data.status);
+
 
         if (data.status === "completed") {
-          console.log("[Polling] Job completed. Processing images...");
+
           if (pollInterval) clearInterval(pollInterval); // Stop polling
           setIsProcessing(false);
           setCurrentJobId(null); // Clear job ID
@@ -301,7 +295,7 @@ const RightPanel: React.FC = () => {
           let images: GeneratedImage[] = [];
           // *** USE BASE64 DATA IF AVAILABLE ***
           if (data.images_base64 && data.images_base64.length > 0) {
-            console.log("[Polling] Using base64 data from status response.");
+
             images = data.images_base64.map((base64String: string, index: number) => {
               const filename = data.images[index]?.split("/").pop() || `generated_${index}.png`;
               const originalUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
@@ -321,7 +315,7 @@ const RightPanel: React.FC = () => {
                 const pathParts = imagePath.split("/");
                 const filename = pathParts[pathParts.length - 1];
                 const fullUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
-                console.log(`[Polling Fallback] Fetching image ${index + 1} from: ${fullUrl}`);
+
                 try {
                   const response = await fetch(fullUrl);
                   if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
@@ -343,7 +337,7 @@ const RightPanel: React.FC = () => {
           }
 
           if (images.length > 0) {
-            console.log("[Polling] Setting generated images:", images);
+
             setGeneratedImages(images);
             setShowGallery(true);
             setError(null); // Clear any previous error
@@ -394,7 +388,7 @@ const RightPanel: React.FC = () => {
 
     // Cleanup function
     return () => {
-      console.log(`[RightPanel] Cleaning up polling for Job ID: ${currentJobId}`);
+
       if (pollInterval) clearInterval(pollInterval);
     };
   }, [currentJobId, isProcessing]); // Only restart polling if jobId changes or processing state changes
@@ -403,10 +397,10 @@ const RightPanel: React.FC = () => {
   useEffect(() => {
     const currentImageSrcs = generatedImages.map(img => img.src);
     return () => {
-      console.log("[RightPanel] Cleaning up object URLs.");
+
       currentImageSrcs.forEach(src => {
         if (src.startsWith("blob:")) {
-          console.log(`Revoking blob URL: ${src}`);
+
           URL.revokeObjectURL(src);
         }
       });
@@ -429,7 +423,6 @@ const RightPanel: React.FC = () => {
     const selectedImage = generatedImages.find(img => img.id === selectedImageId);
     if (!selectedImage) return;
 
-    console.log(`Exporting image: ${selectedImage.url}`);
 
     // Show a toast notification that download is starting
     toast.info("Starting download...", {
@@ -480,7 +473,7 @@ const RightPanel: React.FC = () => {
       return;
     }
 
-    console.log(`Preparing to mint image: ${selectedImage.url}`);
+
     try {
       // Show a loading toast that we can update later
       const mintingToastId = toast.loading("Starting the NFT minting process...", {
@@ -495,17 +488,17 @@ const RightPanel: React.FC = () => {
       const blob = await response.blob();
 
       // Upload image to IPFS
-      console.log("Uploading image to IPFS...");
+
       toast.update(mintingToastId, {
         render: "Uploading image to IPFS...",
         type: "info",
         isLoading: true
       });
       const imageIpfsUrl = await uploadToIPFSUsingPinata(blob);
-      console.log("Image uploaded to IPFS:", imageIpfsUrl);
+
 
       // Upload metadata to IPFS
-      console.log("Uploading metadata to IPFS...");
+
       toast.update(mintingToastId, {
         render: "Uploading metadata to IPFS...",
         type: "info",
@@ -516,17 +509,17 @@ const RightPanel: React.FC = () => {
         "AI-enhanced artwork created with SketchXpress.",
         imageIpfsUrl
       );
-      console.log("Metadata uploaded to IPFS:", metadataIpfsUrl);
+
 
       // Mint the NFT
-      console.log("Minting NFT...");
+
       toast.update(mintingToastId, {
         render: "Creating your NFT on the blockchain...",
         type: "info",
         isLoading: true
       });
       const nftAddress = await mintNFT(metadataIpfsUrl, walletContext);
-      console.log("NFT minted successfully:", nftAddress);
+
 
       // Success toast
       toast.update(mintingToastId, {
@@ -588,7 +581,7 @@ const RightPanel: React.FC = () => {
   // Individual image download button
   const handleDownloadImage = (e: React.MouseEvent, image: GeneratedImage) => {
     e.stopPropagation();
-    console.log(`Downloading image: ${image.url}`);
+
 
     // Show downloading toast
     toast.info("Starting download...", {
