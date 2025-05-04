@@ -1,4 +1,3 @@
-// src/components/MyNFT/MyNFT.tsx
 "use client";
 
 import { useState, useEffect } from 'react';
