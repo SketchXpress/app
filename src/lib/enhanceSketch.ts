@@ -189,7 +189,7 @@ export async function enhanceSketch(editor: Editor): Promise<string> {
     }
 
     // Get API URL and prepare request
-    const apiUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/generate`;
+    const apiUrl = `/api/enhance`;
     const headers = new Headers();
     headers.append("Accept", "application/json");
 
