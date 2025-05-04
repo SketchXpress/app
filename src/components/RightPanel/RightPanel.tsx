@@ -84,11 +84,11 @@ const RightPanel: React.FC = () => {
   // Defining default pools for Kids and Pro modes
   const DEFAULT_POOLS = {
     kids: {
-      address: "5HLuBnvtiArb3g9hRmcwLqGr7kapp34Y2hJB4cgiP5jZ", // Replace with actual address
+      address: "2c1U9TKFcw5LVLRkEopaeVyxaj5aAefhA9syX9d2pUmL", // Replace with actual address
       name: "Kids Collection"
     },
     pro: {
-      address: "6R3VydcEpCy5Q5RdjjnDWfHas6vEFJuon86xjR1MAX4A", // Replace with actual address
+      address: "2c1U9TKFcw5LVLRkEopaeVyxaj5aAefhA9syX9d2pUmL", // Replace with actual address
       name: "Pro Collection"
     }
   };
