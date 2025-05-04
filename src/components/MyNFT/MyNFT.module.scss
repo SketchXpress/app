@@ -1,12 +1,3 @@
-// components/MyNFT/MyNFT.module.scss
-// Base variables for consistent styling
-:root {
-  --card-radius: 8px;
-  --accent-gradient: linear-gradient(135deg, var(--accent-cyan, #06b6d4), var(--accent-magenta, #d946ef));
-  --hover-transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-}
-
-// Matching the TrendingCollections structure
 .trendingSection {
   width: 100%;
   display: flex;
@@ -77,13 +68,13 @@
   
   &.activeTab {
     color: var(--foreground, #1f2937);
-    background: var(--accent-gradient);
+    background: linear-gradient(135deg, var(--accent-cyan, #06b6d4), var(--accent-magenta, #d946ef));
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
     
     &::after {
-      background: var(--accent-gradient);
+      background: linear-gradient(135deg, var(--accent-cyan, #06b6d4), var(--accent-magenta, #d946ef));
     }
   }
   
@@ -145,11 +136,11 @@
 }
 
 .nftCard {
-  border-radius: var(--card-radius);
+  border-radius: 8px;
   overflow: hidden;
   background-color: var(--card-bg, #f9fafb);
   border: 1px solid var(--border, rgba(0, 0, 0, 0.05));
-  transition: var(--hover-transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03);
   
@@ -249,7 +240,7 @@
   display: flex;
   align-items: center;
   gap: 4px;
-  transition: var(--hover-transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   opacity: 0.8;
   transform: translateY(4px);
   
@@ -265,7 +256,7 @@
 // Wallet Not Connected State
 .walletNotConnected {
   padding: 3rem 2rem;
-  border-radius: var(--card-radius);
+  border-radius: 8px;
   background-color: var(--background, #ffffff);
   margin-bottom: 2rem;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.06);
@@ -289,7 +280,7 @@
   width: 64px;
   height: 64px;
   border-radius: 8px;
-  background: var(--accent-gradient);
+  background: linear-gradient(135deg, var(--accent-cyan, #06b6d4), var(--accent-magenta, #d946ef));
   display: flex;
   align-items: center;
   justify-content: center;
@@ -304,7 +295,7 @@
   font-size: 1.5rem;
   font-weight: 700;
   margin-bottom: 1rem;
-  background: var(--accent-gradient);
+  background: linear-gradient(135deg, var(--accent-cyan, #06b6d4), var(--accent-magenta, #d946ef));
   -webkit-background-clip: text;
   background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -334,7 +325,7 @@
 }
 
 .previewCard {
-  border-radius: var(--card-radius);
+  border-radius: 8px;
   overflow: hidden;
   background-color: var(--card-bg, #f9fafb);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
@@ -365,7 +356,7 @@
 }
 
 .connectButton {
-  background: var(--accent-gradient);
+  background: linear-gradient(135deg, var(--accent-cyan, #06b6d4), var(--accent-magenta, #d946ef));
   color: white;
   border: none;
   border-radius: 8px;
@@ -376,7 +367,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: var(--hover-transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   
   &:hover {
@@ -429,14 +420,14 @@
 }
 
 .retryButton {
-  background: var(--accent-gradient);
+  background: linear-gradient(135deg, var(--accent-cyan, #06b6d4), var(--accent-magenta, #d946ef));
   color: white;
   border: none;
   padding: 0.5rem 1.5rem;
   border-radius: 8px;
   font-weight: 500;
   cursor: pointer;
-  transition: var(--hover-transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   
   &:hover {
     box-shadow: 0 8px 20px rgba(6, 182, 212, 0.3);
@@ -479,7 +470,7 @@
 }
 
 .exploreButton {
-  background: var(--accent-gradient);
+  background: linear-gradient(135deg, var(--accent-cyan, #06b6d4), var(--accent-magenta, #d946ef));
   color: white;
   border: none;
   border-radius: 8px;
@@ -490,7 +481,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  transition: var(--hover-transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   
   &:hover {
@@ -528,7 +519,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  transition: var(--hover-transition);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
   
@@ -539,7 +530,7 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: var(--accent-gradient);
+    background: linear-gradient(135deg, var(--accent-cyan, #06b6d4), var(--accent-magenta, #d946ef));
     opacity: 0;
     transition: opacity 0.3s ease;
     z-index: -1;
