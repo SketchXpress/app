@@ -6,6 +6,7 @@ import {
   defaultShapeUtils,
   defaultTools,
   Editor,
+  loadSnapshot
 } from "tldraw";
 import "tldraw/tldraw.css";
 import styles from "./CanvasWrapper.module.scss";
@@ -84,7 +85,7 @@ const CanvasWrapper = () => {
         const savedState = localStorage.getItem(CANVAS_STORAGE_KEY);
         if (savedState) {
           const parsedState = JSON.parse(savedState);
-          newStore.loadSnapshot(parsedState);
+          loadSnapshot(newStore, parsedState);
         }
       } catch (err) {
         console.warn('Failed to restore canvas state:', err);
