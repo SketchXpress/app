@@ -46,7 +46,7 @@ export default function CollectionDetailPage() {
   // Calculate migration progress percentage
   const migrationProgress = useMemo(() => {
     if (!info) return 0;
-    const threshold = 69000; // 69,000 SOL
+    const threshold = 690; // 690 SOL
     const progress = (info.totalEscrowed / threshold) * 100;
     return Math.min(progress, 100); // Cap at 100%
   }, [info]);
@@ -176,7 +176,7 @@ export default function CollectionDetailPage() {
                 </div>
 
                 <div className={styles.progressFooter}>
-                  <span>{info.totalEscrowed.toFixed(2)} / 69,000 SOL</span>
+                  <span>{info.totalEscrowed.toFixed(2)} / 690 SOL</span>
                 </div>
               </div>
 
