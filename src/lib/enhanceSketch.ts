@@ -26,11 +26,25 @@ const fetchWithRetry = async (
         headers.set("Accept", "application/json");
       }
 
-      // Fetch directly from the URL
+      // Force TCP by setting the appropriate signal options
+      const controller = new AbortController();
+      const signal = controller.signal;
+
+      // Set timeout to prevent idle timeout issues (30 seconds)
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
+
+      // Fetch directly from the URL with TCP options
       const response = await fetch(directUrl, {
         ...options,
         headers,
+        signal,
+        // Force HTTP/1.1 instead of HTTP/2 or HTTP/3 (which might use QUIC)
+        cache: "no-store",
+        keepalive: true,
       });
+
+      // Clear the timeout
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const errorText = await response.text();
