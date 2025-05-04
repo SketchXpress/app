@@ -137,6 +137,7 @@ $accent-magenta: #d946ef;
   padding: 16px 20px;
   border-bottom: 1px solid #f0f0f0;
   transition: background-color 0.2s ease;
+  cursor: pointer;
   
   &:last-child {
     border-bottom: none;
@@ -237,6 +238,7 @@ $accent-magenta: #d946ef;
   .collectionRow {
     grid-template-columns: 50px 1fr 100px;
     padding: 12px 16px;
+    cursor: pointer;
   }
   
   .rankCell {

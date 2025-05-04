@@ -7,6 +7,7 @@ import styles from './TrendingCollections.module.scss';
 import { useBondingCurveHistory, HistoryItem } from '@/hooks/useBondingCurveHistory';
 import { usePoolPrices } from '@/hooks/usePoolPrices';
 import { useAnchorContext } from '@/contexts/AnchorContextProvider';
+import { useRouter } from 'next/navigation';
 
 // Define a type for our collection data
 interface DynamicCollection {
@@ -16,13 +17,11 @@ interface DynamicCollection {
   image: string;
   verified: boolean;
   nftCount?: number;
-  totalVolume: number; // Add total volume for fallback display
+  totalVolume: number;
 }
 
 // Helper to organize transactions by pool and extract collection names
 const processTrendingCollections = (transactions: HistoryItem[]) => {
-
-
   // Group transactions by pool address
   const poolMap = new Map<string, {
     poolAddress: string,
@@ -51,7 +50,6 @@ const processTrendingCollections = (transactions: HistoryItem[]) => {
       if (tx.accounts && tx.accounts.length > 1) {
         const collectionMintAddress = tx.accounts[1].toString(); // Collection mint is typically the second account
         collectionCreations.set(collectionMintAddress, { name, symbol });
-
       }
     }
   });
@@ -68,7 +66,6 @@ const processTrendingCollections = (transactions: HistoryItem[]) => {
         const collection = collectionCreations.get(collectionMintAddress);
         if (collection) {
           poolToCollectionMap.set(poolAddress, collection.name);
-
         }
       }
     }
@@ -115,11 +112,11 @@ const processTrendingCollections = (transactions: HistoryItem[]) => {
     }
   });
 
-
   return Array.from(poolMap.values());
 };
 
 const TrendingCollections: React.FC = () => {
+  const router = useRouter();
   const [activeTab, setActiveTab] = useState('trending');
   const [collections, setCollections] = useState<DynamicCollection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -133,13 +130,29 @@ const TrendingCollections: React.FC = () => {
   // Check wallet and program state
   const isProgramInitialized = !!program;
 
-
   // Use the hook to get history data
   const {
     history,
     isLoading: historyLoading,
     error: historyError
   } = useBondingCurveHistory(50);
+
+  // Get a random NFT image from the available images
+  const getRandomNftImage = () => {
+    // List of available NFT images
+    const nftImages = [
+      '/nft1.jpeg',
+      '/nft2.avif',
+      '/nft3.jpg',
+      '/nft4.jpg',
+      '/nft5.png',
+      '/nft6.webp'
+    ];
+
+    // Select a random image from the array
+    const randomIndex = Math.floor(Math.random() * nftImages.length);
+    return nftImages[randomIndex];
+  };
 
   // Process history data when it's available
   useEffect(() => {
@@ -174,19 +187,18 @@ const TrendingCollections: React.FC = () => {
         // Take top 8
         sortedPools = sortedPools.slice(0, 8);
 
-        // Format for display - include totalVolume for fallback display
+        // Format for display - using random NFT images
         const formattedCollections: DynamicCollection[] = sortedPools.map((pool, index) => ({
           id: pool.poolAddress,
           rank: index + 1,
           name: pool.name,
-          image: `/defaultNFT.png`, // Default image
+          image: getRandomNftImage(), // Assign a random NFT image
           verified: true,
           nftCount: pool.nftCount,
-          totalVolume: pool.totalVolume // Include totalVolume for fallback
+          totalVolume: pool.totalVolume
         }));
 
         setPoolAddresses(formattedCollections.map(collection => collection.id));
-
         setCollections(formattedCollections);
         setIsLoading(false);
       } catch (err) {
@@ -202,6 +214,11 @@ const TrendingCollections: React.FC = () => {
     setActiveTab(tab);
   };
 
+  // Handle collection click - Navigate to collection page
+  const handleCollectionClick = (poolAddress: string) => {
+    router.push(`/mintstreet/collection/${poolAddress}`);
+  };
+
   // Split collections for two columns
   const leftCollections = collections.slice(0, 4);
   const rightCollections = collections.slice(4, 8);
@@ -209,7 +226,7 @@ const TrendingCollections: React.FC = () => {
   // Handle image error
   const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.target as HTMLImageElement;
-    target.src = '/defaultNFT.png';
+    target.src = '/defaultNFT.png'; // Use defaultNFT.png as fallback
   };
 
   // Improved function to display pool price with fallbacks
@@ -327,7 +344,11 @@ const TrendingCollections: React.FC = () => {
             {/* Left Column Content */}
             <div className={styles.columnContent}>
               {leftCollections.map((collection) => (
-                <div key={collection.id} className={styles.collectionRow}>
+                <div
+                  key={collection.id}
+                  className={styles.collectionRow}
+                  onClick={() => handleCollectionClick(collection.id)}
+                >
                   <div className={styles.rankCell}>{collection.rank}</div>
                   <div className={styles.collectionCell}>
                     <div className={styles.collectionInfo}>
@@ -357,7 +378,11 @@ const TrendingCollections: React.FC = () => {
             {/* Right Column Content */}
             <div className={styles.columnContent}>
               {rightCollections.map((collection) => (
-                <div key={collection.id} className={styles.collectionRow}>
+                <div
+                  key={collection.id}
+                  className={styles.collectionRow}
+                  onClick={() => handleCollectionClick(collection.id)}
+                >
                   <div className={styles.rankCell}>{collection.rank}</div>
                   <div className={styles.collectionCell}>
                     <div className={styles.collectionInfo}>
@@ -396,7 +421,11 @@ const TrendingCollections: React.FC = () => {
 
           <div className={styles.mobileContent}>
             {collections.map((collection) => (
-              <div key={collection.id} className={styles.collectionRow}>
+              <div
+                key={collection.id}
+                className={styles.collectionRow}
+                onClick={() => handleCollectionClick(collection.id)}
+              >
                 <div className={styles.rankCell}>{collection.rank}</div>
                 <div className={styles.collectionCell}>
                   <div className={styles.collectionInfo}>

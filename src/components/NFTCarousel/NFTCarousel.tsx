@@ -154,7 +154,7 @@ const NFTCarousel = () => {
                         </div>
 
                         {nft.poolAddress ? (
-                          <Link href={`/collection/${nft.poolAddress}`} className={styles.viewButton}>
+                          <Link href={`/mintstreet/collection/${nft.poolAddress}`} className={styles.viewButton}>
                             <span>View</span>
                             <ExternalLink size={14} />
                           </Link>

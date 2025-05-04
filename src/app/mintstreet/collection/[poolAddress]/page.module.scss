@@ -1,0 +1,323 @@
+// Variables
+$primary-color: var(--accent-cyan, #00B7E1);
+$secondary-color: var(--accent-magenta, #D63384);
+$border-radius: 8px;
+$card-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+$card-bg: var(--card-bg, #F9F9F9);
+$border-color: var(--border, #E0E0E0);
+
+// Main container
+.container {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem;
+  width: 100%;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  @media (min-width: 640px) {
+    padding: 2rem;
+  }
+}
+
+// Header styles
+.header {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid $border-color;
+  
+  @media (min-width: 768px) {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+}
+
+.title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin: 0 0 0.5rem 0;
+  color: var(--foreground, #171717);
+  
+  @media (min-width: 768px) {
+    margin-bottom: 0;
+    font-size: 1.5rem;
+  }
+}
+
+.poolAddress {
+  font-size: 0.875rem;
+  color: var(--foreground, #171717);
+  opacity: 0.7;
+  
+  span {
+    font-family: 'Inter', monospace;
+    margin-left: 0.25rem;
+  }
+}
+
+// Main content grid
+.content {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+  
+  @media (min-width: 1024px) {
+    grid-template-columns: 1fr 350px;
+    gap: 2rem;
+  }
+}
+
+// Chart section
+.chartSection {
+  order: 1;
+  
+  @media (min-width: 1024px) {
+    order: 0;
+  }
+}
+
+// Info section
+.infoSection {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+// Card components
+.card {
+  background-color: $card-bg;
+  border-radius: $border-radius;
+  box-shadow: $card-shadow;
+  overflow: hidden;
+  transition: box-shadow 0.2s ease;
+  
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.cardTitle {
+  font-size: 1rem;
+  font-weight: 600;
+  margin: 0;
+  padding: 1rem;
+  border-bottom: 1px solid $border-color;
+  background-color: rgba(255, 255, 255, 0.5);
+}
+
+.cardContent {
+  padding: 1rem;
+}
+
+// Price highlight
+.priceHighlight {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid $border-color;
+  text-align: center;
+}
+
+.priceLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--foreground, #171717);
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.25rem;
+}
+
+.priceValue {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: $secondary-color;
+}
+
+// Info grid
+.infoGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+.infoItem {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.infoLabel {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--foreground, #171717);
+  opacity: 0.6;
+}
+
+.infoValue {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--foreground, #171717);
+}
+
+// Total SOL section
+.totalSol {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid $border-color;
+}
+
+.totalSolLabel {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground, #171717);
+}
+
+.totalSolValue {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: $primary-color;
+}
+
+// Progress bar styles
+.progressContainer {
+  margin-bottom: 1rem;
+}
+
+.progressHeader {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+  color: var(--foreground, #171717);
+}
+
+.progressBar {
+  height: 8px;
+  width: 100%;
+  background-color: rgba(0, 183, 225, 0.1);
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 0.5rem;
+}
+
+.progressFill {
+  height: 100%;
+  background-image: linear-gradient(to right, $primary-color, $secondary-color);
+  border-radius: 4px;
+  transition: width 0.5s ease;
+}
+
+.progressFooter {
+  font-size: 0.75rem;
+  text-align: right;
+  opacity: 0.7;
+}
+
+// Migration status
+.migrationStatus {
+  text-align: center;
+  margin-top: 0.5rem;
+}
+
+// Detail items
+.detailItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid $border-color;
+  
+  &:last-child {
+    border-bottom: none;
+  }
+}
+
+.detailLabel {
+  font-size: 0.875rem;
+  color: var(--foreground, #171717);
+  opacity: 0.7;
+}
+
+.detailValue {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--foreground, #171717);
+  font-family: 'Inter', monospace;
+  background-color: rgba(0, 0, 0, 0.03);
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+}
+
+// Status indicators
+.statusActive {
+  color: var(--success, #22C55E);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+.statusInactive {
+  color: var(--warning, #F97316);
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+}
+
+// Loading state
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  
+  .loadingSpinner {
+    animation: spin 1.2s linear infinite;
+    margin-bottom: 1rem;
+    color: $primary-color;
+    width: 2rem;
+    height: 2rem;
+  }
+  
+  p {
+    color: var(--foreground, #171717);
+    opacity: 0.7;
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Error state
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+  text-align: center;
+  
+  h2 {
+    margin-bottom: 0.5rem;
+    color: var(--foreground, #171717);
+  }
+  
+  p {
+    color: var(--foreground, #171717);
+    opacity: 0.7;
+    max-width: 500px;
+  }
+}

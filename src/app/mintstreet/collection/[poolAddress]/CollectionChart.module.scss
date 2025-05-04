@@ -1,0 +1,83 @@
+.wrapper {
+  position: relative;
+  background-color: #F9F9F9;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  font-family: 'Inter', sans-serif;
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 600;
+  margin: 0 0 16px 0;
+  color: #171717;
+}
+
+.resetButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 1;
+  padding: 6px 12px;
+  font-size: 12px;
+  background-color: white;
+  color: #333;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    background-color: #00B7E1;
+    color: white;
+    border-color: #00B7E1;
+  }
+  
+  &:active {
+    transform: translateY(1px);
+  }
+}
+
+.chartContainer {
+  width: 100%;
+  height: 300px;
+  border-radius: 8px;
+  overflow: hidden;
+  background-color: #fff;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.05);
+  
+  @media (min-width: 640px) {
+    height: 400px;
+  }
+  
+  @media (min-width: 1024px) {
+    height: 500px;
+  }
+}
+
+.loading, .empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 300px;
+  background-color: #F9F9F9;
+  border-radius: 8px;
+  color: #666;
+  font-family: 'Inter', sans-serif;
+  font-size: 14px;
+  
+  @media (min-width: 640px) {
+    height: 400px;
+  }
+  
+  @media (min-width: 1024px) {
+    height: 500px;
+  }
+}

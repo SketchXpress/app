@@ -1,4 +1,4 @@
-export const PROGRAM_ID = "AbfPoZwRvZnmDUUZjKucjyagWghGyRnCci5rG5hAwQq9";
+export const PROGRAM_ID = "iKanJyXYErz5GwG4amnCKE7ymrxvLtBuwQ7f3Q11FsX";
 
 export const IDL = {
   version: "0.1.0",
@@ -163,6 +163,11 @@ export const IDL = {
           isSigner: false,
         },
         {
+          name: "collectionMetadata",
+          isMut: true,
+          isSigner: false,
+        },
+        {
           name: "tokenProgram",
           isMut: false,
           isSigner: false,
@@ -170,6 +175,11 @@ export const IDL = {
         {
           name: "associatedTokenProgram",
           isMut: false,
+          isSigner: false,
+        },
+        {
+          name: "creator",
+          isMut: true,
           isSigner: false,
         },
         {
@@ -252,6 +262,11 @@ export const IDL = {
         },
         {
           name: "collectionMint",
+          isMut: true,
+          isSigner: false,
+        },
+        {
+          name: "collectionMetadata",
           isMut: true,
           isSigner: false,
         },
@@ -534,7 +549,7 @@ export const IDL = {
     },
   ],
   metadata: {
-    address: "AbfPoZwRvZnmDUUZjKucjyagWghGyRnCci5rG5hAwQq9",
+    address: "iKanJyXYErz5GwG4amnCKE7ymrxvLtBuwQ7f3Q11FsX",
   },
 };
 
