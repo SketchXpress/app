@@ -1,5 +1,3 @@
-// src/lib/events.ts
-
 type Listener<T> = (data: T) => void;
 
 class EventBus {

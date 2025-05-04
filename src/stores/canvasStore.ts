@@ -22,12 +22,11 @@ interface CanvasState {
   editor: Editor | null;
   activeTool: string;
   selectedShapeIds: TLShapeId[];
-  lastAction: string; // NEW
-
+  lastAction: string;
   setEditor: (editor: Editor | null) => void;
   setActiveTool: (tool: string) => void;
   setSelectedShapeIds: (ids: TLShapeId[]) => void;
-  setLastAction: (action: string) => void; // NEW
+  setLastAction: (action: string) => void;
 
   clearCanvas: () => void;
   undoAction: () => void;
@@ -39,7 +38,7 @@ export const useCanvasStore = create<CanvasState>((set, get) => ({
   editor: null,
   activeTool: "draw",
   selectedShapeIds: [],
-  lastAction: "draw", // default to draw
+  lastAction: "draw",
 
   setEditor: (editor) => set({ editor }),
 

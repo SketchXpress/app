@@ -6,17 +6,19 @@ import {
   defaultShapeUtils,
   defaultTools,
   Editor,
-  loadSnapshot
+  loadSnapshot,
+  getSnapshot
 } from "tldraw";
-import "tldraw/tldraw.css";
-import styles from "./CanvasWrapper.module.scss";
-import { useMemo, useCallback, useState, useEffect } from "react";
-import { useCanvasStore } from "@/stores/canvasStore";
-import { TLShapeId } from "@tldraw/editor";
-import EnhanceButton from "../EnhanceButton/EnhanceButton";
-import { enhanceSketch } from "@/lib/enhanceSketch";
-import OnboardingGuide from "../OnboardingGuide/OnboardingGuide";
 import { toast } from "react-toastify";
+import { useMemo, useCallback, useState, useEffect } from "react";
+
+import "tldraw/tldraw.css";
+import { TLShapeId } from "@tldraw/editor";
+import { useCanvasStore } from "@/stores/canvasStore";
+import { enhanceSketch } from "@/lib/enhanceSketch";
+import styles from "./CanvasWrapper.module.scss";
+import EnhanceButton from "../EnhanceButton/EnhanceButton";
+import OnboardingGuide from "../OnboardingGuide/OnboardingGuide";
 
 // Storage key for persisting canvas state
 const CANVAS_STORAGE_KEY = 'sketchxpress-canvas-state';
@@ -56,12 +58,11 @@ const CanvasWrapper = () => {
     }
   }, [showCanvasTip]);
 
-  // Simulate processing progress
+  // Simulating processing progress
   useEffect(() => {
     if (isProcessing) {
       const interval = setInterval(() => {
         setProcessingProgress(prev => {
-          // Increment but stay below 90% to indicate we're still waiting for server
           const next = prev + (1 + Math.random() * 2);
           return next < 90 ? next : 89;
         });
@@ -80,7 +81,6 @@ const CanvasWrapper = () => {
 
     // Only try to access localStorage in the browser
     if (isBrowser) {
-      // Try to load saved state from localStorage
       try {
         const savedState = localStorage.getItem(CANVAS_STORAGE_KEY);
         if (savedState) {
@@ -88,8 +88,8 @@ const CanvasWrapper = () => {
           loadSnapshot(newStore, parsedState);
         }
       } catch (err) {
-        console.warn('Failed to restore canvas state:', err);
         // Continue with empty canvas if restore fails
+        console.warn('Failed to restore canvas state:', err);
       }
     }
 
@@ -118,16 +118,12 @@ const CanvasWrapper = () => {
       if (!isBrowser) return;
 
       try {
-        const snapshot = editor.store.getSnapshot();
+        const snapshot = getSnapshot(editor.store);
         const serializedState = JSON.stringify(snapshot);
 
-        // Check for localStorage size limits (typically ~5MB)
+        // Check for localStorage size limits (~5MB)
         if (serializedState.length > 4.5 * 1024 * 1024) {
           console.warn('Canvas state too large for localStorage');
-          toast.warning("Your drawing is getting quite large! Some changes may not be saved automatically.", {
-            position: "bottom-right",
-            autoClose: 4000,
-          });
           return;
         }
 
@@ -138,7 +134,7 @@ const CanvasWrapper = () => {
           autoClose: 5000,
         });
       }
-    }, 1000); // Save after 1 second of inactivity
+    }, 1000);
 
     // Listen for document changes to persist state
     const persistUnsubscribe = editor.store.listen(saveCanvasState, { scope: 'document' });
@@ -159,7 +155,7 @@ const CanvasWrapper = () => {
     if (shapes.length === 0) {
       toast.info("Please draw something first!", {
         position: "bottom-center",
-        autoClose: 3000,
+        autoClose: 4000,
         icon: false
       });
       return;
@@ -171,13 +167,6 @@ const CanvasWrapper = () => {
 
       // We don't need to select all shapes here since EnhanceButton already does this
       // The selection will be handled by EnhanceButton component
-
-      toast.info("Starting AI enhancement process...", {
-        position: "bottom-right",
-        autoClose: 3000,
-        icon: false
-      });
-
       await enhanceSketch(editor);
 
       // Set progress to 100% when completed
@@ -188,18 +177,13 @@ const CanvasWrapper = () => {
         setIsProcessing(false);
       }, 500);
 
-    } catch (err) {
-      toast.error(`Enhancement failed: ${err instanceof Error ? err.message : "Unknown error"}`, {
-        position: "bottom-right",
-        autoClose: 5000,
-      });
+    } catch {
       setIsProcessing(false);
     }
   }, []);
 
   return (
     <div className={styles.canvasContainer}>
-      {/* Canvas frame with subtle styling */}
       <div className={styles.canvasFrame} />
 
       <Tldraw

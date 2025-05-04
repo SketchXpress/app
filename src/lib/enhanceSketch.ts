@@ -10,7 +10,6 @@ import { convertBlobToBase64 } from "./convertBlobToBase64";
 import { useEnhanceStore } from "@/stores/enhanceStore";
 import { eventBus } from "./events";
 
-// Improved fetch function without CORS proxy
 const fetchWithRetry = async (
   url: string,
   options: RequestInit = {},
@@ -18,7 +17,6 @@ const fetchWithRetry = async (
 ): Promise<Response> => {
   let attempt = 0;
 
-  // Use the original URL directly
   const directUrl = url;
 
   while (attempt < maxRetries) {
@@ -32,11 +30,9 @@ const fetchWithRetry = async (
       const response = await fetch(directUrl, {
         ...options,
         headers,
-        // mode: "cors", // mode: 'cors' is default for cross-origin requests
       });
 
       if (!response.ok) {
-        // Log the error response for debugging
         const errorText = await response.text();
         console.error(`[fetchWithRetry] Error response body: ${errorText}`);
         throw new Error(`HTTP error ${response.status}`);
@@ -69,7 +65,7 @@ const fetchWithRetry = async (
 
           // Ensure it's valid JSON if content type indicates it
           if (contentType.includes("application/json")) {
-            JSON.parse(text); // This will throw if it's not valid JSON
+            JSON.parse(text);
           }
         } catch (jsonError) {
           console.warn(
@@ -81,7 +77,7 @@ const fetchWithRetry = async (
         }
       }
 
-      return response; // Return the successful response
+      return response;
     } catch (error) {
       console.error(
         `[fetchWithRetry] Attempt ${
@@ -91,9 +87,6 @@ const fetchWithRetry = async (
       attempt++;
 
       if (attempt >= maxRetries) {
-        console.error(
-          `[fetchWithRetry] Maximum retries exceeded for URL: ${directUrl}`
-        );
         throw new Error("Maximum retries exceeded");
       }
 
@@ -103,7 +96,6 @@ const fetchWithRetry = async (
     }
   }
 
-  // This line should technically be unreachable if maxRetries > 0, but included for safety
   throw new Error("Maximum retries exceeded");
 };
 
@@ -220,7 +212,7 @@ export async function enhanceSketch(editor: Editor): Promise<string> {
           typeName: "asset",
           props: {
             name: "enhanced-sketch.png",
-            src: `data:image/png;base64,${image}`, // Use base64 directly
+            src: `data:image/png;base64,${image}`,
             w,
             h,
             mimeType: "image/png",
@@ -235,7 +227,7 @@ export async function enhanceSketch(editor: Editor): Promise<string> {
         id: shapeId,
         type: "image",
         x: bounds.maxX + 60,
-        y: bounds.maxY - h / 2, // Adjust vertical position if needed
+        y: bounds.maxY - h / 2,
         props: {
           assetId,
           w,
@@ -248,7 +240,6 @@ export async function enhanceSketch(editor: Editor): Promise<string> {
       console.error(
         `[enhanceSketch] Failed to place image on canvas: ${placementError}`
       );
-      // Even if placing image fails, return job_id for RightPanel
     }
 
     return job_id;
@@ -272,8 +263,8 @@ async function waitForImageGeneration(
   jobId: string
 ): Promise<{ image: string; width: number; height: number } | null> {
   const startTime = Date.now();
-  const maxWaitTime = 120000; // 2 minutes
-  const pollInterval = 2000; // Poll every 2 seconds
+  const maxWaitTime = 120000;
+  const pollInterval = 2000;
 
   while (Date.now() - startTime < maxWaitTime) {
     try {
@@ -291,7 +282,7 @@ async function waitForImageGeneration(
         console.error(
           `[waitForImageGeneration] Error fetching status for job ${jobId}: ${fetchError}. Retrying...`
         );
-        // Wait before next poll attempt
+        // Waiting before next poll attempt
         await new Promise((resolve) => setTimeout(resolve, pollInterval));
         continue;
       }
@@ -301,10 +292,7 @@ async function waitForImageGeneration(
         data.images &&
         data.images.length > 0
       ) {
-        const imageFilename = data.images[0]; // Assuming the first image is the one we want
-        // The backend now returns full URLs in the 'images' list if served via StaticFiles
-        // Or just filenames if you need to construct the URL
-        // Let's assume it returns relative paths like 'job_id_image_0.png'
+        const imageFilename = data.images[0];
         const filename = imageFilename.split("/").pop() || "";
 
         const imageUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
@@ -336,7 +324,7 @@ async function waitForImageGeneration(
         });
 
         return {
-          image: base64, // Return base64 string
+          image: base64,
           width: data.width || 512,
           height: data.height || 512,
         };
