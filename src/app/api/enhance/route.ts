@@ -1,7 +1,7 @@
 // app/api/enhance/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
-export const maxDuration = 60; // Set max duration to 60 seconds for Vercel
+export const maxDuration = 60;
 
 export async function POST(request: NextRequest) {
   try {
