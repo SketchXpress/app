@@ -4,29 +4,29 @@ import { WalletContextState } from "@solana/wallet-adapter-react";
 
 export async function mintNFT(
   metadataUrl: string,
-  walletContext: WalletContextState
+  walletContext: WalletContextState,
+  poolInfo?: { address: string; name: string }
 ): Promise<string> {
   if (!walletContext?.publicKey || !walletContext?.signTransaction) {
     throw new Error("Wallet not connected or invalid.");
   }
 
   const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
-
   const metaplex = Metaplex.make(connection).use(
     walletAdapterIdentity(walletContext)
   );
 
   const mintKeypair = Keypair.generate();
-
   const { blockhash, lastValidBlockHeight } =
     await connection.getLatestBlockhash("confirmed");
 
+  // Build the NFT with pool-specific naming if a pool is provided
   const builder = await metaplex
     .nfts()
     .builders()
     .create({
       uri: metadataUrl,
-      name: "SketchXpress Artwork",
+      name: poolInfo ? `${poolInfo.name}` : "SketchXpress",
       sellerFeeBasisPoints: 500,
       symbol: "SXP",
       creators: [
@@ -45,12 +45,11 @@ export async function mintNFT(
   });
 
   transaction.feePayer = walletContext.publicKey;
-
   transaction.partialSign(mintKeypair);
 
   const signedTx = await walletContext.signTransaction(transaction);
-
   const txSignature = await connection.sendRawTransaction(signedTx.serialize());
+
   await connection.confirmTransaction(
     {
       blockhash,

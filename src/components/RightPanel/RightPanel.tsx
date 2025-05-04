@@ -1,11 +1,8 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
-import styles from "./RightPanel.module.scss";
-import { useModeStore } from "@/stores/modeStore";
-import { useEnhanceStore } from "@/stores/enhanceStore";
 import Image from "next/image";
 import { toast } from "react-toastify";
+import { useState, useRef, useEffect } from "react";
 import {
   Download,
   Coins,
@@ -18,7 +15,7 @@ import {
   Settings,
   RefreshCw,
   AlertOctagon,
-  Star // Add the Star icon for Kids mode NFT button
+  Star
 } from "lucide-react";
 import {
   subscribeToEnhanceStarted,
@@ -28,10 +25,15 @@ import {
   EnhanceCompletedEvent,
   EnhanceFailedEvent
 } from "@/lib/events";
+import { mintNFT } from "@/lib/mintNFT";
+import { usePoolStore } from "@/stores/poolStore";
+import { useModeStore } from "@/stores/modeStore";
+import { useEnhanceStore } from "@/stores/enhanceStore";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { uploadMetadataToIPFS } from "@/lib/uploadMetadataToIPFS";
-import { mintNFT } from "@/lib/mintNFT";
 import { uploadToIPFSUsingPinata } from "@/lib/uploadToIPFSUsingPinata";
+
+import styles from "./RightPanel.module.scss";
 import ParentalControl from "../ParentalControl/ParentalContrl";
 
 // Extend event type to include base64 data (optional chaining used in code)
@@ -48,7 +50,6 @@ interface GeneratedImage {
 }
 
 const RightPanel: React.FC = () => {
-  const mode = useModeStore((s) => s.mode);
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isTablet, setIsTablet] = useState<boolean>(false);
@@ -65,6 +66,10 @@ const RightPanel: React.FC = () => {
 
   const sidebarRef = useRef<HTMLElement | null>(null);
   const walletContext = useWallet();
+  const mode = useModeStore((s) => s.mode);
+  const { selectedPool } = usePoolStore();
+
+  const isKidsMode = () => mode === "kids";
 
   // Get enhance store values
   const {
@@ -75,6 +80,18 @@ const RightPanel: React.FC = () => {
     numImages, setNumImages,
     resetToDefaults
   } = useEnhanceStore();
+
+  // Defining default pools for Kids and Pro modes
+  const DEFAULT_POOLS = {
+    kids: {
+      address: "kids_default_pool_address", // Replace with actual address
+      name: "Kids Collection"
+    },
+    pro: {
+      address: "6RydCBm5EX98mdREJp95GtLj3mXUsfxNLo1QAAeNQHFX", // Replace with actual address
+      name: "Pro Collection"
+    }
+  };
 
   // Handle responsive behavior
   useEffect(() => {
@@ -457,6 +474,7 @@ const RightPanel: React.FC = () => {
       });
       return;
     }
+
     if (!selectedImageId) {
       toast.warning("Please select an image to mint!", {
         position: "bottom-right",
@@ -464,6 +482,7 @@ const RightPanel: React.FC = () => {
       });
       return;
     }
+
     const selectedImage = generatedImages.find(img => img.id === selectedImageId);
     if (!selectedImage) {
       toast.error("Selected image not found.", {
@@ -473,10 +492,17 @@ const RightPanel: React.FC = () => {
       return;
     }
 
-
     try {
-      // Show a loading toast that we can update later
-      const mintingToastId = toast.loading("Starting the NFT minting process...", {
+      // Determine which pool to use
+      const defaultPool = isKidsMode() ?
+        DEFAULT_POOLS.kids : DEFAULT_POOLS.pro;
+
+      const poolInfo = selectedPool ?
+        { address: selectedPool.address, name: selectedPool.name } :
+        defaultPool;
+
+      // Show a loading toast that includes pool information
+      const mintingToastId = toast.loading(`Starting NFT minting process on ${poolInfo.name}...`, {
         position: "bottom-right",
       });
 
@@ -488,7 +514,6 @@ const RightPanel: React.FC = () => {
       const blob = await response.blob();
 
       // Upload image to IPFS
-
       toast.update(mintingToastId, {
         render: "Uploading image to IPFS...",
         type: "info",
@@ -496,34 +521,34 @@ const RightPanel: React.FC = () => {
       });
       const imageIpfsUrl = await uploadToIPFSUsingPinata(blob);
 
-
       // Upload metadata to IPFS
-
       toast.update(mintingToastId, {
         render: "Uploading metadata to IPFS...",
         type: "info",
         isLoading: true
       });
       const metadataIpfsUrl = await uploadMetadataToIPFS(
-        "SketchXpress Artwork",
+        poolInfo.name + " Artwork",  // Use pool name in metadata
         "AI-enhanced artwork created with SketchXpress.",
         imageIpfsUrl
       );
 
-
-      // Mint the NFT
-
+      // Mint the NFT with pool info
       toast.update(mintingToastId, {
-        render: "Creating your NFT on the blockchain...",
+        render: `Creating your NFT on the ${poolInfo.name}...`,
         type: "info",
         isLoading: true
       });
-      const nftAddress = await mintNFT(metadataIpfsUrl, walletContext);
 
+      const nftAddress = await mintNFT(
+        metadataIpfsUrl,
+        walletContext,
+        poolInfo
+      );
 
-      // Success toast
+      // Success toast with pool information
       toast.update(mintingToastId, {
-        render: `🎉 NFT minted successfully!\nAddress: ${nftAddress}`,
+        render: `🎉 NFT minted successfully on ${poolInfo.name}!\nAddress: ${nftAddress}`,
         type: 'success',
         isLoading: false,
         autoClose: 5000,
@@ -532,7 +557,6 @@ const RightPanel: React.FC = () => {
         icon: () => <span>🖼️</span>
       });
     } catch (error) {
-
       toast.error(`Minting failed: ${error instanceof Error ? error.message : String(error)}`, {
         position: "bottom-right",
         autoClose: 5000,
@@ -811,6 +835,33 @@ const RightPanel: React.FC = () => {
                         <RefreshCw size={14} />
                         <span>Reset to Defaults</span>
                       </button>
+                    </div>
+                  )}
+
+                  {/* Pool Selection Indicator */}
+                  {sidebarOpen && (
+                    <div className={styles.poolIndicator}>
+                      <div className={styles.poolBadge}>
+                        <div className={styles.poolIcon}>
+                          {selectedPool ? <Coins size={16} /> : (
+                            isKidsMode() ? <Star size={16} /> : <Coins size={16} />
+                          )}
+                        </div>
+                        <span className={styles.poolName}>
+                          {selectedPool
+                            ? `Minting to: ${selectedPool.name}`
+                            : `Minting to: ${isKidsMode() ? 'Kids' : 'Pro'} Collection`}
+                        </span>
+                        {selectedPool && (
+                          <button
+                            className={styles.clearPoolButton}
+                            onClick={() => usePoolStore.getState().clearSelectedPool()}
+                            title="Clear pool selection"
+                          >
+                            <X size={14} />
+                          </button>
+                        )}
+                      </div>
                     </div>
                   )}
                 </div>
