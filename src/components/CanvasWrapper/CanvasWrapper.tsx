@@ -19,6 +19,7 @@ import { enhanceSketch } from "@/lib/enhanceSketch";
 import styles from "./CanvasWrapper.module.scss";
 import EnhanceButton from "../EnhanceButton/EnhanceButton";
 import OnboardingGuide from "../OnboardingGuide/OnboardingGuide";
+import { useEnhanceStore } from "@/stores/enhanceStore";
 
 // Storage key for persisting canvas state
 const CANVAS_STORAGE_KEY = 'sketchxpress-canvas-state';
@@ -155,7 +156,7 @@ const CanvasWrapper = () => {
     if (shapes.length === 0) {
       toast.info("Please draw something first!", {
         position: "bottom-center",
-        autoClose: 4000,
+        autoClose: 3000,
         icon: false
       });
       return;
@@ -165,8 +166,6 @@ const CanvasWrapper = () => {
       setIsProcessing(true);
       setProcessingProgress(0);
 
-      // We don't need to select all shapes here since EnhanceButton already does this
-      // The selection will be handled by EnhanceButton component
       await enhanceSketch(editor);
 
       // Set progress to 100% when completed
@@ -175,9 +174,18 @@ const CanvasWrapper = () => {
       // Add a small delay to show 100% completion before hiding overlay
       setTimeout(() => {
         setIsProcessing(false);
+
+        // Clear the prompt after successful enhancement
+        // Access the enhanceStore directly from the import
+        const { setPrompt } = useEnhanceStore.getState();
+        setPrompt("");
       }, 500);
 
-    } catch {
+    } catch (err) {
+      toast.error(`Enhancement failed: ${err instanceof Error ? err.message : "Unknown error"}`, {
+        position: "bottom-right",
+        autoClose: 5000,
+      });
       setIsProcessing(false);
     }
   }, []);

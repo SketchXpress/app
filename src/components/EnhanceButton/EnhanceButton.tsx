@@ -5,6 +5,7 @@ import { Wand2 } from "lucide-react";
 import styles from "./EnhanceButton.module.scss";
 import { useModeStore } from "@/stores/modeStore";
 import { useCanvasStore } from "@/stores/canvasStore";
+import { useEnhanceStore } from "@/stores/enhanceStore";
 import { toast } from "react-toastify";
 import EnhancePromptModal from "../EnhancePromptModal/EnhancePromptModal";
 
@@ -54,12 +55,18 @@ const EnhanceButton = ({ onClick }: EnhanceButtonProps) => {
     // Show a toast notification
     toast.info(mode === "kids" ? "Adding some magic to your drawing..." : "Enhancing your artwork...", {
       position: "bottom-right",
-      autoClose: 3000,
+      autoClose: 4000,
       icon: <span>{mode === "kids" ? "✨" : "🎨"}</span>
     });
 
     // Now call the original onClick handler (which will enhance the selection)
     onClick();
+
+    // Clear the prompt after enhancement is complete
+    // We do this with a slight delay to ensure the enhancement process has started
+    setTimeout(() => {
+      useEnhanceStore.getState().setPrompt("");
+    }, 500);
   };
 
   return (

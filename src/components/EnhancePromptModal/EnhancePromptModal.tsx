@@ -121,7 +121,7 @@ const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalPr
             className={styles.promptInput}
             placeholder={mode === 'kids'
               ? "What's in your cool picture? 'Dragon eating ice cream' or 'Superhero cat' 🦸‍♀️🐱"
-              : "Describe what you're going for (e.g., 'A house in the forest, a sunset over the mountains')"}
+              : "Describe what you're going for (e.g., 'Moody cyberpunk alley, neon signs, rain')"}
             value={promptInput}
             onChange={(e) => setPromptInput(e.target.value)}
             onKeyDown={handleKeyDown}
