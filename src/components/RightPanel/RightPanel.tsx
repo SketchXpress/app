@@ -88,7 +88,7 @@ const RightPanel: React.FC = () => {
       name: "Kids Collection"
     },
     pro: {
-      address: "6RydCBm5EX98mdREJp95GtLj3mXUsfxNLo1QAAeNQHFX", // Replace with actual address
+      address: "6R3VydcEpCy5Q5RdjjnDWfHas6vEFJuon86xjR1MAX4A", // Replace with actual address
       name: "Pro Collection"
     }
   };
