@@ -6,10 +6,7 @@ import { useConnection, useWallet } from '@solana/wallet-adapter-react';
 import { AnchorProvider, Program } from '@coral-xyz/anchor';
 import { PublicKey, Connection } from '@solana/web3.js';
 import { createContext, useContext } from 'react';
-import { IDL } from '@/utils/idl';
-
-// Program ID for the bonding curve system
-const PROGRAM_ID = 'AbfPoZwRvZnmDUUZjKucjyagWghGyRnCci5rG5hAwQq9';
+import { IDL, PROGRAM_ID } from '@/utils/idl';
 
 interface AnchorContextProviderProps {
   children: ReactNode;

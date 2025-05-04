@@ -1,15 +1,16 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import React, { useState, useEffect } from 'react';
 import { CheckCircle, Loader2 } from 'lucide-react';
-import styles from './TrendingCollections.module.scss';
-import { useBondingCurveHistory, HistoryItem } from '@/hooks/useBondingCurveHistory';
+
 import { usePoolPrices } from '@/hooks/usePoolPrices';
 import { useAnchorContext } from '@/contexts/AnchorContextProvider';
-import { useRouter } from 'next/navigation';
+import { useBondingCurveHistory, HistoryItem } from '@/hooks/useBondingCurveHistory';
 
-// Define a type for our collection data
+import styles from './TrendingCollections.module.scss';
+
 interface DynamicCollection {
   id: string;
   rank: number;
