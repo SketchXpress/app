@@ -7,10 +7,15 @@ import { ArrowLeft, Search } from "lucide-react";
 import { useState, useEffect } from "react";
 import ConnectWalletButton from "@/wallet/ConnectWalletButton";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 const MintStreetHeader = () => {
   const [isMobile, setIsMobile] = useState(false);
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
+  const pathname = usePathname();
+
+  // Check if we're on a specific collection page
+  const isCollectionPage = pathname?.includes('/mintstreet/') && pathname !== '/mintstreet';
 
   useEffect(() => {
     const checkMobile = () => {
@@ -31,7 +36,7 @@ const MintStreetHeader = () => {
       {!isMobile && (
         <>
           {/* Logo */}
-          <div className={styles.logoWrap}>
+          <Link href="/" className={styles.logoWrap}>
             <div className={styles.logoContainer}>
               <Image
                 src={logo}
@@ -43,7 +48,7 @@ const MintStreetHeader = () => {
             <span className={styles.title}>
               SketchXpress
             </span>
-          </div>
+          </Link>
 
           {/* Search Bar - Center for Desktop */}
           <div className={styles.centerControls}>
@@ -59,10 +64,19 @@ const MintStreetHeader = () => {
 
           {/* Desktop Right Controls */}
           <div className={styles.controls}>
-            <Link href="/" className={styles.returnButton}>
-              <ArrowLeft size={16} />
-              <span>Return to Studio</span>
-            </Link>
+            {isCollectionPage ? (
+              <>
+                <Link href="/mintstreet" className={styles.returnButton}>
+                  <ArrowLeft size={16} />
+                  <span>Return to MintStreet</span>
+                </Link>
+              </>
+            ) : (
+              <Link href="/" className={styles.returnButton}>
+                <ArrowLeft size={16} />
+                <span>Return to Studio</span>
+              </Link>
+            )}
             <div className={styles.connectWalletDesktop}>
               <ConnectWalletButton />
             </div>
@@ -92,7 +106,7 @@ const MintStreetHeader = () => {
           ) : (
             <>
               <div className={styles.mobileLeft}>
-                <div className={styles.logoWrap}>
+                <Link href="/" className={styles.logoWrap}>
                   <div className={styles.logoContainer}>
                     <Image
                       src={logo}
@@ -104,7 +118,7 @@ const MintStreetHeader = () => {
                   <span className={styles.title}>
                     SketchXpress
                   </span>
-                </div>
+                </Link>
               </div>
               <div className={styles.mobileCenter}>
                 <button
@@ -115,10 +129,19 @@ const MintStreetHeader = () => {
                 </button>
               </div>
               <div className={styles.mobileRight}>
-                <Link href="/" className={styles.mobileReturnButton}>
-                  <ArrowLeft size={16} />
-                  <span>Return</span>
-                </Link>
+                {isCollectionPage ? (
+                  <div className={styles.mobileReturnButtons}>
+                    <Link href="/mintstreet" className={styles.mobileReturnButton}>
+                      <ArrowLeft size={16} />
+                      <span>To MintStreet</span>
+                    </Link>
+                  </div>
+                ) : (
+                  <Link href="/" className={styles.mobileReturnButton}>
+                    <ArrowLeft size={16} />
+                    <span>Return</span>
+                  </Link>
+                )}
               </div>
             </>
           )}

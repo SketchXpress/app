@@ -1,17 +1,19 @@
 "use client";
 
 import Image from "next/image";
-import logo from "../../../public/logo.png";
-import styles from "./Header.module.scss";
-import responsive from "./HeaderResponsive.module.scss";
-import { Menu, X, Share2, LucideLayoutDashboard, Save, Coins } from "lucide-react";
+import Link from "next/link";
+import { toast } from "react-toastify";
 import { useState, useEffect } from "react";
+import { useCanvasStore } from "@/stores/canvasStore";
+import { Menu, X, Share2, LucideLayoutDashboard, Save, Coins } from "lucide-react";
+
+import styles from "./Header.module.scss";
+import logo from "../../../public/logo.png";
+import responsive from "./HeaderResponsive.module.scss";
 import MobileMenu from "../MobileMenu/MobileMenu";
 import ModeToggle from "../ModeToggle/ModeToggle";
+
 import ConnectWalletButton from "@/wallet/ConnectWalletButton";
-import { useCanvasStore } from "@/stores/canvasStore";
-import { toast } from "react-toastify";
-import Link from "next/link";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -111,19 +113,21 @@ const Header = () => {
   return (
     <header className={`${styles.header} ${responsive.header} header`}>
       {/* Logo */}
-      <div className={`${styles.logoWrap} ${responsive.logoWrap}`}>
-        <div className={styles.logoContainer}>
-          <Image
-            src={logo}
-            alt="SketchXpress Logo"
-            className={styles.logoImage}
-            priority
-          />
+      <Link href="/" className={styles.logoWrap}>
+        <div className={`${styles.logoWrap} ${responsive.logoWrap}`}>
+          <div className={styles.logoContainer}>
+            <Image
+              src={logo}
+              alt="SketchXpress Logo"
+              className={styles.logoImage}
+              priority
+            />
+          </div>
+          <span className={`${styles.title} ${responsive.title}`}>
+            SketchXpress
+          </span>
         </div>
-        <span className={`${styles.title} ${responsive.title}`}>
-          SketchXpress
-        </span>
-      </div>
+      </Link>
 
       {/* Mode Toggle in the middle for desktop */}
       {!isMobile && (
@@ -154,12 +158,13 @@ const Header = () => {
             >
               <Share2 size={18} />
             </button>
-            <button
-              className={`${styles.dashboardButton} ${responsive.dashboardButton}`}
+            <Link
+              href="/mintstreet"
+              className={`${styles.actionButton} ${styles.dashboardButton} ${responsive.actionButton}`}
               aria-label="Dashboard"
             >
               <LucideLayoutDashboard size={18} />
-            </button>
+            </Link>
           </div>
           <div className={styles.connectWalletDesktop}>
             <ConnectWalletButton />
