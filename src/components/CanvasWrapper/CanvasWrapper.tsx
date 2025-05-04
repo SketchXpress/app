@@ -20,6 +20,7 @@ import styles from "./CanvasWrapper.module.scss";
 import EnhanceButton from "../EnhanceButton/EnhanceButton";
 import OnboardingGuide from "../OnboardingGuide/OnboardingGuide";
 import { useEnhanceStore } from "@/stores/enhanceStore";
+import { useModeStore } from "@/stores/modeStore";
 
 // Storage key for persisting canvas state
 const CANVAS_STORAGE_KEY = 'sketchxpress-canvas-state';
@@ -216,20 +217,41 @@ const CanvasWrapper = () => {
       {isProcessing && (
         <div className={styles.processingOverlay}>
           <div className={styles.processingContent}>
-            <div className={styles.spinner}></div>
-            <h3 className={styles.processingTitle}>Enhancing Your Artwork</h3>
+            {/* Decorative particles */}
+            <div className={styles.particles}>
+              <div className={styles.particle} style={{ top: '10%', left: '10%' }}></div>
+              <div className={styles.particle} style={{ top: '30%', left: '80%' }}></div>
+              <div className={styles.particle} style={{ top: '70%', left: '20%' }}></div>
+              <div className={styles.particle} style={{ top: '80%', left: '70%' }}></div>
+              <div className={styles.particle} style={{ top: '40%', left: '30%' }}></div>
+            </div>
+
+            <div className={styles.spinnerContainer}>
+              <div className={styles.spinner}></div>
+              <div className={styles.spinnerInner}></div>
+            </div>
+
+            <h3 className={styles.processingTitle}>
+              {useModeStore.getState().mode === "kids" ? "Making Magic!" : "Enhancing Your Artwork"}
+            </h3>
+
             <p className={styles.processingMessage}>
-              Our AI is transforming your sketch into something magical. This might take a moment...
+              {useModeStore.getState().mode === "kids"
+                ? "Your sketch is being transformed into something amazing..."
+                : "Our AI is transforming your sketch into a refined artwork. This might take a moment..."}
             </p>
+
             <div className={styles.progressBar}>
               <div
                 className={styles.progressBarInner}
                 style={{
                   width: `${processingProgress}%`,
-                  animation: processingProgress > 0 ? 'none' : undefined
+                  animation: processingProgress > 0 ? 'shimmer 2s infinite' : undefined
                 }}
-              />
+              ></div>
             </div>
+
+            <div className={styles.progressText}>{Math.round(processingProgress)}% Complete</div>
           </div>
         </div>
       )}

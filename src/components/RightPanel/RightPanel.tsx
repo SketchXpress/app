@@ -689,7 +689,7 @@ const RightPanel: React.FC = () => {
                 <div className={styles.section}>
                   {/* Text Prompt Input */}
                   <div className={styles.promptInputGroup}>
-                    <label htmlFor="prompt-input" className={styles.inputLabel}>Text Prompt</label>
+                    <label htmlFor="prompt-input" className={styles.inputLabel}>Describe Your Art 🎨</label>
                     <textarea
                       id="prompt-input"
                       className={styles.promptInput}
