@@ -20,6 +20,7 @@ const MyNFT = () => {
 
   // Use our hook
   const { nfts, loading, error } = useWalletNFTs();
+  console.log('NFTs:', nfts);
 
   // Check if there are more NFTs to load
   useEffect(() => {

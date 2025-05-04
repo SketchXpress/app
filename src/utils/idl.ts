@@ -549,7 +549,7 @@ export const IDL = {
     },
   ],
   metadata: {
-    address: "iKanJyXYErz5GwG4amnCKE7ymrxvLtBuwQ7f3Q11FsX",
+    address: "Cj5Zb6AhvYTBK1Y1T1neUpy7cNub1m6ZUpwbgv8AmvYS",
   },
 };
 
