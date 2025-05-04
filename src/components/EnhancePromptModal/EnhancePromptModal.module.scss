@@ -1,0 +1,354 @@
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1100;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+  padding: 1rem;
+  
+  &.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+}
+
+.modalContainer {
+  background-color: var(--background);
+  border-radius: var(--border-radius-lg);
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.12), 0 8px 15px rgba(0, 0, 0, 0.08);
+  width: 92%;
+  max-width: 520px;
+  position: relative;
+  transform: translateY(-50px) scale(0.95);
+  opacity: 0;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.3s ease;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  
+  // Glass effect for modern look
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: -1;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+    backdrop-filter: blur(10px);
+  }
+  
+  // Raindrop animation style
+  &.visible {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+    animation: raindrop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  }
+}
+
+// Raindrop animation
+@keyframes raindrop {
+  0% {
+    transform: translateY(-120px) scale(0.7);
+    opacity: 0;
+  }
+  40% {
+    transform: translateY(15px) scale(1.02);
+    opacity: 1;
+  }
+  60% {
+    transform: translateY(-7px) scale(0.98);
+  }
+  80% {
+    transform: translateY(3px) scale(1.01);
+  }
+  100% {
+    transform: translateY(0) scale(1);
+  }
+}
+
+.closeButton {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground);
+  opacity: 0.6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:hover {
+    opacity: 1;
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+}
+
+.modalContent {
+  padding: 32px 36px;
+}
+
+.modalTitle {
+  font-size: 1.5rem;
+  margin-bottom: 14px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--foreground);
+  // Gradient text effect
+  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  &::before {
+    content: '✨';
+    font-size: 1.6rem;
+  }
+}
+
+.modalDescription {
+  font-size: 0.95rem;
+  color: var(--foreground);
+  opacity: 0.8;
+  margin-bottom: 24px;
+  line-height: 1.6;
+  max-width: 90%;
+  font-weight: 500;
+}
+
+.promptInput {
+  width: 100%;
+  padding: 16px 18px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border);
+  background-color: var(--card-bg);
+  font-size: 0.95rem;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  resize: vertical;
+  min-height: 110px;
+  margin-bottom: 28px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+  
+  // Card-like effect
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+  
+  &:focus {
+    outline: none;
+    border-color: var(--accent-cyan);
+    box-shadow: 0 0 0 3px rgba(0, 183, 225, 0.15);
+  }
+  
+  &::placeholder {
+    color: rgba(0, 0, 0, 0.25);
+    font-style: italic;
+  }
+}
+
+.buttonGroup {
+  display: flex;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 8px;
+}
+
+.skipButton {
+  padding: 12px 22px;
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border);
+  background-color: transparent;
+  color: var(--foreground);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.01em;
+  
+  &:hover {
+    background-color: var(--card-bg);
+    border-color: rgba(0, 0, 0, 0.12);
+  }
+  
+  &:active {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+}
+
+.enhanceButton {
+  padding: 12px 26px;
+  border-radius: var(--border-radius-md);
+  border: none;
+  background: linear-gradient(45deg, var(--accent-cyan), var(--accent-magenta));
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  letter-spacing: -0.01em;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  
+  // Add sparkle icon
+  &::before {
+    content: '✨';
+    font-size: 0.85rem;
+    opacity: 0.9;
+  }
+  
+  // Add subtle shine animation
+  &::after {
+    content: '';
+    position: absolute;
+    top: -50%;
+    left: -50%;
+    width: 200%;
+    height: 200%;
+    background: linear-gradient(
+      to right,
+      rgba(255, 255, 255, 0) 0%,
+      rgba(255, 255, 255, 0.3) 50%,
+      rgba(255, 255, 255, 0) 100%
+    );
+    transform: rotate(30deg);
+    animation: shine 3s infinite;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+  }
+  
+  &:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  }
+}
+
+@keyframes shine {
+  0% {
+    left: -100%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.5;
+  }
+  20% {
+    left: 100%;
+    opacity: 0;
+  }
+  100% {
+    left: 100%;
+    opacity: 0;
+  }
+}
+
+// Responsive styles - improved
+@media (max-width: 768px) {
+  .modalContainer {
+    width: 92%;
+    max-width: none;
+  }
+  
+  .modalContent {
+    padding: 28px 24px;
+  }
+  
+  .modalTitle {
+    font-size: 1.4rem;
+  }
+  
+  .modalDescription {
+    max-width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .modalContainer {
+    width: 95%;
+  }
+  
+  .modalContent {
+    padding: 24px 20px;
+  }
+  
+  .modalTitle {
+    font-size: 1.25rem;
+    
+    &::before {
+      font-size: 1.3rem;
+    }
+  }
+  
+  .promptInput {
+    padding: 14px 16px;
+    min-height: 100px;
+    margin-bottom: 20px;
+  }
+  
+  .buttonGroup {
+    flex-direction: column-reverse; 
+    gap: 10px;
+    margin-top: 4px;
+  }
+  
+  .skipButton, .enhanceButton {
+    width: 100%;
+    padding: 12px 16px;
+    justify-content: center;
+  }
+}
+
+// Very small screens
+@media (max-width: 360px) {
+  .modalContent {
+    padding: 20px 16px;
+  }
+  
+  .modalTitle {
+    font-size: 1.1rem;
+    
+    &::before {
+      font-size: 1.2rem;
+    }
+  }
+  
+  .modalDescription {
+    font-size: 0.85rem;
+    margin-bottom: 18px;
+  }
+  
+  .promptInput {
+    min-height: 80px;
+    font-size: 0.9rem;
+  }
+  
+  .skipButton, .enhanceButton {
+    font-size: 0.85rem;
+    padding: 10px 14px;
+  }
+}
