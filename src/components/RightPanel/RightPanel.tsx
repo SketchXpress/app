@@ -86,12 +86,11 @@ const RightPanel: React.FC = () => {
   // Defining default pools for Kids and Pro modes
   const DEFAULT_POOLS = {
     kids: {
-      address: "2c1U9TKFcw5LVLRkEopaeVyxaj5aAefhA9syX9d2pUmL", // Replace with actual address
+      address: `2c1U9TKFcw5LVLRkEopaeVyxaj5aAefhA9syX9d2pUmL`,
       name: "Kids Collection"
     },
     pro: {
-      address: "2c1U9TKFcw5LVLRkEopaeVyxaj5aAefhA9syX9d2pUmL", // Replace with actual address
-      name: "Pro Collection"
+      address: `2c1U9TKFcw5LVLRkEopaeVyxaj5aAefhA9syX9d2pUmL`,
     }
   };
 
@@ -496,18 +495,13 @@ const RightPanel: React.FC = () => {
 
     try {
       // Determine which pool to use
-      const defaultPool = isKidsMode() ?
-        DEFAULT_POOLS.kids : DEFAULT_POOLS.pro;
+      const defaultPool = isKidsMode()
+        ? DEFAULT_POOLS.kids
+        : { ...DEFAULT_POOLS.pro, name: "Pro Collection" };
 
       const poolInfo = selectedPool ?
         { address: selectedPool.address, name: selectedPool.name } :
         defaultPool;
-
-      // Validate pool address format
-      if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(poolInfo.address)) {
-        console.log("Invalid pool address format:", poolInfo.address);
-        throw new Error("Invalid pool address format");
-      }
 
       // Show a loading toast that includes pool information
       const mintingToastId = toast.loading(`Starting NFT minting process on ${poolInfo.name}...`, {
