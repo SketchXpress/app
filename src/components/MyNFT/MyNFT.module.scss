@@ -555,3 +555,32 @@
 .chevronIcon {
   transition: transform 0.3s ease;
 }
+
+// Add these styles to your existing MyNFT.module.scss file
+
+.poolsCount {
+  margin-left: 0.5rem;
+  padding: 0.25rem 0.75rem;
+  background-color: rgba(255, 140, 0, 0.2);
+  color: #FF8C00;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.hasPool {
+  border: 2px solid #FF8C00;
+}
+
+.poolBadge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background: rgba(255, 140, 0, 0.8);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  backdrop-filter: blur(4px);
+}

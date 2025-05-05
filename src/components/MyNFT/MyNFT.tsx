@@ -23,11 +23,10 @@ const MyNFT = () => {
   const { nfts, loading, error } = useWalletNFTs();
 
   // Get bonding curve history to find pool addresses
-  const { history, isLoading: historyLoading } = useBondingCurveHistory(100);
+  const { history, isLoading: historyLoading } = useBondingCurveHistory(200);
 
-  // Create a mapping of mint addresses to pool addresses
-  const [mintToPoolMap, setMintToPoolMap] = useState<Record<string, string>>({});
-  // Track how many NFTs have pool addresses
+  // Create a mapping of NFT mint addresses to pool addresses
+  const [nftToPoolMap, setNftToPoolMap] = useState<Record<string, string>>({});
   const [nftsWithPoolCount, setNftsWithPoolCount] = useState(0);
 
   // Process history data to find which NFTs correspond to which pools
@@ -37,26 +36,26 @@ const MyNFT = () => {
 
       // Process history to find mint addresses and their corresponding pool addresses
       history.forEach(tx => {
-        // Check for mintNft instructions which should link an NFT to a pool
-        if (tx.instructionName === "mintNft" && tx.accounts && tx.accounts.length > 0 && tx.poolAddress) {
-          // The mint address might be in the accounts array
-          const mintAddress = tx.accounts[0].toString();
-          map[mintAddress] = tx.poolAddress;
+        if (tx.instructionName === "mintNft" && tx.accounts && tx.accounts.length > 1 && tx.poolAddress) {
+          // For mint transactions, the NFT mint address is typically the second account (index 1)
+          const mintAddress = tx.accounts[1]?.toString();
+
+          if (mintAddress) {
+            map[mintAddress] = tx.poolAddress;
+          }
         }
       });
 
-      console.log("Mint to Pool mapping:", map);
-      setMintToPoolMap(map);
-    }
-  }, [history, historyLoading]);
+      console.log("NFT to Pool mapping:", map);
+      setNftToPoolMap(map);
 
-  // Count NFTs with pool addresses when either nfts or mintToPoolMap changes
-  useEffect(() => {
-    if (nfts && mintToPoolMap) {
-      const count = nfts.filter(nft => mintToPoolMap[nft.mintAddress]).length;
-      setNftsWithPoolCount(count);
+      // Count NFTs with pools if we have the NFT data
+      if (nfts && nfts.length > 0) {
+        const count = nfts.filter(nft => map[nft.mintAddress]).length;
+        setNftsWithPoolCount(count);
+      }
     }
-  }, [nfts, mintToPoolMap, loading, historyLoading]);
+  }, [history, historyLoading, nfts, loading]);
 
   // Check if there are more NFTs to load
   useEffect(() => {
@@ -77,20 +76,15 @@ const MyNFT = () => {
 
   // Handle clicking on an NFT to go to mintstreet/collection page
   const handleNFTClick = (nft: NFT) => {
-    const poolAddress = mintToPoolMap[nft.mintAddress];
+    const poolAddress = nftToPoolMap[nft.mintAddress];
 
     if (poolAddress) {
-      // If we found a pool address for this NFT, navigate to that collection
+      // Navigate to the pool's collection page
       router.push(`/mintstreet/collection/${poolAddress}`);
     } else {
-      // If we couldn't find a pool address, try using the mint address or go to a default page
+      // If no pool address is found, navigate to a default page
       console.warn(`No pool address found for NFT: ${nft.mintAddress}`);
-
-      // Option 1: Try using the mint address as a fallback
-      router.push(`/mintstreet/collection/${nft.mintAddress}`);
-
-      // Option 2: Go to the main mintstreet page
-      // router.push(`/mintstreet`);
+      router.push(`/mintstreet`);
     }
   };
 
@@ -173,15 +167,7 @@ const MyNFT = () => {
               {calculateTotalValue()} SOL
             </span>
             {nfts.length > 0 && (
-              <span style={{
-                marginLeft: '0.5rem',
-                padding: '0.25rem 0.75rem',
-                backgroundColor: 'rgba(255, 140, 0, 0.2)',
-                color: '#FF8C00',
-                borderRadius: '8px',
-                fontSize: '0.875rem',
-                fontWeight: '600'
-              }}>
+              <span className={styles.poolsCount}>
                 {nftsWithPoolCount} with pools
               </span>
             )}
@@ -221,57 +207,46 @@ const MyNFT = () => {
         ) : (
           <>
             <div className={styles.nftGrid}>
-              {visibleNFTs.map((nft: NFT) => (
-                <div
-                  key={nft.id}
-                  className={styles.nftCard}
-                  onClick={() => handleNFTClick(nft)}
-                  style={{
-                    border: mintToPoolMap[nft.mintAddress] ? '2px solid #FF8C00' : '1px solid var(--border, rgba(0, 0, 0, 0.05))'
-                  }}
-                >
-                  <div className={styles.nftImageContainer}>
-                    <Image
-                      src={nft.image}
-                      alt={nft.name}
-                      width={200}
-                      height={200}
-                      className={styles.nftImage}
-                      onError={handleImageError}
-                    />
-                    <div className={styles.priceTag}>
-                      <Gem size={14} className={styles.gemIcon} />
-                      {nft.price}
-                    </div>
-                    {mintToPoolMap[nft.mintAddress] && (
-                      <div style={{
-                        position: 'absolute',
-                        top: '10px',
-                        left: '10px',
-                        background: 'rgba(255, 140, 0, 0.8)',
-                        color: 'white',
-                        padding: '4px 8px',
-                        borderRadius: '8px',
-                        fontSize: '0.75rem',
-                        fontWeight: '600',
-                        backdropFilter: 'blur(4px)'
-                      }}>
-                        Pool
+              {visibleNFTs.map((nft: NFT) => {
+                const hasPool = !!nftToPoolMap[nft.mintAddress];
+                return (
+                  <div
+                    key={nft.id}
+                    className={`${styles.nftCard} ${hasPool ? styles.hasPool : ''}`}
+                    onClick={() => handleNFTClick(nft)}
+                  >
+                    <div className={styles.nftImageContainer}>
+                      <Image
+                        src={nft.image}
+                        alt={nft.name}
+                        width={200}
+                        height={200}
+                        className={styles.nftImage}
+                        onError={handleImageError}
+                      />
+                      <div className={styles.priceTag}>
+                        <Gem size={14} className={styles.gemIcon} />
+                        {nft.price}
                       </div>
-                    )}
-                  </div>
-                  <div className={styles.nftInfo}>
-                    <h4 className={styles.nftName}>{nft.name}</h4>
-                    <p className={styles.collectionName}>
-                      {nft.collectionName}
-                    </p>
-                    <div className={styles.viewDetailsButton}>
-                      {mintToPoolMap[nft.mintAddress] ? 'View Collection' : 'View Details'}
-                      <ArrowRight size={14} className={styles.arrowIcon} />
+                      {hasPool && (
+                        <div className={styles.poolBadge}>
+                          Pool
+                        </div>
+                      )}
+                    </div>
+                    <div className={styles.nftInfo}>
+                      <h4 className={styles.nftName}>{nft.name}</h4>
+                      <p className={styles.collectionName}>
+                        {nft.collectionName}
+                      </p>
+                      <div className={styles.viewDetailsButton}>
+                        {hasPool ? 'View Collection' : 'View Details'}
+                        <ArrowRight size={14} className={styles.arrowIcon} />
+                      </div>
                     </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
 
             {/* Show More Button */}
