@@ -141,9 +141,10 @@ SketchXpress is licensed for educational purposes only. The code in this reposit
 
 ## 🙏 Acknowledgements
 
+- [Solana](https://solana.com/) - Blockchain infrastructure
+- [Helius](https://helius.dev/) - Solana API infrastructure
+- [Pinata](https://pinata.cloud/) - IPFS Storage System
 - [tldraw](https://github.com/tldraw/tldraw) - The core drawing library
-- Solana blockchain infrastructure
-- IPFS storage solutions
 
 ---
 
