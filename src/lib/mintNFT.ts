@@ -1,8 +1,12 @@
 import {
+  Connection,
   Keypair,
   PublicKey,
   SystemProgram,
   SYSVAR_RENT_PUBKEY,
+  ComputeBudgetProgram,
+  clusterApiUrl,
+  Transaction,
 } from "@solana/web3.js";
 import {
   TOKEN_PROGRAM_ID,
@@ -10,17 +14,18 @@ import {
   ASSOCIATED_TOKEN_PROGRAM_ID,
 } from "@solana/spl-token";
 import { useState } from "react";
+import * as anchor from "@coral-xyz/anchor";
 import { WalletContextState } from "@solana/wallet-adapter-react";
+import { Program } from "@coral-xyz/anchor";
+import IDL from "@/utils/idl";
 
 // Metaplex Token Metadata Program ID
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
   "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
 );
 
-// Your program ID - replace with the actual one
-const PROGRAM_ID = new PublicKey(
-  "2c1U9TKFcw5LVLRkEopaeVyxaj5aAefhA9syX9d2pUmL"
-);
+// Your program ID
+const PROGRAM_ID = new PublicKey(IDL.metadata.address);
 
 // Helper function to safely stringify any error object
 const safeStringifyError = (error: unknown): string => {
@@ -120,6 +125,39 @@ export const useMintNFT = () => {
         throw new Error("Invalid pool address");
       }
 
+      // Create Solana Connection
+      const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+
+      // Handle signAllTransactions being undefined - fix TypeScript error
+      const signAllTransactions =
+        walletContext.signAllTransactions ||
+        (async <T extends Transaction | anchor.web3.VersionedTransaction>(
+          txs: T[]
+        ): Promise<T[]> => {
+          const signedTxs: T[] = [];
+          for (const tx of txs) {
+            if (walletContext.signTransaction) {
+              signedTxs.push((await walletContext.signTransaction(tx)) as T);
+            }
+          }
+          return signedTxs;
+        });
+
+      // Create provider for Anchor
+      const provider = new anchor.AnchorProvider(
+        connection,
+        {
+          publicKey: walletContext.publicKey,
+          signTransaction: walletContext.signTransaction,
+          signAllTransactions: signAllTransactions,
+        },
+        { commitment: "confirmed" }
+      );
+
+      // Create program instance
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const program = new Program(IDL as any, PROGRAM_ID, provider);
+
       // Generate a new keypair for the NFT mint
       const nftMintKeypair = Keypair.generate();
       const nftMint = nftMintKeypair.publicKey;
@@ -129,9 +167,26 @@ export const useMintNFT = () => {
         nftMintKeypair.publicKey.toString()
       );
 
-      // Mock or placeholder values for now
-      const mockCollectionMint = pool; // Using pool as collection mint for example
-      const mockCreator = walletContext.publicKey; // Use wallet as creator
+      // Get pool data to retrieve collection mint
+      const poolData = await program.account.bondingCurvePool.fetch(pool);
+
+      // Type assertion for poolData
+      type PoolData = { collection: PublicKey; creator: PublicKey };
+      const { collection: collectionMint, creator } = poolData as PoolData;
+
+      console.log("Pool data retrieved:");
+      console.log("Collection Mint:", collectionMint.toString());
+      console.log("Creator:", creator.toString());
+
+      // Find collection metadata PDA
+      const [collectionMetadata] = PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("metadata"),
+          TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+          collectionMint.toBuffer(),
+        ],
+        TOKEN_METADATA_PROGRAM_ID
+      );
 
       // Find NFT escrow PDA
       const [escrow] = PublicKey.findProgramAddressSync(
@@ -166,50 +221,61 @@ export const useMintNFT = () => {
         walletContext.publicKey
       );
 
-      // Collection metadata
-      const [collectionMetadata] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("metadata"),
-          TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-          mockCollectionMint.toBuffer(),
-        ],
-        TOKEN_METADATA_PROGRAM_ID
-      );
+      // Add compute unit limit instruction
+      const computeUnitLimitInstruction =
+        ComputeBudgetProgram.setComputeUnitLimit({
+          units: 400000, // Request 400,000 CUs (adjust if needed)
+        });
 
-      // For now, just log the important data and return a successful mock response
-      // You'll implement actual transaction creation here based on your program
-      console.log("Would execute with accounts:", {
-        payer: walletContext.publicKey.toString(),
-        nftMint: nftMint.toString(),
-        escrow: escrow.toString(),
-        pool: pool.toString(),
-        tokenAccount: tokenAccount.toString(),
-        tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID.toString(),
-        metadataAccount: metadataAccount.toString(),
-        masterEdition: masterEdition.toString(),
-        collectionMint: mockCollectionMint.toString(),
-        collectionMetadata: collectionMetadata.toString(),
-        tokenProgram: TOKEN_PROGRAM_ID.toString(),
-        creator: mockCreator.toString(),
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID.toString(),
-        systemProgram: SystemProgram.programId.toString(),
-        rent: SYSVAR_RENT_PUBKEY.toString(),
-      });
+      // Log key information
+      console.log("Accounts to be used:");
+      console.log("Payer:", walletContext.publicKey.toString());
+      console.log("NFT Mint:", nftMint.toString());
+      console.log("Escrow:", escrow.toString());
+      console.log("Pool:", pool.toString());
+      console.log("Token Account:", tokenAccount.toString());
+      console.log("Metadata Account:", metadataAccount.toString());
+      console.log("Master Edition:", masterEdition.toString());
+      console.log("Collection Mint:", collectionMint.toString());
+      console.log("Collection Metadata:", collectionMetadata.toString());
+      console.log("Creator:", creator.toString());
 
-      // In a true implementation, you'd build and send the actual transaction here
-      // using similar logic to your original useMintNft hook
+      // Execute the transaction to mint the NFT
+      const tx = await program.methods
+        .mintNft(name, symbol, uri, sellerFeeBasisPoints)
+        .accounts({
+          payer: walletContext.publicKey,
+          nftMint: nftMint,
+          escrow: escrow,
+          pool: pool,
+          tokenAccount: tokenAccount,
+          tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+          metadataAccount: metadataAccount,
+          masterEdition: masterEdition,
+          collectionMint: collectionMint,
+          collectionMetadata: collectionMetadata,
+          tokenProgram: TOKEN_PROGRAM_ID,
+          creator: creator,
+          associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
+          systemProgram: SystemProgram.programId,
+          rent: SYSVAR_RENT_PUBKEY,
+        })
+        .signers([nftMintKeypair])
+        .preInstructions([computeUnitLimitInstruction])
+        .rpc({
+          skipPreflight: false,
+          commitment: "confirmed",
+        });
 
-      // For testing, generate a mock transaction signature
-      const mockTxId = "simulated_tx_" + Date.now();
-      console.log("NFT minted successfully with signature:", mockTxId);
+      console.log("NFT minted successfully with signature:", tx);
 
       // Set the transaction signature, NFT mint address, and escrow address
-      setTxSignature(mockTxId);
+      setTxSignature(tx);
       setNftMintAddress(nftMint.toString());
       setEscrowAddress(escrow.toString());
 
       return {
-        tx: mockTxId,
+        tx,
         nftMint: nftMint.toString(),
         escrow: escrow.toString(),
       };
