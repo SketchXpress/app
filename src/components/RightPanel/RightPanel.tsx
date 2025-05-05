@@ -91,6 +91,7 @@ const RightPanel: React.FC = () => {
     },
     pro: {
       address: `2c1U9TKFcw5LVLRkEopaeVyxaj5aAefhA9syX9d2pUmL`,
+      name: "Pro Collection"
     }
   };
 
@@ -546,6 +547,13 @@ const RightPanel: React.FC = () => {
         type: "info",
         isLoading: true
       });
+
+      console.log("-----------------")
+      console.log("Minting NFT with metadata URL:", metadataIpfsUrl);
+      console.log("Minting NFT with pool address:", poolInfo.address);
+      console.log("Minting NFT with wallet public key:", walletContext.publicKey.toString());
+      console.log("Minting NFT with wallet:", walletContext);
+      console.log("-----------------")
 
       const result = await mintNft(
         poolInfo.address,
