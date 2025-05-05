@@ -25,7 +25,7 @@ import {
   EnhanceCompletedEvent,
   EnhanceFailedEvent
 } from "@/lib/events";
-import { mintNFT } from "@/lib/mintNFT";
+import { useMintNFT } from "@/lib/mintNFT";
 import { usePoolStore } from "@/stores/poolStore";
 import { useModeStore } from "@/stores/modeStore";
 import { useEnhanceStore } from "@/stores/enhanceStore";
@@ -70,6 +70,8 @@ const RightPanel: React.FC = () => {
   const { selectedPool } = usePoolStore();
 
   const isKidsMode = () => mode === "kids";
+
+  const { mintNft } = useMintNFT();
 
   // Get enhance store values
   const {
@@ -540,11 +542,16 @@ const RightPanel: React.FC = () => {
         isLoading: true
       });
 
-      const nftAddress = await mintNFT(
+      const result = await mintNft(
+        poolInfo.address,
+        poolInfo.name + " Artwork",
+        "SXP",
         metadataIpfsUrl,
-        walletContext,
-        poolInfo
+        500, // sellerFeeBasisPoints (5%)
+        walletContext
       );
+
+      const nftAddress = result?.nftMint;
 
       // Success toast with pool information
       toast.update(mintingToastId, {
