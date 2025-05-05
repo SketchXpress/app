@@ -101,3 +101,4 @@ const ChartToolbar: React.FC<ChartToolbarProps> = ({
 };
 
 export default ChartToolbar;
+export { type ChartType, type Timeframe, type SMAPeriod };
