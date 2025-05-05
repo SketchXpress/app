@@ -115,6 +115,7 @@ export default function CollectionDetailPage() {
             }))}
             isLoading={nftsLoading}
             error={nftsError}
+            poolAddress={poolAddress} // Pass the pool address to the component
           />
         </section>
 
