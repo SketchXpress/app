@@ -548,13 +548,6 @@ const RightPanel: React.FC = () => {
         isLoading: true
       });
 
-      console.log("-----------------")
-      console.log("Minting NFT with metadata URL:", metadataIpfsUrl);
-      console.log("Minting NFT with pool address:", poolInfo.address);
-      console.log("Minting NFT with wallet public key:", walletContext.publicKey.toString());
-      console.log("Minting NFT with wallet:", walletContext);
-      console.log("-----------------")
-
       const result = await mintNft(
         poolInfo.address,
         poolInfo.name + " Artwork",
