@@ -151,7 +151,7 @@ const RightPanel: React.FC = () => {
 
       // Show toast notification for processing
       toast.info("Starting to enhance your artwork...", {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 3000,
         icon: () => <span>🎨</span>
       });
@@ -212,7 +212,7 @@ const RightPanel: React.FC = () => {
 
           // Show success toast
           toast.success(`${images.length} image${images.length > 1 ? 's' : ''} generated successfully!`, {
-            position: "bottom-right",
+            position: "bottom-left",
             autoClose: 4000,
             icon: () => <span>✨</span>
           });
@@ -221,7 +221,7 @@ const RightPanel: React.FC = () => {
 
           // Show error toast
           toast.error("Failed to load generated images", {
-            position: "bottom-right",
+            position: "bottom-left",
             autoClose: 4000,
           });
         }
@@ -231,7 +231,7 @@ const RightPanel: React.FC = () => {
 
         // Show error toast
         toast.error("Failed to process generated images", {
-          position: "bottom-right",
+          position: "bottom-left",
           autoClose: 4000,
         });
       }
@@ -245,7 +245,7 @@ const RightPanel: React.FC = () => {
 
       // Show error toast
       toast.error(data.error || "Image generation failed", {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 5000,
       });
     });
@@ -295,7 +295,7 @@ const RightPanel: React.FC = () => {
 
             // Show error toast
             toast.error("Job not found. Please try again.", {
-              position: "bottom-right",
+              position: "bottom-left",
               autoClose: 4000,
             });
           }
@@ -363,7 +363,7 @@ const RightPanel: React.FC = () => {
 
             // Show success toast
             toast.success(`${images.length} image${images.length > 1 ? 's' : ''} generated successfully!`, {
-              position: "bottom-right",
+              position: "bottom-left",
               autoClose: 4000,
               icon: () => <span>✨</span>
             });
@@ -372,7 +372,7 @@ const RightPanel: React.FC = () => {
 
             // Show error toast
             toast.error("Failed to load generated images", {
-              position: "bottom-right",
+              position: "bottom-left",
               autoClose: 4000,
             });
           }
@@ -386,7 +386,7 @@ const RightPanel: React.FC = () => {
 
           // Show error toast
           toast.error(data.error || "Generation failed", {
-            position: "bottom-right",
+            position: "bottom-left",
             autoClose: 5000,
           });
         } else if (data.status === "processing") {
@@ -434,7 +434,7 @@ const RightPanel: React.FC = () => {
   const handleExport = () => {
     if (!selectedImageId) {
       toast.warning("Please select an image to export", {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 3000,
       });
       return;
@@ -445,7 +445,7 @@ const RightPanel: React.FC = () => {
 
     // Show a toast notification that download is starting
     toast.info("Starting download...", {
-      position: "bottom-right",
+      position: "bottom-left",
       autoClose: 2000,
       icon: () => <span>📥</span>
     });
@@ -461,7 +461,7 @@ const RightPanel: React.FC = () => {
     // Show a success toast
     setTimeout(() => {
       toast.success("Image downloaded successfully!", {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 3000,
         icon: () => <span>✅</span>
       });
@@ -471,7 +471,7 @@ const RightPanel: React.FC = () => {
   const handleMintNFT = async () => {
     if (!walletContext.connected || !walletContext.publicKey) {
       toast.error("Please connect your wallet first!", {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 3000,
       });
       return;
@@ -479,7 +479,7 @@ const RightPanel: React.FC = () => {
 
     if (!selectedImageId) {
       toast.warning("Please select an image to mint!", {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 3000,
       });
       return;
@@ -488,7 +488,7 @@ const RightPanel: React.FC = () => {
     const selectedImage = generatedImages.find(img => img.id === selectedImageId);
     if (!selectedImage) {
       toast.error("Selected image not found.", {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 3000,
       });
       return;
@@ -503,9 +503,20 @@ const RightPanel: React.FC = () => {
         { address: selectedPool.address, name: selectedPool.name } :
         defaultPool;
 
+      // Validate pool address format
+      if (!/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(poolInfo.address)) {
+        console.log("Invalid pool address format:", poolInfo.address);
+        throw new Error("Invalid pool address format");
+      }
+
       // Show a loading toast that includes pool information
       const mintingToastId = toast.loading(`Starting NFT minting process on ${poolInfo.name}...`, {
         position: "bottom-right",
+      });
+
+      // Show a loading toast that includes pool information
+      toast.loading(`Starting NFT minting process on ${poolInfo.name}...`, {
+        position: "bottom-left",
       });
 
       // Fetch the image blob from the original URL
@@ -565,7 +576,7 @@ const RightPanel: React.FC = () => {
       });
     } catch (error) {
       toast.error(`Minting failed: ${error instanceof Error ? error.message : String(error)}`, {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 5000,
       });
     }
@@ -602,7 +613,7 @@ const RightPanel: React.FC = () => {
     // Optional: Show toast when selecting image
     if (id !== selectedImageId) {
       toast.info(`Image ${id} selected`, {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 1500,
         hideProgressBar: true
       });
@@ -616,7 +627,7 @@ const RightPanel: React.FC = () => {
 
     // Show downloading toast
     toast.info("Starting download...", {
-      position: "bottom-right",
+      position: "bottom-left",
       autoClose: 2000,
       icon: () => <span>📥</span>
     });
@@ -632,7 +643,7 @@ const RightPanel: React.FC = () => {
     // Show success toast
     setTimeout(() => {
       toast.success("Image downloaded successfully!", {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 3000,
         icon: () => <span>✅</span>
       });
@@ -647,7 +658,7 @@ const RightPanel: React.FC = () => {
     if (mode === "pro") {
       // Pro mode: Direct minting
       toast.info("Preparing to mint image...", {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 2000,
         icon: () => <RefreshCw size={16} />
       });
@@ -832,7 +843,7 @@ const RightPanel: React.FC = () => {
                         onClick={() => {
                           resetToDefaults();
                           toast.info("Parameters reset to defaults", {
-                            position: "bottom-right",
+                            position: "bottom-left",
                             autoClose: 2000,
                             icon: () => <RefreshCw size={16} />
                           });
