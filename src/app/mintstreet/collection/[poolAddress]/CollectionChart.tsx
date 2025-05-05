@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, {
@@ -38,10 +39,10 @@ interface CollectionChartProps {
 
 // Type guard for checking OHLC data structure
 function isCandleData(data: any): data is { open: number; high: number; low: number; close: number } {
-  return data && 
-    typeof data.open === 'number' && 
-    typeof data.high === 'number' && 
-    typeof data.low === 'number' && 
+  return data &&
+    typeof data.open === 'number' &&
+    typeof data.high === 'number' &&
+    typeof data.low === 'number' &&
     typeof data.close === 'number';
 }
 
@@ -101,13 +102,13 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
     if (timeframe === 'raw' || rawCandles.length === 0) {
       return rawCandles;
     }
-    
+
     const groupedCandles: Record<number, Candle & { count: number }> = {};
-    
+
     rawCandles.forEach(candle => {
       const date = new Date(candle.time * 1000);
       let timeKey: number;
-      
+
       if (timeframe === '1h') {
         // Group by hour
         date.setMinutes(0, 0, 0);
@@ -117,7 +118,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
         date.setHours(0, 0, 0, 0);
         timeKey = Math.floor(date.getTime() / 1000);
       }
-      
+
       if (!groupedCandles[timeKey]) {
         groupedCandles[timeKey] = {
           time: timeKey,
@@ -135,7 +136,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
         group.count += 1;
       }
     });
-    
+
     return Object.values(groupedCandles);
   }, [rawCandles, timeframe]);
 
@@ -152,17 +153,17 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
     // Create chart
     const chart = createChart(container, {
       autoSize: true,
-      layout: { 
-        background: { type: ColorType.Solid, color: '#fff' }, 
-        textColor: '#333' 
+      layout: {
+        background: { type: ColorType.Solid, color: '#fff' },
+        textColor: '#333'
       },
-      grid: { 
-        vertLines: { color: '#eee' }, 
-        horzLines: { color: '#eee' } 
+      grid: {
+        vertLines: { color: '#eee' },
+        horzLines: { color: '#eee' }
       },
       crosshair: { mode: CrosshairMode.Normal },
-      timeScale: { 
-        timeVisible: true, 
+      timeScale: {
+        timeVisible: true,
         secondsVisible: true,
         borderColor: '#eee'
       },
@@ -177,23 +178,23 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
     // Set up crosshair move handler for legend
     chart.subscribeCrosshairMove((param) => {
       if (
-        param.point === undefined || 
-        !param.time || 
-        param.point.x < 0 || 
-        param.point.x > container.clientWidth || 
-        param.point.y < 0 || 
+        param.point === undefined ||
+        !param.time ||
+        param.point.x < 0 ||
+        param.point.x > container.clientWidth ||
+        param.point.y < 0 ||
         param.point.y > container.clientHeight
       ) {
         setLegendValues({
           open: null,
-          high: null, 
+          high: null,
           low: null,
           close: null,
           time: null
         });
       } else {
         const data = seriesRef.current ? param.seriesData.get(seriesRef.current) : null;
-        
+
         if (data && isCandleData(data)) {
           setLegendValues({
             open: data.open,
@@ -236,7 +237,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
   // Handle chart type changes and create appropriate series
   useEffect(() => {
     if (!chartRef.current || !container) return;
-    
+
     // Remove existing series
     if (seriesRef.current) {
       chartRef.current.removeSeries(seriesRef.current);
@@ -281,7 +282,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
     if (volumeSeriesRef.current) {
       chartRef.current.removeSeries(volumeSeriesRef.current);
     }
-    
+
     volumeSeriesRef.current = chartRef.current.addSeries(HistogramSeries, {
       color: '#26a69a',
       priceFormat: { type: 'volume' },
@@ -341,22 +342,22 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
   // Handle SMA indicator
   useEffect(() => {
     if (!chartRef.current || candles.length === 0) return;
-    
+
     if (showSMA) {
       // Calculate SMA
       const smaData = candles.map((_, index, array) => {
         if (index < smaPeriod - 1) return null;
-        
+
         const sum = array
           .slice(index - smaPeriod + 1, index + 1)
           .reduce((total, candle) => total + candle.close, 0);
-        
+
         return {
           time: array[index].time,
           value: sum / smaPeriod,
         };
       }).filter(Boolean);
-      
+
       // Create or update SMA series
       if (!smaSeriesRef.current) {
         smaSeriesRef.current = chartRef.current.addSeries(LineSeries, {
@@ -367,7 +368,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
           title: `SMA (${smaPeriod})`,
         });
       }
-      
+
       if (smaSeriesRef.current) {
         smaSeriesRef.current.setData(smaData);
       }
@@ -392,7 +393,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
   // Legend component
   const Legend = () => {
     if (!legendValues.time) return null;
-    
+
     return (
       <div className={styles.legend}>
         <div>O: <span>{legendValues.open?.toFixed(4)}</span></div>
@@ -414,9 +415,9 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
   return (
     <div className={styles.wrapper}>
       <h3 className={styles.title}>Bonding Curve</h3>
-      
+
       {/* Integrated toolbar component */}
-      <ChartToolbar 
+      <ChartToolbar
         onResetZoom={() => chartRef.current?.timeScale().fitContent()}
         chartType={chartType}
         setChartType={setChartType}
@@ -427,10 +428,10 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
         timeframe={timeframe}
         setTimeframe={setTimeframe}
       />
-      
+
       {/* Legend */}
       <Legend />
-      
+
       {/* Chart container */}
       <div
         ref={containerRef}
