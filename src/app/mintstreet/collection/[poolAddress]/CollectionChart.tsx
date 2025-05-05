@@ -14,6 +14,7 @@ import {
   CandlestickSeries,
   LineSeries,
   AreaSeries,
+  BarSeries,
   HistogramSeries,
   CrosshairMode,
   ColorType,
@@ -21,6 +22,7 @@ import {
 } from "lightweight-charts";
 import styles from "./CollectionChart.module.scss";
 import { useBondingCurveForPool } from "@/hooks/useBondingCurveForPool";
+import ChartToolbar, { ChartType, Timeframe, SMAPeriod } from "./ChartToolbar";
 
 type Candle = {
   time: number;    // seconds since epoch
@@ -56,9 +58,10 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
   }, []);
 
   // Chart settings and state
-  const [chartType, setChartType] = useState<'candlestick' | 'line' | 'area'>('candlestick');
+  const [chartType, setChartType] = useState<ChartType>('candlestick');
   const [showSMA, setShowSMA] = useState(false);
-  const [smaPeriod, setSmaPeriod] = useState(20);
+  const [smaPeriod, setSmaPeriod] = useState<SMAPeriod>(20);
+  const [timeframe, setTimeframe] = useState<Timeframe>('raw');
   const [legendValues, setLegendValues] = useState<{
     open: number | null;
     high: number | null;
@@ -76,8 +79,8 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
   // Fetch data directly using the hook
   const { history, isLoading } = useBondingCurveForPool(poolAddress);
 
-  // Build candles from history
-  const candles: Candle[] = useMemo(() => {
+  // Build raw candles from history
+  const rawCandles: Candle[] = useMemo(() => {
     let lastPrice: number | null = null;
     return history
       .filter((h) => h.blockTime != null)
@@ -92,6 +95,49 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
         return { time: t, open, high, low, close: price };
       });
   }, [history]);
+
+  // Aggregate candles based on timeframe
+  const candles = useMemo(() => {
+    if (timeframe === 'raw' || rawCandles.length === 0) {
+      return rawCandles;
+    }
+    
+    const groupedCandles: Record<number, Candle & { count: number }> = {};
+    
+    rawCandles.forEach(candle => {
+      const date = new Date(candle.time * 1000);
+      let timeKey: number;
+      
+      if (timeframe === '1h') {
+        // Group by hour
+        date.setMinutes(0, 0, 0);
+        timeKey = Math.floor(date.getTime() / 1000);
+      } else { // '1d'
+        // Group by day
+        date.setHours(0, 0, 0, 0);
+        timeKey = Math.floor(date.getTime() / 1000);
+      }
+      
+      if (!groupedCandles[timeKey]) {
+        groupedCandles[timeKey] = {
+          time: timeKey,
+          open: candle.open,
+          high: candle.high,
+          low: candle.low,
+          close: candle.close,
+          count: 1
+        };
+      } else {
+        const group = groupedCandles[timeKey];
+        group.high = Math.max(group.high, candle.high);
+        group.low = Math.min(group.low, candle.low);
+        group.close = candle.close;
+        group.count += 1;
+      }
+    });
+    
+    return Object.values(groupedCandles);
+  }, [rawCandles, timeframe]);
 
   // Chart and series refs
   const chartRef = useRef<IChartApi | null>(null);
@@ -223,9 +269,19 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
         priceLineVisible: false,
         lastValueVisible: true,
       });
+    } else if (chartType === 'bar') {
+      seriesRef.current = chartRef.current.addSeries(BarSeries, {
+        upColor: '#22C55E',
+        downColor: '#EF4444',
+        priceLineVisible: false,
+      });
     }
 
     // Add volume series
+    if (volumeSeriesRef.current) {
+      chartRef.current.removeSeries(volumeSeriesRef.current);
+    }
+    
     volumeSeriesRef.current = chartRef.current.addSeries(HistogramSeries, {
       color: '#26a69a',
       priceFormat: { type: 'volume' },
@@ -264,7 +320,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
         candles.map(c => ({ time: c.time, value: c.close }))
       );
     } else {
-      // Candlestick chart uses OHLC data
+      // Candlestick/Bar chart uses OHLC data
       seriesRef.current.setData(candles);
     }
 
@@ -359,54 +415,18 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
     <div className={styles.wrapper}>
       <h3 className={styles.title}>Bonding Curve</h3>
       
-      {/* Toolbar */}
-      <div className={styles.toolbar}>
-        <div className={styles.toolGroup}>
-          <button 
-            className={chartType === 'candlestick' ? styles.active : ''}
-            onClick={() => setChartType('candlestick')}
-          >
-            Candles
-          </button>
-          <button 
-            className={chartType === 'line' ? styles.active : ''}
-            onClick={() => setChartType('line')}
-          >
-            Line
-          </button>
-          <button 
-            className={chartType === 'area' ? styles.active : ''}
-            onClick={() => setChartType('area')}
-          >
-            Area
-          </button>
-        </div>
-        
-        <div className={styles.toolGroup}>
-          <button 
-            className={showSMA ? styles.active : ''}
-            onClick={() => setShowSMA(!showSMA)}
-          >
-            SMA
-          </button>
-          <select 
-            value={smaPeriod}
-            onChange={(e) => setSmaPeriod(Number(e.target.value))}
-            disabled={!showSMA}
-          >
-            <option value="5">5</option>
-            <option value="10">10</option>
-            <option value="20">20</option>
-            <option value="50">50</option>
-          </select>
-        </div>
-        
-        <div className={styles.toolGroup}>
-          <button onClick={() => chartRef.current?.timeScale().fitContent()}>
-            Reset Zoom
-          </button>
-        </div>
-      </div>
+      {/* Integrated toolbar component */}
+      <ChartToolbar 
+        onResetZoom={() => chartRef.current?.timeScale().fitContent()}
+        chartType={chartType}
+        setChartType={setChartType}
+        showSMA={showSMA}
+        setShowSMA={setShowSMA}
+        smaPeriod={smaPeriod}
+        setSmaPeriod={setSmaPeriod}
+        timeframe={timeframe}
+        setTimeframe={setTimeframe}
+      />
       
       {/* Legend */}
       <Legend />
