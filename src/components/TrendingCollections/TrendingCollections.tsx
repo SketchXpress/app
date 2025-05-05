@@ -58,8 +58,6 @@ const processTrendingCollections = (transactions: HistoryItem[]) => {
   // Step 2: Find all pool creation transactions and link them to collections
   const poolToCollectionMap = new Map<string, string>();
 
-  console.log("transactions", transactions);
-
   transactions.forEach(tx => {
     if (tx.instructionName === "createPool" && tx.accounts && tx.accounts.length > 1) {
       const poolAddress = tx.poolAddress;

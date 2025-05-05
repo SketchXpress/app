@@ -509,11 +509,6 @@ const RightPanel: React.FC = () => {
         position: "bottom-right",
       });
 
-      // Show a loading toast that includes pool information
-      toast.loading(`Starting NFT minting process on ${poolInfo.name}...`, {
-        position: "bottom-left",
-      });
-
       // Fetch the image blob from the original URL
       const response = await fetch(selectedImage.url);
       if (!response.ok) {
