@@ -81,3 +81,90 @@
     height: 500px;
   }
 }
+
+.wrapper {
+  position: relative;
+  width: 100%;
+  height: 400px;
+  margin-bottom: 20px;
+}
+
+.title {
+  margin-bottom: 10px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.chartContainer {
+  width: 100%;
+  height: 360px;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.toolGroup {
+  display: flex;
+  border-radius: 4px;
+  overflow: hidden;
+  border: 1px solid #eee;
+
+  button, select {
+    padding: 5px 10px;
+    background: white;
+    border: none;
+    cursor: pointer;
+    font-size: 12px;
+
+    &:not(:last-child) {
+      border-right: 1px solid #eee;
+    }
+
+    &.active {
+      background: #f0f7ff;
+      color: #2962FF;
+    }
+
+    &:hover {
+      background: #f5f5f5;
+    }
+  }
+}
+
+.legend {
+  position: absolute;
+  top: 40px; /* Adjust based on title/toolbar height */
+  left: 10px;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 5px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+  display: flex;
+  gap: 10px;
+  border: 1px solid #eee;
+  z-index: 10;
+
+  div {
+    span {
+      font-weight: 600;
+    }
+  }
+}
+
+.loading, .empty {
+  width: 100%;
+  height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #666;
+  background: #f9f9f9;
+  border-radius: 8px;
+}
+
