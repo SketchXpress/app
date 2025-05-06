@@ -84,6 +84,7 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({ nfts, isLoading, error, poo
     };
 
     fetchNFTMetadata();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [nfts]);
 
   // Handle image loading errors

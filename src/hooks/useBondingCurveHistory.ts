@@ -189,6 +189,7 @@ export function useBondingCurveHistory(
       // Try to process immediately if we're under concurrency limit
       processRpcQueue();
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Process RPC queue up to concurrency limit
@@ -886,6 +887,7 @@ export function useBondingCurveHistory(
         return newCache;
       });
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [transactionCache.size, maxCacheSize]);
 
   // Initial data load from localStorage if available
