@@ -5,7 +5,14 @@ import Link from "next/link";
 import { toast } from "react-toastify";
 import { useState, useEffect } from "react";
 import { useCanvasStore } from "@/stores/canvasStore";
-import { Menu, X, Share2, LucideLayoutDashboard, Save, Coins } from "lucide-react";
+import {
+  Menu,
+  X,
+  Share2,
+  LucideLayoutDashboard,
+  Save,
+  Coins,
+} from "lucide-react";
 
 import styles from "./Header.module.scss";
 import logo from "../../../public/logo.png";
@@ -38,10 +45,13 @@ const Header = () => {
         const serializedState = JSON.stringify(snapshot);
 
         if (serializedState.length > 4.5 * 1024 * 1024) {
-          toast.warning("Your project is too large to save locally. Consider exporting instead.", {
-            position: "bottom-right",
-            autoClose: 5000,
-          });
+          toast.warning(
+            "Your project is too large to save locally. Consider exporting instead.",
+            {
+              position: "bottom-right",
+              autoClose: 5000,
+            }
+          );
           return;
         }
 
@@ -95,18 +105,21 @@ const Header = () => {
           }
         });
     } else {
-      navigator.clipboard.writeText(url).then(() => {
-        toast.info("Link copied to clipboard!", {
-          position: "bottom-right",
-          autoClose: 3000,
-          icon: <span>📋</span>,
+      navigator.clipboard
+        .writeText(url)
+        .then(() => {
+          toast.info("Link copied to clipboard!", {
+            position: "bottom-right",
+            autoClose: 3000,
+            icon: <span>📋</span>,
+          });
+        })
+        .catch(() => {
+          toast.error("Could not copy the link", {
+            position: "bottom-right",
+            autoClose: 3000,
+          });
         });
-      }).catch(() => {
-        toast.error("Could not copy the link", {
-          position: "bottom-right",
-          autoClose: 3000,
-        });
-      });
     }
   };
 
@@ -131,9 +144,9 @@ const Header = () => {
 
       {/* Mode Toggle in the middle for desktop */}
       {!isMobile && (
-        <div className={`${styles.centerControls} ${responsive.centerControls}`}>
-          <ModeToggle />
-        </div>
+        // <div className={`${styles.centerControls} ${responsive.centerControls}`}>
+        <ModeToggle />
+        // </div>
       )}
 
       {/* Desktop Controls */}
