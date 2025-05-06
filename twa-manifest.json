@@ -36,7 +36,11 @@
   "fullScopeUrl": "https://sketchxpress.tech/",
   "minSdkVersion": 21,
   "orientation": "default",
-  "fingerprints": [],
+  "fingerprints": [
+    {
+      "value": "DA:D1:4D:E4:26:34:BB:0F:33:DD:02:6A:BD:07:07:41:68:AE:AE:FB:A6:2C:32:D2:C0:CB:AB:E2:AF:49:90:43"
+    }
+  ],
   "additionalTrustedOrigins": [],
   "retainedBundles": [],
   "protocolHandlers": [],

@@ -39,3 +39,61 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+
+# -------------------------
+# Android / TWA Artifacts
+# -------------------------
+# Bubblewrap‐generated Android project
+/android/
+/app/**/build/
+/app/.gradle/
+/android.keystore
+*.keystore
+*.jks
+
+# Bubblewrap outputs
+app-release-signed.apk
+app-release-bundle.aab
+assetlinks.json
+twa-manifest.json
+
+# Bubblewrap state
+/.bubblewrap/
+
+# Local Android SDK settings
+/local.properties
+
+# -------------------------
+# Publishing Workspace
+# -------------------------
+# Your `publishing/` subfolder packages & caches
+/publishing/node_modules/
+/publishing/.asset-manifest-devnet.json
+/publishing/.asset-manifest-mainnet.json
+
+# -------------------------
+# IDE / OS Files
+# -------------------------
+.idea/
+/*.iml
+.vscode/
+
+# macOS
+.DS_Store
+
+# swap files
+*.swp
+.gradle/
+*.swo 
+*.swn
+
+# Android app outputs
+app-release-signed.apk       
+app-release-bundle.aab     
+*.apk.idsig                   
+assetlinks.json             
+twa-manifest.json             
+*.keystore                   
+.android/      
+*.apk          
