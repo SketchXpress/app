@@ -413,22 +413,17 @@
   }
 }
 
-/* ----- GLOBAL STYLES ----- */
+/* For handling global styles, create a separate file outside the module */
+.htmlFix {
+  height: -webkit-fill-available;
+}
 
-/* For global styles, use :global selector */
-:global(html), :global(body) {
+.bodyFix {
   width: 100%;
   height: 100%;
   margin: 0;
   padding: 0;
   overflow: hidden;
-}
-
-:global(html) {
-  height: -webkit-fill-available;
-}
-
-:global(body) {
   min-height: 100vh;
   min-height: -webkit-fill-available;
 }
