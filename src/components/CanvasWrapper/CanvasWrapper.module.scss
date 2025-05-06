@@ -1,7 +1,7 @@
 .canvasContainer {
-  height: calc(100vh - 64px);
+  height: calc(100vh - 60px);
   width: 100%;
-  overflow: hidden;
+  // overflow: hidden;
   position: relative;
 }
 
@@ -259,4 +259,32 @@
   border: 1px solid rgba(0, 0, 0, 0.05);
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.03);
   z-index: 10;
+}
+
+/* Add responsive adjustments for mobile */
+@media (max-width: 768px) {
+  .canvasContainer {
+    /* Adjust height calculation for mobile */
+    height: calc(100vh - 60px);
+    /* Add this to handle iOS Safari's address bar */
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+  }
+  
+  /* Adjust the canvas area to fill the available space */
+  .canvasArea {
+    height: 100%;
+    width: 100%;
+  }
+}
+
+/* Add these styles to handle iOS Safari issues */
+@supports (-webkit-touch-callout: none) {
+  .canvasContainer {
+    /* iOS Safari specific height adjustment */
+    height: calc(100vh - 60px);
+  }
 }
