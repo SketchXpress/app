@@ -15,7 +15,7 @@ import {
   Settings,
   RefreshCw,
   AlertOctagon,
-  Star
+  Star,
 } from "lucide-react";
 import {
   subscribeToEnhanceStarted,
@@ -23,7 +23,7 @@ import {
   subscribeToEnhanceFailed,
   EnhanceStartedEvent,
   EnhanceCompletedEvent,
-  EnhanceFailedEvent
+  EnhanceFailedEvent,
 } from "@/lib/events";
 import { useMintNFT } from "@/lib/mintNFT";
 import { usePoolStore } from "@/stores/poolStore";
@@ -75,24 +75,29 @@ const RightPanel: React.FC = () => {
 
   // Get enhance store values
   const {
-    prompt, setPrompt,
-    negativePrompt, setNegativePrompt,
-    temperature, setTemperature,
-    guidanceScale, setGuidanceScale,
-    numImages, setNumImages,
-    resetToDefaults
+    prompt,
+    setPrompt,
+    negativePrompt,
+    setNegativePrompt,
+    temperature,
+    setTemperature,
+    guidanceScale,
+    setGuidanceScale,
+    numImages,
+    setNumImages,
+    resetToDefaults,
   } = useEnhanceStore();
 
   // Defining default pools for Kids and Pro modes
   const DEFAULT_POOLS = {
     kids: {
       address: `6Gj1WnJiN4ie7EQgKzDXDy7Tfqik1EXubkziVaXRdzNR`,
-      name: "Kids Collection"
+      name: "Kids Collection",
     },
     pro: {
       address: `6Gj1WnJiN4ie7EQgKzDXDy7Tfqik1EXubkziVaXRdzNR`,
-      name: "Pro Collection"
-    }
+      name: "Pro Collection",
+    },
   };
 
   // Handle responsive behavior
@@ -105,8 +110,8 @@ const RightPanel: React.FC = () => {
       setIsMobile(isMobileView);
       setIsTablet(isTabletView);
 
-      // Auto-close sidebar on mobile initial load
-      if (isMobileView) {
+      // Auto-close sidebar on mobile and tablet initial load
+      if (isMobileView || isTabletView) {
         setSidebarOpen(false);
       }
     };
@@ -121,7 +126,10 @@ const RightPanel: React.FC = () => {
     if (!isMobile && !isTablet) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+      if (
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target as Node)
+      ) {
         setSidebarOpen(false);
       }
     };
@@ -138,117 +146,139 @@ const RightPanel: React.FC = () => {
   // Subscribe to enhance events
   useEffect(() => {
     // Handle enhance started event
-    const unsubscribeStarted = subscribeToEnhanceStarted((data: EnhanceStartedEvent) => {
-      setIsProcessing(true);
-      setGeneratedImages([]); // Clear previous images
-      setError(null);
-      setCurrentJobId(data.jobId);
+    const unsubscribeStarted = subscribeToEnhanceStarted(
+      (data: EnhanceStartedEvent) => {
+        setIsProcessing(true);
+        setGeneratedImages([]); // Clear previous images
+        setError(null);
+        setCurrentJobId(data.jobId);
 
-      // Auto-expand the panel when processing starts
-      if (!sidebarOpen) {
-        setSidebarOpen(true);
-      }
-
-      // Show toast notification for processing
-      toast.info("Starting to enhance your artwork...", {
-        position: "bottom-left",
-        autoClose: 3000,
-        icon: () => <span>🎨</span>
-      });
-    });
-
-    // Handle enhance completed event
-    const unsubscribeCompleted = subscribeToEnhanceCompleted(async (data: EnhanceCompletedEventWithBase64) => {
-      setIsProcessing(false);
-      setCurrentJobId(null); // Clear job ID once completed
-
-      try {
-        let images: GeneratedImage[] = [];
-
-        // *** USE BASE64 DATA IF AVAILABLE ***
-        if (data.images_base64 && data.images_base64.length > 0) {
-          images = data.images_base64.map((base64String, index) => {
-            const filename = data.images[index]?.split("/").pop() || `generated_${index}.png`;
-            const originalUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
-            return {
-              id: index + 1,
-              title: `Generated Image ${index + 1}`,
-              src: `data:image/png;base64,${base64String}`, // Use base64 data URI
-              url: originalUrl // Store original URL for downloads
-            };
-          });
-        }
-        // *** FALLBACK TO FETCHING FROM URL (OLD METHOD) ***
-        else if (data.images && data.images.length > 0) {
-          console.warn("[RightPanel] Base64 data not found in event, falling back to fetching URLs.");
-          images = await Promise.all(
-            data.images.map(async (imagePath, index) => {
-              const pathParts = imagePath.split("/");
-              const filename = pathParts[pathParts.length - 1];
-              const fullUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
-
-              try {
-                const response = await fetch(fullUrl);
-                if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
-                const blob = await response.blob();
-                return {
-                  id: index + 1,
-                  title: `Generated Image ${index + 1}`,
-                  src: URL.createObjectURL(blob), // Create local URL for the Image component
-                  url: fullUrl // Store original URL for downloads
-                };
-              } catch {
-                return null;
-              }
-            })
-          ).then(results => results.filter(img => img !== null) as GeneratedImage[]); // Filter out nulls
-        } else {
-          console.warn("[RightPanel] No image data found in completed event.");
+        // Auto-expand the panel when processing starts
+        if (!sidebarOpen) {
+          setSidebarOpen(true);
         }
 
-        if (images.length > 0) {
-          setGeneratedImages(images);
-          setShowGallery(true);
-
-          // Show success toast
-          toast.success(`${images.length} image${images.length > 1 ? 's' : ''} generated successfully!`, {
-            position: "bottom-left",
-            autoClose: 4000,
-            icon: () => <span>✨</span>
-          });
-        } else {
-          setError("Failed to load generated images from event.");
-
-          // Show error toast
-          toast.error("Failed to load generated images", {
-            position: "bottom-left",
-            autoClose: 4000,
-          });
-        }
-
-      } catch {
-        setError("Failed to process generated images");
-
-        // Show error toast
-        toast.error("Failed to process generated images", {
+        // Show toast notification for processing
+        toast.info("Starting to enhance your artwork...", {
           position: "bottom-left",
-          autoClose: 4000,
+          autoClose: 3000,
+          icon: () => <span>🎨</span>,
         });
       }
-    });
+    );
+
+    // Handle enhance completed event
+    const unsubscribeCompleted = subscribeToEnhanceCompleted(
+      async (data: EnhanceCompletedEventWithBase64) => {
+        setIsProcessing(false);
+        setCurrentJobId(null); // Clear job ID once completed
+
+        try {
+          let images: GeneratedImage[] = [];
+
+          // *** USE BASE64 DATA IF AVAILABLE ***
+          if (data.images_base64 && data.images_base64.length > 0) {
+            images = data.images_base64.map((base64String, index) => {
+              const filename =
+                data.images[index]?.split("/").pop() ||
+                `generated_${index}.png`;
+              const originalUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
+              return {
+                id: index + 1,
+                title: `Generated Image ${index + 1}`,
+                src: `data:image/png;base64,${base64String}`, // Use base64 data URI
+                url: originalUrl, // Store original URL for downloads
+              };
+            });
+          }
+          // *** FALLBACK TO FETCHING FROM URL (OLD METHOD) ***
+          else if (data.images && data.images.length > 0) {
+            console.warn(
+              "[RightPanel] Base64 data not found in event, falling back to fetching URLs."
+            );
+            images = await Promise.all(
+              data.images.map(async (imagePath, index) => {
+                const pathParts = imagePath.split("/");
+                const filename = pathParts[pathParts.length - 1];
+                const fullUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
+
+                try {
+                  const response = await fetch(fullUrl);
+                  if (!response.ok)
+                    throw new Error(
+                      `Failed to fetch image: ${response.status}`
+                    );
+                  const blob = await response.blob();
+                  return {
+                    id: index + 1,
+                    title: `Generated Image ${index + 1}`,
+                    src: URL.createObjectURL(blob), // Create local URL for the Image component
+                    url: fullUrl, // Store original URL for downloads
+                  };
+                } catch {
+                  return null;
+                }
+              })
+            ).then(
+              (results) =>
+                results.filter((img) => img !== null) as GeneratedImage[]
+            ); // Filter out nulls
+          } else {
+            console.warn(
+              "[RightPanel] No image data found in completed event."
+            );
+          }
+
+          if (images.length > 0) {
+            setGeneratedImages(images);
+            setShowGallery(true);
+
+            // Show success toast
+            toast.success(
+              `${images.length} image${
+                images.length > 1 ? "s" : ""
+              } generated successfully!`,
+              {
+                position: "bottom-left",
+                autoClose: 4000,
+                icon: () => <span>✨</span>,
+              }
+            );
+          } else {
+            setError("Failed to load generated images from event.");
+
+            // Show error toast
+            toast.error("Failed to load generated images", {
+              position: "bottom-left",
+              autoClose: 4000,
+            });
+          }
+        } catch {
+          setError("Failed to process generated images");
+
+          // Show error toast
+          toast.error("Failed to process generated images", {
+            position: "bottom-left",
+            autoClose: 4000,
+          });
+        }
+      }
+    );
 
     // Handle enhance failed event
-    const unsubscribeFailed = subscribeToEnhanceFailed((data: EnhanceFailedEvent) => {
-      setIsProcessing(false);
-      setCurrentJobId(null); // Clear job ID on failure
-      setError(data.error || "Image generation failed");
+    const unsubscribeFailed = subscribeToEnhanceFailed(
+      (data: EnhanceFailedEvent) => {
+        setIsProcessing(false);
+        setCurrentJobId(null); // Clear job ID on failure
+        setError(data.error || "Image generation failed");
 
-      // Show error toast
-      toast.error(data.error || "Image generation failed", {
-        position: "bottom-left",
-        autoClose: 5000,
-      });
-    });
+        // Show error toast
+        toast.error(data.error || "Image generation failed", {
+          position: "bottom-left",
+          autoClose: 5000,
+        });
+      }
+    );
 
     // Clean up subscriptions
     return () => {
@@ -276,7 +306,6 @@ const RightPanel: React.FC = () => {
 
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("text/html")) {
-
           // Don't immediately fail, maybe it's temporary
           // setError("Connection issue with backend - ngrok limitation?");
           // if (pollInterval) clearInterval(pollInterval);
@@ -285,7 +314,6 @@ const RightPanel: React.FC = () => {
         }
 
         if (!response.ok) {
-
           // Keep polling unless it's a 404 (job not found)
           if (response.status === 404) {
             setError("Job not found. Please try again.");
@@ -304,9 +332,7 @@ const RightPanel: React.FC = () => {
 
         const data = await response.json();
 
-
         if (data.status === "completed") {
-
           if (pollInterval) clearInterval(pollInterval); // Stop polling
           setIsProcessing(false);
           setCurrentJobId(null); // Clear job ID
@@ -314,21 +340,26 @@ const RightPanel: React.FC = () => {
           let images: GeneratedImage[] = [];
           // *** USE BASE64 DATA IF AVAILABLE ***
           if (data.images_base64 && data.images_base64.length > 0) {
-
-            images = data.images_base64.map((base64String: string, index: number) => {
-              const filename = data.images[index]?.split("/").pop() || `generated_${index}.png`;
-              const originalUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
-              return {
-                id: index + 1,
-                title: `Generated Image ${index + 1}`,
-                src: `data:image/png;base64,${base64String}`,
-                url: originalUrl
-              };
-            });
+            images = data.images_base64.map(
+              (base64String: string, index: number) => {
+                const filename =
+                  data.images[index]?.split("/").pop() ||
+                  `generated_${index}.png`;
+                const originalUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
+                return {
+                  id: index + 1,
+                  title: `Generated Image ${index + 1}`,
+                  src: `data:image/png;base64,${base64String}`,
+                  url: originalUrl,
+                };
+              }
+            );
           }
           // *** FALLBACK TO FETCHING FROM URL (OLD METHOD) ***
           else if (data.images && data.images.length > 0) {
-            console.warn("[Polling] Base64 data not found in status, falling back to fetching URLs.");
+            console.warn(
+              "[Polling] Base64 data not found in status, falling back to fetching URLs."
+            );
             images = await Promise.all(
               data.images.map(async (imagePath: string, index: number) => {
                 const pathParts = imagePath.split("/");
@@ -337,36 +368,47 @@ const RightPanel: React.FC = () => {
 
                 try {
                   const response = await fetch(fullUrl);
-                  if (!response.ok) throw new Error(`Failed to fetch image: ${response.status}`);
+                  if (!response.ok)
+                    throw new Error(
+                      `Failed to fetch image: ${response.status}`
+                    );
                   const blob = await response.blob();
                   return {
                     id: index + 1,
                     title: `Generated Image ${index + 1}`,
                     src: URL.createObjectURL(blob),
-                    url: fullUrl
+                    url: fullUrl,
                   };
                 } catch {
-
                   return null;
                 }
               })
-            ).then(results => results.filter(img => img !== null) as GeneratedImage[]); // Filter out nulls
+            ).then(
+              (results) =>
+                results.filter((img) => img !== null) as GeneratedImage[]
+            ); // Filter out nulls
           } else {
-            console.warn("[Polling] No image data found in completed status response.");
+            console.warn(
+              "[Polling] No image data found in completed status response."
+            );
           }
 
           if (images.length > 0) {
-
             setGeneratedImages(images);
             setShowGallery(true);
             setError(null); // Clear any previous error
 
             // Show success toast
-            toast.success(`${images.length} image${images.length > 1 ? 's' : ''} generated successfully!`, {
-              position: "bottom-left",
-              autoClose: 4000,
-              icon: () => <span>✨</span>
-            });
+            toast.success(
+              `${images.length} image${
+                images.length > 1 ? "s" : ""
+              } generated successfully!`,
+              {
+                position: "bottom-left",
+                autoClose: 4000,
+                icon: () => <span>✨</span>,
+              }
+            );
           } else {
             setError("Failed to load generated images from status poll.");
 
@@ -376,9 +418,7 @@ const RightPanel: React.FC = () => {
               autoClose: 4000,
             });
           }
-
         } else if (data.status === "failed") {
-
           if (pollInterval) clearInterval(pollInterval);
           setIsProcessing(false);
           setCurrentJobId(null);
@@ -396,7 +436,6 @@ const RightPanel: React.FC = () => {
           // Continue polling for a while
         }
       } catch {
-
         // Don't stop polling immediately on generic error, could be temporary network issue
       }
     };
@@ -407,19 +446,16 @@ const RightPanel: React.FC = () => {
 
     // Cleanup function
     return () => {
-
       if (pollInterval) clearInterval(pollInterval);
     };
   }, [currentJobId, isProcessing]); // Only restart polling if jobId changes or processing state changes
 
   // Clean up object URLs on unmount or when images change
   useEffect(() => {
-    const currentImageSrcs = generatedImages.map(img => img.src);
+    const currentImageSrcs = generatedImages.map((img) => img.src);
     return () => {
-
-      currentImageSrcs.forEach(src => {
+      currentImageSrcs.forEach((src) => {
         if (src.startsWith("blob:")) {
-
           URL.revokeObjectURL(src);
         }
       });
@@ -439,15 +475,16 @@ const RightPanel: React.FC = () => {
       });
       return;
     }
-    const selectedImage = generatedImages.find(img => img.id === selectedImageId);
+    const selectedImage = generatedImages.find(
+      (img) => img.id === selectedImageId
+    );
     if (!selectedImage) return;
-
 
     // Show a toast notification that download is starting
     toast.info("Starting download...", {
       position: "bottom-left",
       autoClose: 2000,
-      icon: () => <span>📥</span>
+      icon: () => <span>📥</span>,
     });
 
     const link = document.createElement("a");
@@ -463,7 +500,7 @@ const RightPanel: React.FC = () => {
       toast.success("Image downloaded successfully!", {
         position: "bottom-left",
         autoClose: 3000,
-        icon: () => <span>✅</span>
+        icon: () => <span>✅</span>,
       });
     }, 1000); // Slight delay to avoid toast overlap
   };
@@ -485,7 +522,9 @@ const RightPanel: React.FC = () => {
       return;
     }
 
-    const selectedImage = generatedImages.find(img => img.id === selectedImageId);
+    const selectedImage = generatedImages.find(
+      (img) => img.id === selectedImageId
+    );
     if (!selectedImage) {
       toast.error("Selected image not found.", {
         position: "bottom-left",
@@ -500,19 +539,24 @@ const RightPanel: React.FC = () => {
         ? DEFAULT_POOLS.kids
         : { ...DEFAULT_POOLS.pro, name: "Pro Collection" };
 
-      const poolInfo = selectedPool ?
-        { address: selectedPool.address, name: selectedPool.name } :
-        defaultPool;
+      const poolInfo = selectedPool
+        ? { address: selectedPool.address, name: selectedPool.name }
+        : defaultPool;
 
       // Show a loading toast that includes pool information
-      const mintingToastId = toast.loading(`Starting NFT minting process on ${poolInfo.name}...`, {
-        position: "bottom-right",
-      });
+      const mintingToastId = toast.loading(
+        `Starting NFT minting process on ${poolInfo.name}...`,
+        {
+          position: "bottom-right",
+        }
+      );
 
       // Fetch the image blob from the original URL
       const response = await fetch(selectedImage.url);
       if (!response.ok) {
-        throw new Error(`Failed to fetch image for minting: ${response.status}`);
+        throw new Error(
+          `Failed to fetch image for minting: ${response.status}`
+        );
       }
       const blob = await response.blob();
 
@@ -520,7 +564,7 @@ const RightPanel: React.FC = () => {
       toast.update(mintingToastId, {
         render: "Uploading image to IPFS...",
         type: "info",
-        isLoading: true
+        isLoading: true,
       });
       const imageIpfsUrl = await uploadToIPFSUsingPinata(blob);
 
@@ -528,10 +572,10 @@ const RightPanel: React.FC = () => {
       toast.update(mintingToastId, {
         render: "Uploading metadata to IPFS...",
         type: "info",
-        isLoading: true
+        isLoading: true,
       });
       const metadataIpfsUrl = await uploadMetadataToIPFS(
-        poolInfo.name + " Artwork",  // Use pool name in metadata
+        poolInfo.name + " Artwork", // Use pool name in metadata
         "AI-enhanced artwork created with SketchXpress.",
         imageIpfsUrl
       );
@@ -540,7 +584,7 @@ const RightPanel: React.FC = () => {
       toast.update(mintingToastId, {
         render: `Creating your NFT on the ${poolInfo.name}...`,
         type: "info",
-        isLoading: true
+        isLoading: true,
       });
 
       const result = await mintNft(
@@ -557,24 +601,29 @@ const RightPanel: React.FC = () => {
       // Success toast with pool information
       toast.update(mintingToastId, {
         render: `🎉 NFT minted successfully on ${poolInfo.name}!\nAddress: ${nftAddress}`,
-        type: 'success',
+        type: "success",
         isLoading: false,
         autoClose: 5000,
         closeButton: true,
         draggable: true,
-        icon: () => <span>🖼️</span>
+        icon: () => <span>🖼️</span>,
       });
     } catch (error) {
-      toast.error(`Minting failed: ${error instanceof Error ? error.message : String(error)}`, {
-        position: "bottom-left",
-        autoClose: 5000,
-      });
+      toast.error(
+        `Minting failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+        {
+          position: "bottom-left",
+          autoClose: 5000,
+        }
+      );
     }
   };
 
   // Handle Kids Mode mint button click with parental control
   const handleKidsMintClick = (imageId: number) => {
-    const selectedImage = generatedImages.find(img => img.id === imageId);
+    const selectedImage = generatedImages.find((img) => img.id === imageId);
     if (!selectedImage) return;
 
     setSelectedImageId(imageId);
@@ -605,7 +654,7 @@ const RightPanel: React.FC = () => {
       toast.info(`Image ${id} selected`, {
         position: "bottom-left",
         autoClose: 1500,
-        hideProgressBar: true
+        hideProgressBar: true,
       });
     }
   };
@@ -614,12 +663,11 @@ const RightPanel: React.FC = () => {
   const handleDownloadImage = (e: React.MouseEvent, image: GeneratedImage) => {
     e.stopPropagation();
 
-
     // Show downloading toast
     toast.info("Starting download...", {
       position: "bottom-left",
       autoClose: 2000,
-      icon: () => <span>📥</span>
+      icon: () => <span>📥</span>,
     });
 
     const link = document.createElement("a");
@@ -635,7 +683,7 @@ const RightPanel: React.FC = () => {
       toast.success("Image downloaded successfully!", {
         position: "bottom-left",
         autoClose: 3000,
-        icon: () => <span>✅</span>
+        icon: () => <span>✅</span>,
       });
     }, 1000); // Slight delay to avoid toast overlap
   };
@@ -650,7 +698,7 @@ const RightPanel: React.FC = () => {
       toast.info("Preparing to mint image...", {
         position: "bottom-left",
         autoClose: 2000,
-        icon: () => <RefreshCw size={16} />
+        icon: () => <RefreshCw size={16} />,
       });
 
       // Use setTimeout to allow state update before calling mint
@@ -677,18 +725,26 @@ const RightPanel: React.FC = () => {
       {/* Desktop collapse toggle */}
       {!isMobile && !isTablet && (
         <button
-          className={`${styles.collapseToggle} ${!sidebarOpen ? styles.collapsed : ""}`}
+          className={`${styles.collapseToggle} ${
+            !sidebarOpen ? styles.collapsed : ""
+          }`}
           onClick={toggleSidebar}
           aria-label={sidebarOpen ? "Collapse panel" : "Expand panel"}
         >
-          {sidebarOpen ? <ChevronsRight size={18} /> : <ChevronsLeft size={18} />}
+          {sidebarOpen ? (
+            <ChevronsRight size={18} />
+          ) : (
+            <ChevronsLeft size={18} />
+          )}
         </button>
       )}
 
       {/* Panel content */}
       <aside
         ref={sidebarRef}
-        className={`${styles.panel} ${!sidebarOpen ? styles.collapsed : ""} ${isMobile ? styles.mobile : ""} ${isTablet ? styles.tablet : ""}`}
+        className={`${styles.panel} ${!sidebarOpen ? styles.collapsed : ""} ${
+          isMobile ? styles.mobile : ""
+        } ${isTablet ? styles.tablet : ""}`}
       >
         <div className={styles.panelContent}>
           {/* Collapsed view buttons */}
@@ -721,7 +777,9 @@ const RightPanel: React.FC = () => {
                 <div className={styles.section}>
                   {/* Text Prompt Input */}
                   <div className={styles.promptInputGroup}>
-                    <label htmlFor="prompt-input" className={styles.inputLabel}>Describe Your Art 🎨</label>
+                    <label htmlFor="prompt-input" className={styles.inputLabel}>
+                      Describe Your Art 🎨
+                    </label>
                     <textarea
                       id="prompt-input"
                       className={styles.promptInput}
@@ -734,7 +792,10 @@ const RightPanel: React.FC = () => {
 
                   {/* Negative Prompt Input */}
                   <div className={styles.promptInputGroup}>
-                    <label htmlFor="negative-prompt-input" className={styles.inputLabel}>
+                    <label
+                      htmlFor="negative-prompt-input"
+                      className={styles.inputLabel}
+                    >
                       Negative Prompt (Optional)
                     </label>
                     <textarea
@@ -756,7 +817,11 @@ const RightPanel: React.FC = () => {
                     >
                       <Settings size={14} className={styles.settingsIcon} />
                       <span>Advanced Parameters</span>
-                      {showAdvanced ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+                      {showAdvanced ? (
+                        <ChevronUp size={14} />
+                      ) : (
+                        <ChevronDown size={14} />
+                      )}
                     </button>
                   </div>
 
@@ -766,7 +831,9 @@ const RightPanel: React.FC = () => {
                       {/* Temperature Slider */}
                       <div className={styles.paramSlider}>
                         <div className={styles.paramHeader}>
-                          <label htmlFor="temperature-slider">Temperature: {temperature.toFixed(2)}</label>
+                          <label htmlFor="temperature-slider">
+                            Temperature: {temperature.toFixed(2)}
+                          </label>
                           <div className={styles.paramLabels}>
                             <span>Precise</span>
                             <span>Creative</span>
@@ -779,14 +846,18 @@ const RightPanel: React.FC = () => {
                           max="1"
                           step="0.01"
                           value={temperature}
-                          onChange={(e) => setTemperature(parseFloat(e.target.value))}
+                          onChange={(e) =>
+                            setTemperature(parseFloat(e.target.value))
+                          }
                           className={styles.slider}
                         />
                       </div>
                       {/* Guidance Scale Slider */}
                       <div className={styles.paramSlider}>
                         <div className={styles.paramHeader}>
-                          <label htmlFor="guidance-slider">Guidance Scale: {guidanceScale.toFixed(2)}</label>
+                          <label htmlFor="guidance-slider">
+                            Guidance Scale: {guidanceScale.toFixed(2)}
+                          </label>
                           <div className={styles.paramLabels}>
                             <span>Creative</span>
                             <span>Precise</span>
@@ -799,14 +870,18 @@ const RightPanel: React.FC = () => {
                           max="15"
                           step="0.5"
                           value={guidanceScale}
-                          onChange={(e) => setGuidanceScale(parseFloat(e.target.value))}
+                          onChange={(e) =>
+                            setGuidanceScale(parseFloat(e.target.value))
+                          }
                           className={styles.slider}
                         />
                       </div>
                       {/* Number of Images Slider */}
                       <div className={styles.paramSlider}>
                         <div className={styles.paramHeader}>
-                          <label htmlFor="num-images-slider">Number of Images: {numImages}</label>
+                          <label htmlFor="num-images-slider">
+                            Number of Images: {numImages}
+                          </label>
                         </div>
                         <input
                           id="num-images-slider"
@@ -815,14 +890,18 @@ const RightPanel: React.FC = () => {
                           max="4"
                           step="1"
                           value={numImages}
-                          onChange={(e) => setNumImages(parseInt(e.target.value, 10))}
+                          onChange={(e) =>
+                            setNumImages(parseInt(e.target.value, 10))
+                          }
                           className={styles.slider}
                         />
                         <div className={styles.numImagesIndicator}>
                           {Array.from({ length: 4 }).map((_, idx) => (
                             <div
                               key={idx}
-                              className={`${styles.numBox} ${idx < numImages ? styles.active : ""}`}
+                              className={`${styles.numBox} ${
+                                idx < numImages ? styles.active : ""
+                              }`}
                             />
                           ))}
                         </div>
@@ -835,7 +914,7 @@ const RightPanel: React.FC = () => {
                           toast.info("Parameters reset to defaults", {
                             position: "bottom-left",
                             autoClose: 2000,
-                            icon: () => <RefreshCw size={16} />
+                            icon: () => <RefreshCw size={16} />,
                           });
                         }}
                         type="button"
@@ -851,19 +930,27 @@ const RightPanel: React.FC = () => {
                     <div className={styles.poolIndicator}>
                       <div className={styles.poolBadge}>
                         <div className={styles.poolIcon}>
-                          {selectedPool ? <Coins size={16} /> : (
-                            isKidsMode() ? <Star size={16} /> : <Coins size={16} />
+                          {selectedPool ? (
+                            <Coins size={16} />
+                          ) : isKidsMode() ? (
+                            <Star size={16} />
+                          ) : (
+                            <Coins size={16} />
                           )}
                         </div>
                         <span className={styles.poolName}>
                           {selectedPool
                             ? `Minting to: ${selectedPool.name}`
-                            : `Minting to: ${isKidsMode() ? 'Kids' : 'Pro'} Collection`}
+                            : `Minting to: ${
+                                isKidsMode() ? "Kids" : "Pro"
+                              } Collection`}
                         </span>
                         {selectedPool && (
                           <button
                             className={styles.clearPoolButton}
-                            onClick={() => usePoolStore.getState().clearSelectedPool()}
+                            onClick={() =>
+                              usePoolStore.getState().clearSelectedPool()
+                            }
                             title="Clear pool selection"
                           >
                             <X size={14} />
@@ -885,7 +972,9 @@ const RightPanel: React.FC = () => {
                     </div>
                     <div>
                       <h3 className={styles.processingTitle}>
-                        {useModeStore.getState().mode === "kids" ? "Magic Happening!" : "AI Enhancement"}
+                        {useModeStore.getState().mode === "kids"
+                          ? "Magic Happening!"
+                          : "AI Enhancement"}
                       </h3>
                       <p className={styles.processingText}>
                         {useModeStore.getState().mode === "kids"
@@ -922,7 +1011,11 @@ const RightPanel: React.FC = () => {
                       type="button"
                       aria-label={showGallery ? "Hide gallery" : "Show gallery"}
                     >
-                      {showGallery ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                      {showGallery ? (
+                        <ChevronUp size={16} />
+                      ) : (
+                        <ChevronDown size={16} />
+                      )}
                     </button>
                   </div>
 
@@ -931,7 +1024,9 @@ const RightPanel: React.FC = () => {
                       {generatedImages.map((image) => (
                         <div
                           key={image.id}
-                          className={`${styles.generatedImageCard} ${selectedImageId === image.id ? styles.selected : ""}`}
+                          className={`${styles.generatedImageCard} ${
+                            selectedImageId === image.id ? styles.selected : ""
+                          }`}
                           onClick={() => handleImageSelect(image.id)}
                         >
                           <div className={styles.imageContainer}>
@@ -955,12 +1050,20 @@ const RightPanel: React.FC = () => {
                               {/* Display mint button for both modes, but with different behaviors */}
                               <button
                                 className={styles.imageActionButton}
-                                title={mode === "pro" ? "Mint as NFT" : "Mint as NFT (Parent Approval Required)"}
+                                title={
+                                  mode === "pro"
+                                    ? "Mint as NFT"
+                                    : "Mint as NFT (Parent Approval Required)"
+                                }
                                 onClick={(e) => handleMintClick(e, image.id)}
                                 type="button"
                               >
                                 <Coins size={14} />
-                                {mode === "kids" && <span className={styles.parentalStar}><Star size={8} /></span>}
+                                {mode === "kids" && (
+                                  <span className={styles.parentalStar}>
+                                    <Star size={8} />
+                                  </span>
+                                )}
                               </button>
                             </div>
                           </div>
@@ -977,7 +1080,9 @@ const RightPanel: React.FC = () => {
                 <div className={styles.section}>
                   <div className={styles.actionButtons}>
                     <button
-                      className={`${styles.actionButton} ${!selectedImageId ? styles.disabled : ""}`}
+                      className={`${styles.actionButton} ${
+                        !selectedImageId ? styles.disabled : ""
+                      }`}
                       onClick={handleExport}
                       disabled={!selectedImageId}
                       type="button"
@@ -989,7 +1094,9 @@ const RightPanel: React.FC = () => {
                     {/* Modify the mint button to work with both modes */}
                     {mode === "pro" ? (
                       <button
-                        className={`${styles.actionButton} ${styles.mintButton} ${!selectedImageId ? styles.disabled : ""}`}
+                        className={`${styles.actionButton} ${
+                          styles.mintButton
+                        } ${!selectedImageId ? styles.disabled : ""}`}
                         onClick={handleMintNFT}
                         disabled={!selectedImageId}
                         type="button"
@@ -999,14 +1106,21 @@ const RightPanel: React.FC = () => {
                       </button>
                     ) : (
                       <button
-                        className={`${styles.actionButton} ${styles.kidsMintButton} ${!selectedImageId ? styles.disabled : ""}`}
-                        onClick={() => selectedImageId && handleKidsMintClick(selectedImageId)}
+                        className={`${styles.actionButton} ${
+                          styles.kidsMintButton
+                        } ${!selectedImageId ? styles.disabled : ""}`}
+                        onClick={() =>
+                          selectedImageId &&
+                          handleKidsMintClick(selectedImageId)
+                        }
                         disabled={!selectedImageId}
                         type="button"
                       >
                         <Coins size={18} />
                         <span>Mint NFT</span>
-                        <span className={styles.parentalStar}><Star size={10} /></span>
+                        <span className={styles.parentalStar}>
+                          <Star size={10} />
+                        </span>
                       </button>
                     )}
                   </div>
@@ -1037,7 +1151,10 @@ const RightPanel: React.FC = () => {
 
       {/* Mobile overlay */}
       {isMobile && sidebarOpen && (
-        <div className={styles.sidebarOverlay} onClick={() => setSidebarOpen(false)} />
+        <div
+          className={styles.sidebarOverlay}
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
     </>
   );

@@ -18,12 +18,10 @@ import {
   Trash2,
   X,
   ChevronsLeft,
-  ChevronsRight
+  ChevronsRight,
 } from "lucide-react";
 import { useCanvasStore } from "@/stores/canvasStore";
 import { examples, drawingTips } from "./data";
-
-
 
 const LeftSidebar = () => {
   const mode = useModeStore((s) => s.mode);
@@ -50,17 +48,14 @@ const LeftSidebar = () => {
   }, [activeTool]);
 
   useEffect(() => {
-    if (lastAction === 'undo' || lastAction === 'redo') {
+    if (lastAction === "undo" || lastAction === "redo") {
       const timeout = setTimeout(() => {
-        useCanvasStore.getState().setLastAction('none');
+        useCanvasStore.getState().setLastAction("none");
       }, 500);
 
       return () => clearTimeout(timeout);
     }
   }, [lastAction]);
-
-
-
 
   // Handle responsive behavior
   useEffect(() => {
@@ -72,15 +67,15 @@ const LeftSidebar = () => {
       setIsMobile(isMobileView);
       setIsTablet(isTabletView);
 
-      // Auto-close sidebar on mobile initial load
-      if (isMobileView) {
+      // Auto-close sidebar on mobile and tablet initial load
+      if (isMobileView || isTabletView) {
         setSidebarOpen(false);
       }
     };
 
     checkWidth();
-    window.addEventListener('resize', checkWidth);
-    return () => window.removeEventListener('resize', checkWidth);
+    window.addEventListener("resize", checkWidth);
+    return () => window.removeEventListener("resize", checkWidth);
   }, []); // Empty dependency array so it only runs on mount
 
   // Handle click outside to close sidebar on mobile
@@ -88,27 +83,30 @@ const LeftSidebar = () => {
     if (!isMobile && !isTablet) return;
 
     const handleClickOutside = (event: MouseEvent) => {
-      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+      if (
+        sidebarRef.current &&
+        !sidebarRef.current.contains(event.target as Node)
+      ) {
         setSidebarOpen(false);
       }
     };
 
     if (sidebarOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isMobile, isTablet, sidebarOpen]);
 
   // Detect when sidebar should be automatically expanded
   useEffect(() => {
     // Auto expand tips on first visit (could be stored in localStorage)
-    const hasSeenTips = sessionStorage.getItem('hasSeenTips');
+    const hasSeenTips = sessionStorage.getItem("hasSeenTips");
     if (!hasSeenTips) {
       setShowTips(true);
-      sessionStorage.setItem('hasSeenTips', 'true');
+      sessionStorage.setItem("hasSeenTips", "true");
     }
   }, []);
 
@@ -176,7 +174,11 @@ const LeftSidebar = () => {
     };
   };
 
-  const handleUseExample = (example: { id: number; title: string; thumbnail: string }) => {
+  const handleUseExample = (example: {
+    id: number;
+    title: string;
+    thumbnail: string;
+  }) => {
     const editor = useCanvasStore.getState().editor;
     if (!editor) return;
 
@@ -235,17 +237,15 @@ const LeftSidebar = () => {
     });
   };
 
-
-
   // Determine which tips to show based on mode
-  const tipsToShow = mode === 'kids' ? drawingTips.kids : drawingTips.pro;
+  const tipsToShow = mode === "kids" ? drawingTips.kids : drawingTips.pro;
 
   return (
     <>
       {/* Mobile toggle button - only visible on mobile */}
       {isMobile && (
         <button
-          className={styles.mobileToggle}
+          className={`${styles.mobileToggle} ${sidebarOpen ? styles.open : ""}`}
           onClick={toggleSidebar}
           aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
         >
@@ -256,18 +256,26 @@ const LeftSidebar = () => {
       {/* Desktop collapse toggle - only visible on desktop/tablet */}
       {!isMobile && (
         <button
-          className={`${styles.collapseToggle} ${!sidebarOpen ? styles.collapsed : ''}`}
+          className={`${styles.collapseToggle} ${
+            !sidebarOpen ? styles.collapsed : ""
+          }`}
           onClick={toggleSidebar}
           aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
-          {sidebarOpen ? <ChevronsLeft size={18} /> : <ChevronsRight size={18} />}
+          {sidebarOpen ? (
+            <ChevronsLeft size={18} />
+          ) : (
+            <ChevronsRight size={18} />
+          )}
         </button>
       )}
 
       {/* Sidebar content */}
       <aside
         ref={sidebarRef}
-        className={`${styles.sidebar} ${!sidebarOpen ? styles.collapsed : ''} ${isMobile ? styles.mobile : ''} ${isTablet ? styles.tablet : ''}`}
+        className={`${styles.sidebar} ${!sidebarOpen ? styles.collapsed : ""} ${
+          isMobile ? styles.mobile : ""
+        }`}
       >
         <div className={styles.sidebarContent}>
           {/* Main drawing tools */}
@@ -276,16 +284,20 @@ const LeftSidebar = () => {
 
             <div className={styles.toolsGrid}>
               <button
-                className={`${styles.toolButton} ${activeTool === 'draw' ? styles.active : ''}`}
-                onClick={() => setActiveTool('draw')}
+                className={`${styles.toolButton} ${
+                  activeTool === "draw" ? styles.active : ""
+                }`}
+                onClick={() => setActiveTool("draw")}
               >
                 <PenTool size={20} />
                 <span className={styles.toolLabel}>Draw</span>
               </button>
 
               <button
-                className={`${styles.toolButton} ${activeTool === 'eraser' ? styles.active : ''}`}
-                onClick={() => setActiveTool('eraser')}
+                className={`${styles.toolButton} ${
+                  activeTool === "eraser" ? styles.active : ""
+                }`}
+                onClick={() => setActiveTool("eraser")}
               >
                 <Eraser size={20} />
                 <span className={styles.toolLabel}>Erase</span>
@@ -295,7 +307,7 @@ const LeftSidebar = () => {
                 className={`
     ${styles.toolButton} 
     ${styles.toolButtonHistory} 
-    ${lastAction === 'undo' ? styles.toolButtonUndoActive : ''}`}
+    ${lastAction === "undo" ? styles.toolButtonUndoActive : ""}`}
                 onClick={undoAction}
               >
                 <Undo2 size={20} />
@@ -306,13 +318,12 @@ const LeftSidebar = () => {
                 className={`
     ${styles.toolButton} 
     ${styles.toolButtonHistory} 
-    ${lastAction === 'redo' ? styles.toolButtonRedoActive : ''}`}
+    ${lastAction === "redo" ? styles.toolButtonRedoActive : ""}`}
                 onClick={redoAction}
               >
                 <Redo2 size={20} />
                 <span className={styles.toolLabel}>Redo</span>
               </button>
-
             </div>
 
             <button
@@ -335,10 +346,12 @@ const LeftSidebar = () => {
           {/* Drawing Tips Section */}
           <div className={styles.section}>
             <button
-              className={`${styles.sectionHeader} ${showTips ? styles.active : ''}`}
+              className={`${styles.sectionHeader} ${
+                showTips ? styles.active : ""
+              }`}
               onClick={() => {
                 if (!sidebarOpen) setSidebarOpen(true);
-                setShowTips(!showTips)
+                setShowTips(!showTips);
               }}
             >
               <div className={styles.sectionHeaderLeft}>
@@ -362,9 +375,10 @@ const LeftSidebar = () => {
                 </ul>
 
                 {/* Kids mode gets an encouraging message */}
-                {mode === 'kids' && (
+                {mode === "kids" && (
                   <div className={styles.encouragement}>
-                    <span className={styles.sparkle}>✨</span> Remember, there&apos;s no wrong way to draw! Have fun!
+                    <span className={styles.sparkle}>✨</span> Remember,
+                    there&apos;s no wrong way to draw! Have fun!
                   </div>
                 )}
               </div>
@@ -374,10 +388,12 @@ const LeftSidebar = () => {
           {/* Example Gallery Section */}
           <div className={styles.section}>
             <button
-              className={`${styles.sectionHeader} ${showGallery ? styles.active : ''}`}
+              className={`${styles.sectionHeader} ${
+                showGallery ? styles.active : ""
+              }`}
               onClick={() => {
                 if (!sidebarOpen) setSidebarOpen(true);
-                setShowGallery(!showGallery)
+                setShowGallery(!showGallery);
               }}
             >
               <div className={styles.sectionHeaderLeft}>
@@ -385,13 +401,17 @@ const LeftSidebar = () => {
                 <span>Example Gallery</span>
               </div>
               <div className={styles.chevron}>
-                {showGallery ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                {showGallery ? (
+                  <ChevronUp size={16} />
+                ) : (
+                  <ChevronDown size={16} />
+                )}
               </div>
             </button>
 
             {showGallery && (
               <div className={styles.galleryGrid}>
-                {examples.map(example => (
+                {examples.map((example) => (
                   <div key={example.id} className={styles.galleryItem}>
                     <div className={styles.imageContainer}>
                       <Image
@@ -401,7 +421,10 @@ const LeftSidebar = () => {
                         height={100}
                         className={styles.exampleImage}
                       />
-                      <button className={styles.useThisButton} onClick={() => handleUseExample(example)}>
+                      <button
+                        className={styles.useThisButton}
+                        onClick={() => handleUseExample(example)}
+                      >
                         <span>Use this</span>
                       </button>
                     </div>
@@ -416,7 +439,10 @@ const LeftSidebar = () => {
 
       {/* Sidebar overlay for mobile */}
       {isMobile && sidebarOpen && (
-        <div className={styles.sidebarOverlay} onClick={() => setSidebarOpen(false)} />
+        <div
+          className={styles.sidebarOverlay}
+          onClick={() => setSidebarOpen(false)}
+        />
       )}
     </>
   );

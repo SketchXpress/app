@@ -1,0 +1,36 @@
+.spinnerContainer {
+  margin-bottom: 24px;
+  position: relative;
+  width: 80px;
+  height: 80px;
+}
+
+.spinner {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--accent-cyan);
+  border-right-color: var(--accent-magenta);
+  animation: spin 1.5s linear infinite;
+}
+
+.spinnerInner {
+  position: absolute;
+  width: 70%;
+  height: 70%;
+  top: 15%;
+  left: 15%;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  border-top-color: var(--accent-magenta);
+  border-right-color: var(--accent-cyan);
+  animation: spin 1s linear infinite reverse;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
