@@ -37,7 +37,6 @@ const fetchWithRetry = async (
       
       // Force HTTP/1.1 connections
       headers.set("Alt-Used", "disable");
-      headers.set("Connection", "close");
       headers.set("Cache-Control", "no-cache, no-store, must-revalidate");
       headers.set("Pragma", "no-cache");
 
@@ -45,8 +44,7 @@ const fetchWithRetry = async (
         ...options,
         headers,
         cache: "no-store",
-        referrerPolicy: "no-referrer",
-        keepalive: false
+        referrerPolicy: "no-referrer"
       });
 
       if (!response.ok) {
@@ -257,3 +255,5 @@ async function waitForImageGeneration(jobId: string) {
   }
   throw new Error("Processing timeout");
 }
+
+
