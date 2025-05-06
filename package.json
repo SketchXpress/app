@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@bubblewrap/cli": "^1.22.5",
     "@coral-xyz/anchor": "^0.29.0",
     "@metaplex-foundation/js": "^0.20.1",
     "@solana/wallet-adapter-react": "^0.15.38",
