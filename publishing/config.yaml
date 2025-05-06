@@ -1,0 +1,54 @@
+publisher:
+  name: SketchXpress Team
+  address: C9e7njvYN1qiprrhVmA7DJoxp98hs9srMM2rBRwBMWUa
+  website: https://sketchxpress.tech/
+  email: fmt.codemonkey@gmail.com
+  media:
+    - purpose: icon
+      uri: icons/icon-512x512.png
+app:
+  name: SketchXpress
+  address: A1qDXR4MvtZf6SsifXokqzMRSBdLFNMSC6F3HfK9Pt6d
+  android_package: tech.sketchxpress.twa
+  urls:
+    license_url: https://sketchxpress.tech/LICENSE
+    privacy_policy_url: https://sketchxpress.tech/privacy
+    copyright_url: https://sketchxpress.tech/copyright
+    website: https://sketchxpress.tech/
+  media:
+    - purpose: icon
+      uri: icons/icon-512x512.png
+release:
+  address: 5hrhTfHVYLvavJmZhEPyrDD9Bm5uQQiUcxnzWaJMcDB3
+  urls:
+    copyright_url: https://sketchxpress.tech/copyright
+  files:
+    - purpose: install
+      uri: app-release-signed.apk
+  media:
+    - purpose: icon
+      uri: icons/icon-512x512.png
+    - purpose: screenshot
+      uri: screenshots/ss1.png
+    - purpose: screenshot
+      uri: screenshots/ss2.png
+    - purpose: screenshot
+      uri: screenshots/ss3.png
+    - purpose: screenshot
+      uri: screenshots/ss4.png
+  catalog:
+    en-US:
+      name: SketchXpress
+      short_description: AI‑powered digital drawing
+      long_description: |
+        Transform messy sketches into masterpieces and mint them as NFTs.
+      new_in_version: |
+        Packaged PWA as Android TWA APK for Solana dApp Store submission.
+solana_mobile_dapp_publisher_portal:
+  testing_instructions: |
+    1. Install the APK on a Saga device.
+    2. Verify wallet connection and mint flows.
+lastSubmittedVersionOnChain:
+  address: 5hrhTfHVYLvavJmZhEPyrDD9Bm5uQQiUcxnzWaJMcDB3
+  version_code: 1
+  apk_hash: wlIJg2lNlI+pwEM6TrlkQ5uXskbFhf74X1GjuKaV26s=
