@@ -77,6 +77,27 @@ const CanvasWrapper = () => {
     }
   }, [isProcessing]);
 
+  useEffect(() => {
+    // Simple function to fix iOS Safari viewport
+    function setViewportHeight() {
+      // Set a CSS variable with the actual viewport height
+      const vh = window.innerHeight * 0.01;
+      document.documentElement.style.setProperty('--vh', `${vh}px`);
+    }
+
+    // Set the height initially
+    setViewportHeight();
+
+    // Update on resize and orientation change
+    window.addEventListener('resize', setViewportHeight);
+    window.addEventListener('orientationchange', setViewportHeight);
+
+    return () => {
+      window.removeEventListener('resize', setViewportHeight);
+      window.removeEventListener('orientationchange', setViewportHeight);
+    };
+  }, []);
+
   // Create the tldraw store with persistence support
   const store = useMemo(() => {
     const newStore = createTLStore();

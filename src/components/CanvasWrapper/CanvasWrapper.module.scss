@@ -1,8 +1,8 @@
 .canvasContainer {
-  height: calc(100vh - 60px);
+  height: calc((var(--vh, 1vh) * 100) - 60px);
   width: 100%;
-  // overflow: hidden;
   position: relative;
+  overflow: hidden;
 }
 
 .processingOverlay {
@@ -264,19 +264,22 @@
 /* Add responsive adjustments for mobile */
 @media (max-width: 768px) {
   .canvasContainer {
-    /* Adjust height calculation for mobile */
-    height: calc(100vh - 60px);
-    /* Add this to handle iOS Safari's address bar */
+    /* Fixed position on mobile */
     position: fixed;
     top: 60px;
     left: 0;
     right: 0;
     bottom: 0;
+    /* Height calculation using the CSS variable */
+    height: calc((var(--vh, 1vh) * 100) - 60px);
   }
-  
-  /* Adjust the canvas area to fill the available space */
-  .canvasArea {
-    height: 100%;
+}
+
+/* Prevent body scrolling on mobile */
+@media (max-width: 768px) {
+  body {
+    overflow: hidden;
+    position: fixed;
     width: 100%;
   }
 }
