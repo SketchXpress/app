@@ -15,65 +15,41 @@ import {
 } from "@solana/spl-token";
 import { useState } from "react";
 import * as anchor from "@coral-xyz/anchor";
-import { WalletContextState } from "@solana/wallet-adapter-react";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { Program } from "@coral-xyz/anchor";
 import IDL from "@/utils/idl";
+// Import the types and helpers from your WalletContextProvider
+import { getPhantomProvider, PhantomSendOptions } from "@/contexts/WalletContextProvider";
 
 // Metaplex Token Metadata Program ID
 const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
   "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
 );
 
-// Your program ID
+// Program ID
 const PROGRAM_ID = new PublicKey(IDL.metadata.address);
 
-// Helper function to safely stringify any error object
+// Helper functions remain the same
 const safeStringifyError = (error: unknown): string => {
-  if (error instanceof Error) {
-    return error.message;
-  }
-
-  if (typeof error === "string") {
-    return error;
-  }
-
+  if (error instanceof Error) return error.message;
+  if (typeof error === "string") return error;
   if (error && typeof error === "object") {
     try {
       const errorObj = error as Record<string, unknown>;
-      if (errorObj.message) {
-        return String(errorObj.message);
-      }
-      if (
-        errorObj.error &&
-        typeof errorObj.error === "object" &&
-        "message" in errorObj.error
-      ) {
+      if (errorObj.message) return String(errorObj.message);
+      if (errorObj.error && typeof errorObj.error === "object" && "message" in errorObj.error) {
         return String(errorObj.error.message);
       }
-      if (errorObj.logs && Array.isArray(errorObj.logs)) {
-        return errorObj.logs.join("\n");
-      }
-
+      if (errorObj.logs && Array.isArray(errorObj.logs)) return errorObj.logs.join("\n");
       return JSON.stringify(error, null, 2);
     } catch {
       return `[Complex Error Object: ${typeof error}]`;
     }
   }
-
   return `[Unknown Error: ${typeof error}]`;
 };
 
-// Helper function to validate public key format
-const isValidPublicKeyFormat = (address: string): boolean => {
-  try {
-    new PublicKey(address);
-    return true;
-  } catch {
-    return false;
-  }
-};
 
-// Helper function to safely create a public key
 const safePublicKey = (address: string): PublicKey | null => {
   try {
     return new PublicKey(address);
@@ -83,6 +59,7 @@ const safePublicKey = (address: string): PublicKey | null => {
 };
 
 export const useMintNFT = () => {
+  const wallet = useWallet(); // Use wallet hook directly
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [txSignature, setTxSignature] = useState<string | null>(null);
@@ -94,10 +71,9 @@ export const useMintNFT = () => {
     name: string,
     symbol: string,
     uri: string,
-    sellerFeeBasisPoints: number,
-    walletContext: WalletContextState
+    sellerFeeBasisPoints: number
   ) => {
-    if (!walletContext.publicKey || !walletContext.signTransaction) {
+    if (!wallet.publicKey || !wallet.signTransaction) {
       setError("Wallet not connected or invalid.");
       return null;
     }
@@ -106,18 +82,13 @@ export const useMintNFT = () => {
     setError(null);
 
     try {
-      // Validate inputs
+      // Validation code remains the same
       if (!poolAddress || !name || !symbol || !uri) {
         throw new Error("Pool address, name, symbol, and URI are required");
       }
 
       if (sellerFeeBasisPoints < 0 || sellerFeeBasisPoints > 10000) {
         throw new Error("Seller fee basis points must be between 0 and 10000");
-      }
-
-      // Validate pool address
-      if (!isValidPublicKeyFormat(poolAddress)) {
-        throw new Error("Invalid pool address format");
       }
 
       const pool = safePublicKey(poolAddress);
@@ -128,123 +99,65 @@ export const useMintNFT = () => {
       // Create Solana Connection
       const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
 
-      // Handle signAllTransactions being undefined - fix TypeScript error
-      const signAllTransactions =
-        walletContext.signAllTransactions ||
-        (async <T extends Transaction | anchor.web3.VersionedTransaction>(
-          txs: T[]
-        ): Promise<T[]> => {
-          const signedTxs: T[] = [];
-          for (const tx of txs) {
-            if (walletContext.signTransaction) {
-              signedTxs.push((await walletContext.signTransaction(tx)) as T);
-            }
-          }
-          return signedTxs;
-        });
-
-      // Create provider for Anchor
+      // Create Anchor provider
       const provider = new anchor.AnchorProvider(
         connection,
         {
-          publicKey: walletContext.publicKey,
-          signTransaction: walletContext.signTransaction,
-          signAllTransactions: signAllTransactions,
+          publicKey: wallet.publicKey,
+          signTransaction: wallet.signTransaction,
+          signAllTransactions: wallet.signAllTransactions ?? (async (txs) => Promise.resolve(txs)),
         },
         { commitment: "confirmed" }
       );
 
       // Create program instance
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const program = new Program(IDL as any, PROGRAM_ID, provider);
+      const program = new Program(IDL as anchor.Idl, PROGRAM_ID, provider);
 
-      // Generate a new keypair for the NFT mint
+      // Generate NFT mint keypair
       const nftMintKeypair = Keypair.generate();
       const nftMint = nftMintKeypair.publicKey;
+      console.log("Generated NFT mint keypair:", nftMint.toString());
 
-      console.log(
-        "Generated NFT mint keypair:",
-        nftMintKeypair.publicKey.toString()
-      );
-
-      // Get pool data to retrieve collection mint
+      // Get pool data
       const poolData = await program.account.bondingCurvePool.fetch(pool);
-
-      // Type assertion for poolData
       type PoolData = { collection: PublicKey; creator: PublicKey };
       const { collection: collectionMint, creator } = poolData as PoolData;
 
-      console.log("Pool data retrieved:");
-      console.log("Collection Mint:", collectionMint.toString());
-      console.log("Creator:", creator.toString());
-
-      // Find collection metadata PDA
+      // Find PDAs
       const [collectionMetadata] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("metadata"),
-          TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-          collectionMint.toBuffer(),
-        ],
+        [Buffer.from("metadata"), TOKEN_METADATA_PROGRAM_ID.toBuffer(), collectionMint.toBuffer()],
         TOKEN_METADATA_PROGRAM_ID
       );
 
-      // Find NFT escrow PDA
       const [escrow] = PublicKey.findProgramAddressSync(
         [Buffer.from("nft-escrow"), nftMint.toBuffer()],
         PROGRAM_ID
       );
 
-      // Find Metaplex metadata account PDA
       const [metadataAccount] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("metadata"),
-          TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-          nftMint.toBuffer(),
-        ],
+        [Buffer.from("metadata"), TOKEN_METADATA_PROGRAM_ID.toBuffer(), nftMint.toBuffer()],
         TOKEN_METADATA_PROGRAM_ID
       );
 
-      // Find Metaplex master edition account PDA
       const [masterEdition] = PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("metadata"),
-          TOKEN_METADATA_PROGRAM_ID.toBuffer(),
-          nftMint.toBuffer(),
-          Buffer.from("edition"),
-        ],
+        [Buffer.from("metadata"), TOKEN_METADATA_PROGRAM_ID.toBuffer(), nftMint.toBuffer(), Buffer.from("edition")],
         TOKEN_METADATA_PROGRAM_ID
       );
 
-      // Get the associated token address for the NFT
-      const tokenAccount = await getAssociatedTokenAddress(
-        nftMint,
-        walletContext.publicKey
-      );
+      // Get token account
+      const tokenAccount = await getAssociatedTokenAddress(nftMint, wallet.publicKey);
 
+      // STEP 1: Create transaction manually instead of using RPC
+      const transaction = new Transaction();
+      
       // Add compute unit limit instruction
-      const computeUnitLimitInstruction =
-        ComputeBudgetProgram.setComputeUnitLimit({
-          units: 400000, // Request 400,000 CUs (adjust if needed)
-        });
-
-      // Log key information
-      console.log("Accounts to be used:");
-      console.log("Payer:", walletContext.publicKey.toString());
-      console.log("NFT Mint:", nftMint.toString());
-      console.log("Escrow:", escrow.toString());
-      console.log("Pool:", pool.toString());
-      console.log("Token Account:", tokenAccount.toString());
-      console.log("Metadata Account:", metadataAccount.toString());
-      console.log("Master Edition:", masterEdition.toString());
-      console.log("Collection Mint:", collectionMint.toString());
-      console.log("Collection Metadata:", collectionMetadata.toString());
-      console.log("Creator:", creator.toString());
-
-      // Execute the transaction to mint the NFT
-      const tx = await program.methods
+      transaction.add(ComputeBudgetProgram.setComputeUnitLimit({ units: 400000 }));
+      
+      // Build mint NFT instruction using Anchor's instruction() method
+      const mintNftInstruction = await program.methods
         .mintNft(name, symbol, uri, sellerFeeBasisPoints)
         .accounts({
-          payer: walletContext.publicKey,
+          payer: wallet.publicKey,
           nftMint: nftMint,
           escrow: escrow,
           pool: pool,
@@ -260,22 +173,68 @@ export const useMintNFT = () => {
           systemProgram: SystemProgram.programId,
           rent: SYSVAR_RENT_PUBKEY,
         })
-        .signers([nftMintKeypair])
-        .preInstructions([computeUnitLimitInstruction])
-        .rpc({
+        .instruction();
+      
+      // Add the mint NFT instruction to the transaction
+      transaction.add(mintNftInstruction);
+      
+      // Setup transaction parameters
+      transaction.feePayer = wallet.publicKey;
+      const { blockhash, lastValidBlockHeight } = await connection.getLatestBlockhash('confirmed');
+      transaction.recentBlockhash = blockhash;
+      
+      // Partially sign with mint keypair
+      transaction.partialSign(nftMintKeypair);
+
+      // STEP 2: Handle wallet-specific transaction signing and sending
+      let signature: string;
+      
+      // Use your existing getPhantomProvider helper function
+      const phantomProvider = getPhantomProvider();
+      if (phantomProvider && wallet.wallet?.adapter?.name === 'Phantom') {
+        console.log("Using Phantom's signAndSendTransaction method");
+        
+        // Define options using your PhantomSendOptions interface
+        const sendOptions: PhantomSendOptions = {
           skipPreflight: false,
-          commitment: "confirmed",
+          preflightCommitment: 'confirmed',
+        };
+        
+        // Use Phantom's native signAndSendTransaction with your type definitions
+        const { signature: phantomSig } = await phantomProvider.signAndSendTransaction(
+          transaction,
+          sendOptions
+        );
+        signature = phantomSig;
+      } else {
+        console.log("Using standard wallet adapter method");
+        // Standard flow for other wallets
+        const signedTransaction = await wallet.signTransaction(transaction);
+        signature = await connection.sendRawTransaction(signedTransaction.serialize(), {
+          skipPreflight: false,
+          preflightCommitment: 'confirmed',
         });
+      }
 
-      console.log("NFT minted successfully with signature:", tx);
+      // STEP 3: Add proper transaction confirmation
+      const confirmationResult = await connection.confirmTransaction({
+        blockhash,
+        lastValidBlockHeight,
+        signature
+      }, 'confirmed');
+      
+      if (confirmationResult.value.err) {
+        throw new Error(`Transaction confirmation failed: ${JSON.stringify(confirmationResult.value.err)}`);
+      }
+      
+      console.log("NFT minted successfully with signature:", signature);
 
-      // Set the transaction signature, NFT mint address, and escrow address
-      setTxSignature(tx);
+      setTxSignature(signature);
       setNftMintAddress(nftMint.toString());
       setEscrowAddress(escrow.toString());
 
       return {
-        tx,
+        signature,
         nftMint: nftMint.toString(),
         escrow: escrow.toString(),
       };

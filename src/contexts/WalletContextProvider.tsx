@@ -5,11 +5,51 @@ import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
 import { SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { clusterApiUrl } from '@solana/web3.js';
+import { clusterApiUrl, Transaction } from '@solana/web3.js';
 import dynamic from 'next/dynamic';
 
 // Import the wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
+
+// Add Phantom-specific type definitions
+export interface PhantomSendOptions {
+  skipPreflight?: boolean;
+  preflightCommitment?: 'processed' | 'confirmed' | 'finalized' | string;
+  maxRetries?: number;
+  minContextSlot?: number;
+}
+
+// Define the Phantom provider interface
+export interface PhantomProvider {
+  connect: () => Promise<{ publicKey: string }>;
+  disconnect: () => Promise<void>;
+  signAndSendTransaction: (
+    transaction: Transaction,
+    options?: PhantomSendOptions
+  ) => Promise<{ signature: string }>;
+  signTransaction: (transaction: Transaction) => Promise<Transaction>;
+  signAllTransactions: (transactions: Transaction[]) => Promise<Transaction[]>;
+  signMessage: (message: Uint8Array) => Promise<{ signature: string }>;
+  isConnected: boolean;
+  publicKey: { toString: () => string };
+}
+
+// Define the window.phantom interface
+declare global {
+  interface Window {
+    phantom?: {
+      solana?: PhantomProvider;
+    };
+  }
+}
+
+// Helper function to get Phantom provider
+export const getPhantomProvider = (): PhantomProvider | null => {
+  if (typeof window !== 'undefined' && window.phantom?.solana) {
+    return window.phantom.solana;
+  }
+  return null;
+};
 
 interface WalletContextProviderProps {
   children: ReactNode;
