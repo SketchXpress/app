@@ -235,8 +235,7 @@ const RightPanel: React.FC = () => {
 
             // Show success toast
             toast.success(
-              `${images.length} image${
-                images.length > 1 ? "s" : ""
+              `${images.length} image${images.length > 1 ? "s" : ""
               } generated successfully!`,
               {
                 position: "bottom-left",
@@ -400,8 +399,7 @@ const RightPanel: React.FC = () => {
 
             // Show success toast
             toast.success(
-              `${images.length} image${
-                images.length > 1 ? "s" : ""
+              `${images.length} image${images.length > 1 ? "s" : ""
               } generated successfully!`,
               {
                 position: "bottom-left",
@@ -593,7 +591,6 @@ const RightPanel: React.FC = () => {
         "SXP",
         metadataIpfsUrl,
         500, // sellerFeeBasisPoints (5%)
-        walletContext
       );
 
       const nftAddress = result?.nftMint;
@@ -610,8 +607,7 @@ const RightPanel: React.FC = () => {
       });
     } catch (error) {
       toast.error(
-        `Minting failed: ${
-          error instanceof Error ? error.message : String(error)
+        `Minting failed: ${error instanceof Error ? error.message : String(error)
         }`,
         {
           position: "bottom-left",
@@ -725,9 +721,8 @@ const RightPanel: React.FC = () => {
       {/* Desktop collapse toggle */}
       {!isMobile && !isTablet && (
         <button
-          className={`${styles.collapseToggle} ${
-            !sidebarOpen ? styles.collapsed : ""
-          }`}
+          className={`${styles.collapseToggle} ${!sidebarOpen ? styles.collapsed : ""
+            }`}
           onClick={toggleSidebar}
           aria-label={sidebarOpen ? "Collapse panel" : "Expand panel"}
         >
@@ -742,9 +737,8 @@ const RightPanel: React.FC = () => {
       {/* Panel content */}
       <aside
         ref={sidebarRef}
-        className={`${styles.panel} ${!sidebarOpen ? styles.collapsed : ""} ${
-          isMobile ? styles.mobile : ""
-        } ${isTablet ? styles.tablet : ""}`}
+        className={`${styles.panel} ${!sidebarOpen ? styles.collapsed : ""} ${isMobile ? styles.mobile : ""
+          } ${isTablet ? styles.tablet : ""}`}
       >
         <div className={styles.panelContent}>
           {/* Collapsed view buttons */}
@@ -899,9 +893,8 @@ const RightPanel: React.FC = () => {
                           {Array.from({ length: 4 }).map((_, idx) => (
                             <div
                               key={idx}
-                              className={`${styles.numBox} ${
-                                idx < numImages ? styles.active : ""
-                              }`}
+                              className={`${styles.numBox} ${idx < numImages ? styles.active : ""
+                                }`}
                             />
                           ))}
                         </div>
@@ -941,9 +934,8 @@ const RightPanel: React.FC = () => {
                         <span className={styles.poolName}>
                           {selectedPool
                             ? `Minting to: ${selectedPool.name}`
-                            : `Minting to: ${
-                                isKidsMode() ? "Kids" : "Pro"
-                              } Collection`}
+                            : `Minting to: ${isKidsMode() ? "Kids" : "Pro"
+                            } Collection`}
                         </span>
                         {selectedPool && (
                           <button
@@ -1024,9 +1016,8 @@ const RightPanel: React.FC = () => {
                       {generatedImages.map((image) => (
                         <div
                           key={image.id}
-                          className={`${styles.generatedImageCard} ${
-                            selectedImageId === image.id ? styles.selected : ""
-                          }`}
+                          className={`${styles.generatedImageCard} ${selectedImageId === image.id ? styles.selected : ""
+                            }`}
                           onClick={() => handleImageSelect(image.id)}
                         >
                           <div className={styles.imageContainer}>
@@ -1080,9 +1071,8 @@ const RightPanel: React.FC = () => {
                 <div className={styles.section}>
                   <div className={styles.actionButtons}>
                     <button
-                      className={`${styles.actionButton} ${
-                        !selectedImageId ? styles.disabled : ""
-                      }`}
+                      className={`${styles.actionButton} ${!selectedImageId ? styles.disabled : ""
+                        }`}
                       onClick={handleExport}
                       disabled={!selectedImageId}
                       type="button"
@@ -1094,9 +1084,8 @@ const RightPanel: React.FC = () => {
                     {/* Modify the mint button to work with both modes */}
                     {mode === "pro" ? (
                       <button
-                        className={`${styles.actionButton} ${
-                          styles.mintButton
-                        } ${!selectedImageId ? styles.disabled : ""}`}
+                        className={`${styles.actionButton} ${styles.mintButton
+                          } ${!selectedImageId ? styles.disabled : ""}`}
                         onClick={handleMintNFT}
                         disabled={!selectedImageId}
                         type="button"
@@ -1106,9 +1095,8 @@ const RightPanel: React.FC = () => {
                       </button>
                     ) : (
                       <button
-                        className={`${styles.actionButton} ${
-                          styles.kidsMintButton
-                        } ${!selectedImageId ? styles.disabled : ""}`}
+                        className={`${styles.actionButton} ${styles.kidsMintButton
+                          } ${!selectedImageId ? styles.disabled : ""}`}
                         onClick={() =>
                           selectedImageId &&
                           handleKidsMintClick(selectedImageId)
