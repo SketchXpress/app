@@ -3,13 +3,39 @@
 import { FC, ReactNode, useMemo, useState, useEffect } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletAdapterNetwork } from '@solana/wallet-adapter-base';
-import { SolflareWalletAdapter } from '@solana/wallet-adapter-wallets';
+import { 
+  PhantomWalletAdapter,
+  SolflareWalletAdapter 
+} from '@solana/wallet-adapter-wallets';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
-import { clusterApiUrl } from '@solana/web3.js';
+import { clusterApiUrl, Transaction } from '@solana/web3.js';
 import dynamic from 'next/dynamic';
 
 // Import the wallet adapter styles
 import '@solana/wallet-adapter-react-ui/styles.css';
+
+// Define SendOptions interface for proper typing with Phantom wallet
+export interface SendOptions {
+  skipPreflight?: boolean;
+  preflightCommitment?: 'processed' | 'confirmed' | 'finalized' | string;
+  maxRetries?: number;
+  minContextSlot?: number;
+}
+
+// Define extended wallet interface for Phantom's signAndSendTransaction
+export interface PhantomWalletInterface {
+  signAndSendTransaction(
+    transaction: Transaction, 
+    options?: SendOptions
+  ): Promise<{ signature: string }>;
+  
+  signAllTransactions?(transactions: Transaction[]): Promise<Transaction[]>;
+  signTransaction?(transaction: Transaction): Promise<Transaction>;
+  signAndSendAllTransactions?(
+    transactions: Transaction[], 
+    options?: SendOptions
+  ): Promise<{ signatures: string[], publicKey: string }>;
+}
 
 interface WalletContextProviderProps {
   children: ReactNode;
@@ -31,10 +57,11 @@ export const WalletContextProvider: FC<WalletContextProviderProps> = ({ children
   const endpoint = useMemo(() => clusterApiUrl(network), [network]);
 
   // @solana/wallet-adapter-wallets includes all the adapters but supports tree shaking and lazy loading
-  // Removed PhantomWalletAdapter as it's now registered as a standard wallet
+  // Note: Even though Phantom may be registered as a standard wallet, we include the adapter
+  // to ensure proper type support for our custom methods
   const wallets = useMemo(
     () => [
-      // PhantomWalletAdapter removed to avoid duplicate registration
+      new PhantomWalletAdapter(),
       new SolflareWalletAdapter(),
     ],
     []
