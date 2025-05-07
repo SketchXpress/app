@@ -50,7 +50,7 @@ const CanvasWrapper = () => {
   // Get Zustand actions
   const setEditor = useCanvasStore((s) => s.setEditor);
   const setSelectedShapeIds = useCanvasStore((s) => s.setSelectedShapeIds);
-
+  const mode = useModeStore((s) => s.mode);
 
   // Hide canvas tip after 5 seconds
   useEffect(() => {
@@ -202,6 +202,13 @@ const CanvasWrapper = () => {
       setIsProcessing(true);
       setProcessingProgress(0);
 
+      // Show a single toast notification here
+      toast.info(mode === "kids" ? "Adding some magic to your drawing..." : "Enhancing your artwork...", {
+        position: "bottom-right",
+        autoClose: 4000,
+        icon: <span>{mode === "kids" ? "✨" : "🎨"}</span>
+      });
+
       await enhanceSketch(editor);
 
       // Set progress to 100% when completed
@@ -224,7 +231,7 @@ const CanvasWrapper = () => {
       });
       setIsProcessing(false);
     }
-  }, []);
+  }, [mode]);
 
   return (
     <>

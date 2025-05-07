@@ -52,13 +52,6 @@ const EnhanceButton = ({ onClick }: EnhanceButtonProps) => {
     // Close the modal
     setIsModalOpen(false);
 
-    // Show a toast notification
-    toast.info(mode === "kids" ? "Adding some magic to your drawing..." : "Enhancing your artwork...", {
-      position: "bottom-right",
-      autoClose: 4000,
-      icon: <span>{mode === "kids" ? "✨" : "🎨"}</span>
-    });
-
     // Now call the original onClick handler (which will enhance the selection)
     onClick();
 

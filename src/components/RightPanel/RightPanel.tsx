@@ -157,13 +157,6 @@ const RightPanel: React.FC = () => {
         if (!sidebarOpen) {
           setSidebarOpen(true);
         }
-
-        // Show toast notification for processing
-        toast.info("Starting to enhance your artwork...", {
-          position: "bottom-left",
-          autoClose: 3000,
-          icon: () => <span>🎨</span>,
-        });
       }
     );
 
@@ -233,10 +226,9 @@ const RightPanel: React.FC = () => {
             setGeneratedImages(images);
             setShowGallery(true);
 
-            // Show success toast
+            // Show just ONE success toast
             toast.success(
-              `${images.length} image${images.length > 1 ? "s" : ""
-              } generated successfully!`,
+              `${images.length} image${images.length > 1 ? "s" : ""} generated successfully!`,
               {
                 position: "bottom-left",
                 autoClose: 4000,

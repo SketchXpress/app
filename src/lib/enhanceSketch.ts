@@ -332,7 +332,7 @@ export async function enhanceSketch(editor: Editor): Promise<string> {
     const headers = new Headers();
     headers.append("Accept", "application/json");
 
-    // Notify application that enhancement is starting
+    // Notify application that enhancement is starting - only this will trigger the toast notification
     eventBus.publish("enhance:started", { jobId: null });
 
     try {
@@ -508,7 +508,7 @@ async function waitForImageGeneration(
         const width = data.width || 512;
         const height = data.height || 512;
 
-        // Publish event that image generation completed
+        // Publish event that image generation completed - this will trigger success toast in RightPanel.tsx, not here
         eventBus.publish("enhance:completed", {
           images: data.images,
           width,
