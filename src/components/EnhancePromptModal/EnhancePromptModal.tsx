@@ -1,3 +1,6 @@
+// EnhancePromptModal.tsx
+"use client";
+
 import { useState, useEffect, useRef } from 'react';
 import styles from './EnhancePromptModal.module.scss';
 import { useEnhanceStore } from '@/stores/enhanceStore';
@@ -21,6 +24,8 @@ const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalPr
   // Get prompt from store and update function
   const prompt = useEnhanceStore((s) => s.prompt);
   const setPrompt = useEnhanceStore((s) => s.setPrompt);
+  // Get setModalOpen from store to update global modal state
+  const setModalOpen = useEnhanceStore((s) => s.setModalOpen);
 
   // Local state for prompt input
   const [promptInput, setPromptInput] = useState(prompt);
@@ -44,6 +49,15 @@ const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalPr
       setIsVisible(false);
     }
   }, [isOpen]);
+
+  // Update global modal state when local isOpen changes
+  useEffect(() => {
+    setModalOpen(isOpen);
+    return () => {
+      // Clean up when component unmounts
+      setModalOpen(false);
+    };
+  }, [isOpen, setModalOpen]);
 
   // Close when clicking outside
   useEffect(() => {
@@ -89,8 +103,6 @@ const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalPr
       handleSubmit();
     }
   };
-
-  // No longer needed as we're setting placeholder directly in the JSX
 
   // Don't render anything if modal is fully closed
   if (!isOpen && !isVisible) return null;

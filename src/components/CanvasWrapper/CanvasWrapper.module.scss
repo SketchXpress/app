@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 2000;
+  z-index: 9999; /* Increased z-index to be higher than anything else */
   backdrop-filter: blur(8px);
   animation: fadeIn 0.3s ease;
 }
@@ -263,6 +263,14 @@
 
 /* For mobile devices */
 @media (max-width: 768px) {
+
+  /* Mobile specific enhancement */
+@media (max-width: 768px) {
+  .processingOverlay {
+    /* Ensure it's above all other components on mobile */
+    z-index: 9999;
+  }
+}
   .canvasContainer {
     /* Fixed position on mobile */
     position: fixed;

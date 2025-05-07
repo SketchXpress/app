@@ -17,6 +17,7 @@ const EnhanceButton = ({ onClick }: EnhanceButtonProps) => {
   const mode = useModeStore((s) => s.mode);
   const editor = useCanvasStore((s) => s.editor);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { setModalOpen } = useEnhanceStore();
 
   // Different text based on mode
   const buttonText = mode === "kids" ? "Magic Enhance" : "AI Enhance";
@@ -33,6 +34,8 @@ const EnhanceButton = ({ onClick }: EnhanceButtonProps) => {
 
         // Open the prompt modal instead of immediately enhancing
         setIsModalOpen(true);
+        // Update store with modal state
+        setModalOpen(true);
       } else {
         // If no shapes, show a message
         toast.info("Please draw something first!", {
@@ -46,11 +49,15 @@ const EnhanceButton = ({ onClick }: EnhanceButtonProps) => {
 
   const handleModalClose = () => {
     setIsModalOpen(false);
+    // Update store with modal state
+    setModalOpen(false);
   };
 
   const handleConfirm = () => {
     // Close the modal
     setIsModalOpen(false);
+    // Update store with modal state
+    setModalOpen(false);
 
     // Now call the original onClick handler (which will enhance the selection)
     onClick();

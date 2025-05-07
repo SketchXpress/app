@@ -98,9 +98,9 @@ export const useEnhanceEvents = (
         setError(null);
         setCurrentJobId(data.jobId);
 
-        // Auto-expand the panel when processing starts
-        if (!sidebarOpen) {
-          setSidebarOpen(true);
+        // Important: Close the sidebar during processing
+        if (sidebarOpen) {
+          setSidebarOpen(false);
         }
       }
     );
@@ -169,6 +169,9 @@ export const useEnhanceEvents = (
 
           if (images.length > 0) {
             setGeneratedImages(images);
+
+            // NOW open the sidebar since enhancement is complete
+            setSidebarOpen(true);
           } else {
             setError("Failed to load generated images from event.");
 
@@ -197,7 +200,7 @@ export const useEnhanceEvents = (
         setCurrentJobId(null); // Clear job ID on failure
         setError(data.error || "Image generation failed");
 
-        // Show error toast
+        // Show error toast but don't open the panel
         toast.error(data.error || "Image generation failed", {
           position: "bottom-left",
           autoClose: 5000,
@@ -316,6 +319,9 @@ export const useEnhanceEvents = (
           if (images.length > 0) {
             setGeneratedImages(images);
             setError(null); // Clear any previous error
+
+            // Now that processing is complete and we have images, open the sidebar
+            setSidebarOpen(true);
           } else {
             setError("Failed to load generated images from status poll.");
 
@@ -355,7 +361,7 @@ export const useEnhanceEvents = (
     return () => {
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [currentJobId, isProcessing]); // Only restart polling if jobId changes or processing state changes
+  }, [currentJobId, isProcessing, setSidebarOpen]); // Only restart polling if jobId changes or processing state changes
 
   // Clean up object URLs on unmount or when images change
   useEffect(() => {

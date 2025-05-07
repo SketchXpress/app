@@ -9,6 +9,7 @@ interface EnhanceState {
   numImages: number;
   steps: number;
   seed: number | null;
+  isModalOpen: boolean;
 
   setPrompt: (prompt: string) => void;
   setNegativePrompt: (negativePrompt: string) => void;
@@ -18,6 +19,7 @@ interface EnhanceState {
   setSteps: (steps: number) => void;
   setSeed: (seed: number | null) => void;
   resetToDefaults: () => void;
+  setModalOpen: (isOpen: boolean) => void;
 }
 
 const DEFAULT_STATE = {
@@ -28,6 +30,7 @@ const DEFAULT_STATE = {
   numImages: 1,
   steps: 30,
   seed: null,
+  isModalOpen: false,
 };
 
 export const useEnhanceStore = create<EnhanceState>((set) => ({
@@ -41,4 +44,5 @@ export const useEnhanceStore = create<EnhanceState>((set) => ({
   setSteps: (steps) => set({ steps }),
   setSeed: (seed) => set({ seed }),
   resetToDefaults: () => set(DEFAULT_STATE),
+  setModalOpen: (isOpen) => set({ isModalOpen: isOpen }),
 }));

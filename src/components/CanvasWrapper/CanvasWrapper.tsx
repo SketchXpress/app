@@ -259,9 +259,9 @@ const CanvasWrapper = () => {
           </div>
         )}
 
-        {/* Improved processing overlay */}
+        {/* processing overlay */}
         {isProcessing && (
-          <div className={styles.processingOverlay}>
+          <div className={styles.processingOverlay} style={{ zIndex: 9999 }}>
             <div className={styles.processingContent}>
               {/* Decorative particles */}
               <div className={styles.particles}>

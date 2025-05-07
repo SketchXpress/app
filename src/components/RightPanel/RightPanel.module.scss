@@ -202,7 +202,11 @@ $mobile-panel-width: 280px;
   cursor: pointer;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
   transition: all .3s ease;
-  color: var(--foreground);
+  // color: var(--foreground);
+  
+  svg {
+    color: #000000;
+  }
 
   &:not(:hover) {
     color: var(--accent-cyan);
