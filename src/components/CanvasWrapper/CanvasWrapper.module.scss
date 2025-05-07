@@ -1,10 +1,3 @@
-.canvasContainer {
-  height: calc((var(--vh, 1vh) * 100) - 60px);
-  width: 100%;
-  position: relative;
-  overflow: hidden;
-}
-
 .processingOverlay {
   position: fixed;
   top: 0;
@@ -260,8 +253,15 @@
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.03);
   z-index: 10;
 }
+.canvasContainer {
+  /* Use the CSS variable for height calculation instead of 100vh */
+  height: calc((var(--vh, 1vh) * 100) - 60px);
+  width: 100%;
+  position: relative;
+  overflow: hidden;
+}
 
-/* Add responsive adjustments for mobile */
+/* For mobile devices */
 @media (max-width: 768px) {
   .canvasContainer {
     /* Fixed position on mobile */
@@ -273,21 +273,17 @@
     /* Height calculation using the CSS variable */
     height: calc((var(--vh, 1vh) * 100) - 60px);
   }
-}
-
-/* Prevent body scrolling on mobile */
-@media (max-width: 768px) {
-  body {
-    overflow: hidden;
+  
+  /* Create a class to apply to a div instead of targeting body directly */
+  .preventScroll {
     position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    overflow: hidden;
     width: 100%;
-  }
-}
-
-/* Add these styles to handle iOS Safari issues */
-@supports (-webkit-touch-callout: none) {
-  .canvasContainer {
-    /* iOS Safari specific height adjustment */
-    height: calc(100vh - 60px);
+    height: 100%;
+    z-index: -1; /* Place behind other content */
   }
 }

@@ -45,10 +45,12 @@ const CanvasWrapper = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [processingProgress, setProcessingProgress] = useState(0);
   const [showCanvasTip, setShowCanvasTip] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
 
   // Get Zustand actions
   const setEditor = useCanvasStore((s) => s.setEditor);
   const setSelectedShapeIds = useCanvasStore((s) => s.setSelectedShapeIds);
+
 
   // Hide canvas tip after 5 seconds
   useEffect(() => {
@@ -78,22 +80,34 @@ const CanvasWrapper = () => {
   }, [isProcessing]);
 
   useEffect(() => {
-    // Simple function to fix iOS Safari viewport
+    // Detect mobile devices
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768);
+    };
+
+    // Function to set viewport height
     function setViewportHeight() {
-      // Set a CSS variable with the actual viewport height
       const vh = window.innerHeight * 0.01;
       document.documentElement.style.setProperty('--vh', `${vh}px`);
     }
 
-    // Set the height initially
+    // Run both functions initially
+    checkMobile();
     setViewportHeight();
 
     // Update on resize and orientation change
     window.addEventListener('resize', setViewportHeight);
+    window.addEventListener('resize', checkMobile);
     window.addEventListener('orientationchange', setViewportHeight);
+
+    // iOS Safari may need a small delay
+    window.addEventListener('orientationchange', () => {
+      setTimeout(setViewportHeight, 100);
+    });
 
     return () => {
       window.removeEventListener('resize', setViewportHeight);
+      window.removeEventListener('resize', checkMobile);
       window.removeEventListener('orientationchange', setViewportHeight);
     };
   }, []);
@@ -213,72 +227,77 @@ const CanvasWrapper = () => {
   }, []);
 
   return (
-    <div className={styles.canvasContainer}>
-      <div className={styles.canvasFrame} />
+    <>
+      {/* Add this div to prevent scrolling on mobile */}
+      {isMobile && <div className={styles.preventScroll} aria-hidden="true" />}
 
-      <Tldraw
-        store={store}
-        shapeUtils={defaultShapeUtils}
-        tools={defaultTools}
-        onMount={handleMount}
-        autoFocus
-        className={styles.canvasArea}
-      />
+      <div className={styles.canvasContainer}>
+        <div className={styles.canvasFrame} />
 
-      <EnhanceButton onClick={handleEnhance} />
+        <Tldraw
+          store={store}
+          shapeUtils={defaultShapeUtils}
+          tools={defaultTools}
+          onMount={handleMount}
+          autoFocus
+          className={styles.canvasArea}
+        />
 
-      {/* Initial canvas tip */}
-      {showCanvasTip && (
-        <div className={styles.canvasTip}>
-          Draw something, then click &quot;AI Enhance&quot; to transform it
-        </div>
-      )}
+        <EnhanceButton onClick={handleEnhance} />
 
-      {/* Improved processing overlay */}
-      {isProcessing && (
-        <div className={styles.processingOverlay}>
-          <div className={styles.processingContent}>
-            {/* Decorative particles */}
-            <div className={styles.particles}>
-              <div className={styles.particle} style={{ top: '10%', left: '10%' }}></div>
-              <div className={styles.particle} style={{ top: '30%', left: '80%' }}></div>
-              <div className={styles.particle} style={{ top: '70%', left: '20%' }}></div>
-              <div className={styles.particle} style={{ top: '80%', left: '70%' }}></div>
-              <div className={styles.particle} style={{ top: '40%', left: '30%' }}></div>
-            </div>
-
-            <div className={styles.spinnerContainer}>
-              <div className={styles.spinner}></div>
-              <div className={styles.spinnerInner}></div>
-            </div>
-
-            <h3 className={styles.processingTitle}>
-              {useModeStore.getState().mode === "kids" ? "Making Magic!" : "Enhancing Your Artwork"}
-            </h3>
-
-            <p className={styles.processingMessage}>
-              {useModeStore.getState().mode === "kids"
-                ? "Your sketch is being transformed into something amazing..."
-                : "Our AI is transforming your sketch into a refined artwork. This might take a moment..."}
-            </p>
-
-            <div className={styles.progressBar}>
-              <div
-                className={styles.progressBarInner}
-                style={{
-                  width: `${processingProgress}%`,
-                  animation: processingProgress > 0 ? 'shimmer 2s infinite' : undefined
-                }}
-              ></div>
-            </div>
-
-            <div className={styles.progressText}>{Math.round(processingProgress)}% Complete</div>
+        {/* Initial canvas tip */}
+        {showCanvasTip && (
+          <div className={styles.canvasTip}>
+            Draw something, then click &quot;AI Enhance&quot; to transform it
           </div>
-        </div>
-      )}
+        )}
 
-      <OnboardingGuide />
-    </div>
+        {/* Improved processing overlay */}
+        {isProcessing && (
+          <div className={styles.processingOverlay}>
+            <div className={styles.processingContent}>
+              {/* Decorative particles */}
+              <div className={styles.particles}>
+                <div className={styles.particle} style={{ top: '10%', left: '10%' }}></div>
+                <div className={styles.particle} style={{ top: '30%', left: '80%' }}></div>
+                <div className={styles.particle} style={{ top: '70%', left: '20%' }}></div>
+                <div className={styles.particle} style={{ top: '80%', left: '70%' }}></div>
+                <div className={styles.particle} style={{ top: '40%', left: '30%' }}></div>
+              </div>
+
+              <div className={styles.spinnerContainer}>
+                <div className={styles.spinner}></div>
+                <div className={styles.spinnerInner}></div>
+              </div>
+
+              <h3 className={styles.processingTitle}>
+                {useModeStore.getState().mode === "kids" ? "Making Magic!" : "Enhancing Your Artwork"}
+              </h3>
+
+              <p className={styles.processingMessage}>
+                {useModeStore.getState().mode === "kids"
+                  ? "Your sketch is being transformed into something amazing..."
+                  : "Our AI is transforming your sketch into a refined artwork. This might take a moment..."}
+              </p>
+
+              <div className={styles.progressBar}>
+                <div
+                  className={styles.progressBarInner}
+                  style={{
+                    width: `${processingProgress}%`,
+                    animation: processingProgress > 0 ? 'shimmer 2s infinite' : undefined
+                  }}
+                ></div>
+              </div>
+
+              <div className={styles.progressText}>{Math.round(processingProgress)}% Complete</div>
+            </div>
+          </div>
+        )}
+
+        <OnboardingGuide />
+      </div>
+    </>
   );
 };
 
