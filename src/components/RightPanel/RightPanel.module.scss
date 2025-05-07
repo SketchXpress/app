@@ -222,8 +222,8 @@ $mobile-panel-width: 280px;
 // Collapse toggle
 .collapseToggle {
   position: fixed;
-  top: calc(#{$header-height} + 10px);
-  right: $panel-width;
+  top: calc(var(--header-height, 60px) + 10px);
+  right: #{$panel-width};
   width: 24px;
   height: 24px;
   background: var(--background);
@@ -234,19 +234,21 @@ $mobile-panel-width: 280px;
   justify-content: center;
   cursor: pointer;
   z-index: 1001;
-  transition: right .25s, background-color .2s ease, box-shadow .2s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
   color: var(--foreground-muted);
+  transition: right .25s cubic-bezier(.4,0,.2,1), background-color .2s, box-shadow .2s;
 
   &:hover {
     background: var(--card-bg);
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.15);
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
     color: var(--foreground);
   }
 
   &.collapsed {
-    right: var(--panel-collapsed-width);
+    right: #{$panel-collapsed-width};
   }
 }
+
 
 // Section
 .section {
