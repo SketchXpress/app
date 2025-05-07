@@ -1,42 +1,49 @@
 // components/NFTCarousel/NFTCarousel.tsx
 "use client";
 
-import React, { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react"; // Removed useEffect for isInitialLoad
 import useEmblaCarousel from "embla-carousel-react";
 import Image from "next/image";
-import { ChevronLeft, ChevronRight, TrendingUp, ExternalLink, Loader2 } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
+  ExternalLink,
+} from "lucide-react";
 import Link from "next/link";
 import styles from "./NFTCarousel.module.scss";
 import { useNFTCollections } from "@/hooks/useNFTCollections";
 
-// Define fallback NFTs in case we have no data or API rate limit is reached
-const fallbackNfts = [
-  { id: 1, title: "Doodles", floor: "3.42 SOL", image: "/nft1.jpeg", trending: true, poolAddress: "", supply: 120 },
-  { id: 2, title: "When Two Stars Collide", floor: "1.05 SOL", image: "/nft2.avif", trending: false, poolAddress: "", supply: 85 },
-  { id: 3, title: "Letters by Vinnie Hager", floor: "0.4 SOL", image: "/nft3.jpg", trending: false, poolAddress: "", supply: 50 },
-  { id: 4, title: "Murakami Flowers", floor: "0.27 SOL", image: "/nft4.jpg", trending: false, poolAddress: "", supply: 200 },
-  { id: 5, title: "Crypto Kids", floor: "0.54 SOL", image: "/nft5.png", trending: true, poolAddress: "", supply: 75 },
-  { id: 6, title: "Pro Collection", floor: "3.8 SOL", image: "/nft6.webp", trending: true, poolAddress: "", supply: 150 }
-];
+// Skeleton component for loading state
+const NFTSkeleton = () => (
+  <div className={styles.card}>
+    <div className={styles.imageWrapper}>
+      <div className={styles.skeletonImage}></div>
+      <div className={styles.infoOverlay}>
+        <div className={styles.infoContent}>
+          <div className={styles.skeletonTitle}></div>
+          <div className={styles.floorPriceWrapper}>
+            <div className={styles.skeletonFloor}></div>
+          </div>
+        </div>
+        <div className={styles.skeletonButton}></div>
+      </div>
+    </div>
+  </div>
+);
 
 const NFTCarousel = () => {
   // Fetch dynamic NFT collections
   const { collections, loading, error } = useNFTCollections(6);
-  const [isRateLimited, setIsRateLimited] = useState(false);
 
-  useEffect(() => {
-    // Check if error message contains rate limit info (429)
-    if (error && (error.includes("429") || error.includes("rate limit"))) {
-      console.log("API rate limit detected, using fallback data");
-      setIsRateLimited(true);
-    }
-  }, [error]);
+  // Use the hook's loading state directly
+  const isLoading = loading;
 
   const [emblaRef, emblaApi] = useEmblaCarousel({
     loop: true,
     dragFree: true,
     duration: 30,
-    align: "center"
+    align: "center",
   });
 
   const [activeIndex, setActiveIndex] = useState(0);
@@ -50,7 +57,8 @@ const NFTCarousel = () => {
     if (!emblaApi) return;
 
     const interval = setInterval(() => {
-      if (hoveredIndex === null) { // Only autoplay when no slide is being hovered
+      if (hoveredIndex === null) {
+        // Only autoplay when no slide is being hovered
         emblaApi.scrollNext();
       }
     }, 5000);
@@ -75,17 +83,22 @@ const NFTCarousel = () => {
   }, [emblaApi]);
 
   // Handle image load errors
-  const handleImageError = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    const target = e.target as HTMLImageElement;
-    target.src = "/defaultNFT.png";
-  };
+  const handleImageError = useCallback(
+    (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+      const target = e.target as HTMLImageElement;
+      target.src = "/defaultNFT.png";
+    },
+    []
+  );
 
-  // Choose which data to display
-  // Use collections if available, fallback otherwise
-  const displayNfts = (collections.length > 0 && !isRateLimited) ? collections : fallbackNfts;
+  // Generate skeleton items for loading state
+  const skeletonItems = Array.from({ length: 6 }).map((_, index) => ({
+    id: `skeleton-${index}`,
+  }));
 
   // Determine correct number of slides for progress dots
-  const slideCount = displayNfts.length;
+  // If loading, assume 6 skeletons; otherwise, use the actual collection count
+  const slideCount = loading ? 6 : collections.length || 0;
 
   return (
     <section className={styles.heroContainer}>
@@ -96,33 +109,38 @@ const NFTCarousel = () => {
           className={`${styles.arrowButton} ${styles.arrowLeft}`}
           onClick={scrollPrev}
           aria-label="Previous slide"
+          disabled={isLoading} // Disable buttons while loading
         >
           <ChevronLeft />
         </button>
 
-        {loading && !isRateLimited ? (
-          <div className={styles.loadingContainer}>
-            <Loader2 className={styles.loadingSpinner} size={32} />
-            <p className={styles.loadingText}>Loading collections...</p>
-          </div>
-        ) : error && !isRateLimited ? (
-          <div className={styles.errorContainer}>
-            <p className={styles.errorText}>Failed to load collections</p>
-          </div>
-        ) : (
-          <div className={styles.embla} ref={emblaRef}>
-            <div className={styles.emblaContainer}>
-              {displayNfts.map((nft, index) => (
+        <div className={styles.embla} ref={emblaRef}>
+          <div className={styles.emblaContainer}>
+            {isLoading ? (
+              // Show skeleton loaders while loading is true
+              skeletonItems.map((item) => (
+                <div className={styles.emblaSlide} key={item.id}>
+                  <NFTSkeleton />
+                </div>
+              ))
+            ) : error ? (
+              // Show error state if loading is false and there's an error
+              <div className={styles.errorContainer}>
+                <p className={styles.errorText}>Failed to load collections</p>
+              </div>
+            ) : collections.length > 0 ? (
+              // Show actual NFT data if loading is false, no error, and collections are found
+              collections.map((nft, index) => (
                 <div
                   className={styles.emblaSlide}
-                  key={nft.id}
+                  key={nft.id} // Using id from mapped data
                   onMouseEnter={() => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
                 >
                   <div className={styles.card}>
                     <div className={styles.imageWrapper}>
                       <Image
-                        src={nft.image}
+                        src={nft.image || "/defaultNFT.png"}
                         alt={nft.title}
                         fill
                         sizes="(min-width: 1536px) 25vw, (min-width: 1280px) 33vw, (min-width: 768px) 50vw, 90vw"
@@ -149,17 +167,24 @@ const NFTCarousel = () => {
                           <h3 className={styles.nftTitle}>{nft.title}</h3>
                           <div className={styles.floorPriceWrapper}>
                             <span className={styles.floorLabel}>Floor</span>
-                            <span className={styles.floorPrice}>{nft.floor}</span>
+                            <span className={styles.floorPrice}>
+                              {nft.floor}
+                            </span>
                           </div>
                         </div>
 
                         {nft.poolAddress ? (
-                          <Link href={`/mintstreet/collection/${nft.poolAddress}`} className={styles.viewButton}>
+                          <Link
+                            href={`/mintstreet/collection/${nft.poolAddress}`}
+                            className={styles.viewButton}
+                          >
                             <span>View</span>
                             <ExternalLink size={14} />
                           </Link>
                         ) : (
-                          <button className={styles.viewButton}>
+                          // Render a disabled button or null if poolAddress is missing
+                          // A button is generally better for accessibility even if disabled
+                          <button className={styles.viewButton} disabled>
                             <span>View</span>
                             <ExternalLink size={14} />
                           </button>
@@ -168,15 +193,21 @@ const NFTCarousel = () => {
                     </div>
                   </div>
                 </div>
-              ))}
-            </div>
+              ))
+            ) : (
+              // Show empty state if loading is false, no error, and no collections were found
+              <div className={styles.emptyContainer}>
+                <p className={styles.emptyText}>No collections found</p>
+              </div>
+            )}
           </div>
-        )}
+        </div>
 
         <button
           className={`${styles.arrowButton} ${styles.arrowRight}`}
           onClick={scrollNext}
           aria-label="Next slide"
+          disabled={isLoading} // Disable buttons while loading
         >
           <ChevronRight />
         </button>
@@ -184,16 +215,20 @@ const NFTCarousel = () => {
 
       <div className={styles.progressIndicator}>
         <div className={styles.progressWrapper}>
-          {Array.from({ length: slideCount }).map((_, index) => (
-            <button
-              key={index}
-              onClick={() => emblaApi?.scrollTo(index)}
-              className={`${styles.progressDot} ${activeIndex === index ? styles.activeDot : ''}`}
-              aria-label={`Go to slide ${index + 1}`}
-            >
-              <span className={styles.dotInner}></span>
-            </button>
-          ))}
+          {/* Render dots based on loading state or actual collection count */}
+          {slideCount > 0 &&
+            Array.from({ length: slideCount }).map((_, index) => (
+              <button
+                key={index}
+                onClick={() => emblaApi?.scrollTo(index)} // Allow interaction even if buttons are disabled
+                className={`${styles.progressDot} ${
+                  activeIndex === index ? styles.activeDot : ""
+                }`}
+                aria-label={`Go to slide ${index + 1}`}
+              >
+                <span className={styles.dotInner}></span>
+              </button>
+            ))}
         </div>
       </div>
     </section>

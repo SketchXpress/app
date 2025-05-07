@@ -16,8 +16,8 @@ export interface NFTCollection {
   collectionMint?: string;
 }
 
-// Process transaction history to find trending collections
-const processTrendingCollections = (transactions: HistoryItem[]) => {
+// Process transaction history to find collections and their stats
+const processPoolDataFromHistory = (transactions: HistoryItem[]) => {
   // Group transactions by pool address
   const poolMap = new Map<
     string,
@@ -29,23 +29,23 @@ const processTrendingCollections = (transactions: HistoryItem[]) => {
       name: string;
       nftCount: number;
       collectionMint: string | undefined;
-      collectionFound: boolean;
+      collectionFound: boolean; // Indicates if collection name/mint was found
     }
   >();
 
-  // First, build a dynamic collection map
-  // Track collection creation transactions to get collection names and addresses
+  // First, build a dynamic collection map from creation transactions
   const collectionCreations = new Map<
-    string,
+    string, // collectionMint address
     { name: string; symbol: string }
   >();
 
   transactions.forEach((tx) => {
     if (tx.instructionName === "createCollectionNft" && tx.args) {
       const name = tx.args.name as string;
-      const symbol = tx.args.symbol as string;
+      const symbol = tx.args.symbol as string; // Symbol isn't used but good to capture
 
-      // Get the collection mint address from the accounts
+      // Get the collection mint address from the accounts array in the transaction
+      // Assuming accounts[1] is the collection mint
       if (tx.accounts && tx.accounts.length > 1) {
         const collectionMintAddress = tx.accounts[1].toString();
         collectionCreations.set(collectionMintAddress, { name, symbol });
@@ -53,9 +53,9 @@ const processTrendingCollections = (transactions: HistoryItem[]) => {
     }
   });
 
-  // Find pool creation transactions and link them to collections
+  // Map pool addresses to their collection mints using pool creation transactions
   const poolToCollectionMap = new Map<
-    string,
+    string, // pool address
     { name: string; collectionMint: string }
   >();
 
@@ -66,6 +66,7 @@ const processTrendingCollections = (transactions: HistoryItem[]) => {
       tx.accounts.length > 1
     ) {
       const poolAddress = tx.poolAddress;
+      // Assuming accounts[1] is the collection mint for a pool creation
       const collectionMintAddress = tx.accounts[1].toString();
 
       if (poolAddress && collectionCreations.has(collectionMintAddress)) {
@@ -91,21 +92,22 @@ const processTrendingCollections = (transactions: HistoryItem[]) => {
 
       poolMap.set(tx.poolAddress, {
         poolAddress: tx.poolAddress,
-        transactions: 0,
-        timestamp: 0,
-        totalVolume: 0,
+        transactions: 0, // Initialize transaction count
+        timestamp: tx.blockTime || 0, // Initialize timestamp with the first tx time
+        totalVolume: 0, // Initialize volume
         name:
           collectionInfo?.name ||
-          `Collection ${tx.poolAddress.substring(0, 6)}`,
+          `Collection ${tx.poolAddress.substring(0, 6)}...`, // Default name if not found
         collectionMint: collectionInfo?.collectionMint,
-        nftCount: 0,
-        collectionFound: !!collectionInfo,
+        nftCount: 0, // Initialize NFT count
+        collectionFound: !!collectionInfo, // Track if collection info was linked
       });
     }
 
     const pool = poolMap.get(tx.poolAddress)!;
 
-    // Update pool stats
+    // Update pool stats for relevant transaction types
+    // Count all transactions related to the pool
     pool.transactions += 1;
 
     // Update timestamp if more recent
@@ -113,78 +115,95 @@ const processTrendingCollections = (transactions: HistoryItem[]) => {
       pool.timestamp = tx.blockTime;
     }
 
-    // Update volume if available
+    // Add volume for buy/sell transactions (assuming tx.price exists for these)
     if (tx.price) {
       pool.totalVolume += tx.price;
     }
 
-    // Count NFTs minted for this collection
+    // Count NFTs minted *into* this collection/pool
     if (tx.instructionName === "mintNft") {
+      // Assuming 'mintNft' is the relevant instruction
       pool.nftCount += 1;
     }
   });
 
+  // Filter out pools that likely aren't complete collections (e.g., no name found)
+  // Decide if you want to filter or just display with default name
+  // For now, let's keep all processed pools but perhaps refine the default name
   return Array.from(poolMap.values());
-};
-
-// Calculate trending status based on transaction frequency
-const calculateIsTrending = (
-  poolData: ReturnType<typeof processTrendingCollections>[0],
-  allPools: ReturnType<typeof processTrendingCollections>
-) => {
-  // Pool is trending if it's in the top 3 by transaction count
-  const sortedByActivity = [...allPools].sort(
-    (a, b) => b.transactions - a.transactions
-  );
-  return sortedByActivity.indexOf(poolData) < 3;
 };
 
 export const useNFTCollections = (limit: number = 6) => {
   const [collections, setCollections] = useState<NFTCollection[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(true); // Start loading
   const [error, setError] = useState<string | null>(null);
 
   // Get transaction history
+  // The history hook manages its own loading and error states internally
   const {
     history,
     isLoading: historyLoading,
     error: historyError,
-  } = useBondingCurveHistory(50);
+  } = useBondingCurveHistory(50); // Fetch history, maybe increase limit if needed
 
   useEffect(() => {
-    if (historyLoading) return;
-
-    if (historyError) {
-      setError(historyError);
-      setLoading(false);
+    // Start loading when history loading starts or history changes
+    if (historyLoading) {
+      setLoading(true);
+      setError(null); // Clear previous errors
       return;
     }
 
-    const fetchCollectionsData = async () => {
-      try {
-        // Process transaction history to find collections
-        const poolsData = processTrendingCollections(history);
+    // If history loading finished and there's an error
+    if (historyError) {
+      setError(historyError);
+      setLoading(false); // Stop loading on error
+      setCollections([]); // Clear collections on error
+      return;
+    }
 
-        // Sort by most recent activity
-        const sortedPools = [...poolsData].sort(
+    // If history loading finished successfully (historyLoading is false and no historyError)
+    // Process the history data
+    const processData = async () => {
+      // Use an async function inside useEffect if needed later, or keep it sync
+      try {
+        // Process transaction history to find all pool data
+        const allPoolsData = processPoolDataFromHistory(history);
+
+        // Determine trending status based on ALL processed pools by transaction count
+        const sortedByActivityForTrending = [...allPoolsData].sort(
+          (a, b) => b.transactions - a.transactions
+        );
+        const trendingPoolAddresses = new Set(
+          sortedByActivityForTrending
+            .slice(0, 3)
+            .map((pool) => pool.poolAddress) // Top 3 pool addresses
+        );
+
+        // Sort all pools by most recent activity timestamp for display
+        const sortedPoolsByRecency = [...allPoolsData].sort(
           (a, b) => b.timestamp - a.timestamp
         );
 
-        // Take top collections for carousel
-        const topPools = sortedPools.slice(0, limit);
+        // Take the top 'limit' most recent pools for display
+        const topPoolsForDisplay = sortedPoolsByRecency.slice(0, limit);
 
         // Format collections for display
-        const formattedCollections: NFTCollection[] = topPools.map(
+        const formattedCollections: NFTCollection[] = topPoolsForDisplay.map(
           (pool, index) => ({
-            id: index + 1,
+            // Use a stable ID like poolAddress combined with index if poolAddress might be duplicate (unlikely)
+            // Or just use index for simplicity if order is consistent
+            id: index + 1, // Simple index as ID
             poolAddress: pool.poolAddress,
             title: pool.name,
+            // Calculate floor price - ensure nftCount is > 0 to avoid division by zero
             floor: `${(pool.totalVolume / Math.max(pool.nftCount, 1)).toFixed(
               2
             )} SOL`,
-            // Always use defaultNFT.png as the image
+            // Always use defaultNFT.png as the image for now
             image: "/defaultNFT.png",
-            trending: calculateIsTrending(pool, topPools),
+            // Check if the pool's address is in the set of trending addresses
+            trending: trendingPoolAddresses.has(pool.poolAddress),
             supply: pool.nftCount,
             collectionMint: pool.collectionMint,
           })
@@ -192,15 +211,23 @@ export const useNFTCollections = (limit: number = 6) => {
 
         setCollections(formattedCollections);
       } catch (err) {
-        console.error("Error fetching NFT collections:", err);
-        setError(err instanceof Error ? err.message : "Unknown error occurred");
+        console.error("Error processing NFT collections:", err);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Unknown error occurred during processing"
+        );
+        setCollections([]); // Clear collections on processing error
       } finally {
-        setLoading(false);
+        setLoading(false); // Stop loading after processing
       }
     };
 
-    fetchCollectionsData();
-  }, [history, historyLoading, historyError, limit]);
+    // Only process data if history is loaded and no error
+    if (!historyLoading && !historyError) {
+      processData();
+    }
+  }, [history, historyLoading, historyError, limit]); // Dependencies include history and its states
 
   return { collections, loading, error };
 };

@@ -5,24 +5,29 @@ $accent-magenta: #d946ef;
 .heroContainer {
   width: 100%;
   padding: 3.5rem 0;
-  // background: #121220; // Dark background that doesn't depend on theme
-  // background: linear-gradient(to bottom, #121220 0%, #121220 70%, #2a2a40 85%, #f5f5f8 100%);
-  background: linear-gradient(to bottom, #121220 0%, #1a1a30 40%, #303052 70%, #5d5d85 100%);
+  background: linear-gradient(
+    to bottom,
+    #121220 0%,
+    #1a1a30 40%,
+    #303052 70%,
+    #5d5d85 100%
+  );
   position: relative;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
   min-height: 420px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   overflow: hidden;
-  
+
   @media (max-width: 768px) {
     padding: 2rem 0;
   }
-  
+
   // Gradient border at top
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
@@ -38,7 +43,12 @@ $accent-magenta: #d946ef;
   width: 800px;
   height: 800px;
   border-radius: 50%;
-  background: radial-gradient(circle, rgba(6, 182, 212, 0.05) 0%, rgba(217, 70, 239, 0.05) 80%, rgba(0, 0, 0, 0) 100%);
+  background: radial-gradient(
+    circle,
+    rgba(6, 182, 212, 0.05) 0%,
+    rgba(217, 70, 239, 0.05) 80%,
+    rgba(0, 0, 0, 0) 100%
+  );
   top: -400px;
   left: 50%;
   transform: translateX(-50%);
@@ -55,7 +65,7 @@ $accent-magenta: #d946ef;
   margin: 0 auto;
   padding: 0 4rem;
   z-index: 5;
-  
+
   @media (max-width: 768px) {
     padding: 0 1rem;
   }
@@ -69,7 +79,7 @@ $accent-magenta: #d946ef;
 .emblaContainer {
   display: flex;
   gap: 20px;
-  
+
   @media (max-width: 768px) {
     gap: 10px;
   }
@@ -79,19 +89,19 @@ $accent-magenta: #d946ef;
   flex: 0 0 auto;
   min-width: 0;
   padding: 0.25rem 0;
-  
+
   @media (min-width: 1536px) {
     width: calc(25% - 15px);
   }
-  
+
   @media (min-width: 1024px) and (max-width: 1535px) {
     width: calc(33.333% - 14px);
   }
-  
+
   @media (min-width: 640px) and (max-width: 1023px) {
     width: calc(50% - 10px);
   }
-  
+
   @media (max-width: 639px) {
     width: 90%;
   }
@@ -104,26 +114,27 @@ $accent-magenta: #d946ef;
   overflow: hidden;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   transform: translateY(0);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+  // box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
   cursor: pointer;
-  
+
   &:hover {
     transform: translateY(-6px);
-    box-shadow: 0 12px 25px rgba(0, 0, 0, 0.3), 0 5px 15px rgba(6, 182, 212, 0.15);
-    
+    // box-shadow: 0 12px 25px rgba(0, 0, 0, 0.3),
+    //   0 5px 15px rgba(6, 182, 212, 0.15);
+
     .nftImage {
       transform: scale(1.08);
     }
-    
+
     .infoOverlay {
       background: rgba(18, 18, 32, 0.85);
       backdrop-filter: blur(8px);
-      
+
       &::before {
         opacity: 1;
       }
     }
-    
+
     .viewButton {
       opacity: 1;
       transform: translateY(0);
@@ -158,10 +169,25 @@ $accent-magenta: #d946ef;
   gap: 0.25rem;
   z-index: 5;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  
+
   svg {
     color: white;
   }
+}
+
+.supplyBadge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  color: white;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.3rem 0.5rem;
+  border-radius: 6px;
+  z-index: 5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
 }
 
 .infoOverlay {
@@ -177,15 +203,21 @@ $accent-magenta: #d946ef;
   justify-content: space-between;
   align-items: center;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
-  
+
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
     right: 0;
     height: 1px;
-    background: linear-gradient(90deg, transparent, $accent-cyan, $accent-magenta, transparent);
+    background: linear-gradient(
+      90deg,
+      transparent,
+      $accent-cyan,
+      $accent-magenta,
+      transparent
+    );
     opacity: 0;
     transition: opacity 0.4s ease;
   }
@@ -243,16 +275,16 @@ $accent-magenta: #d946ef;
   cursor: pointer;
   transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
   opacity: 0.9;
-  
+
   svg {
     color: $accent-cyan;
     transition: transform 0.3s ease;
   }
-  
+
   &:hover {
     background: rgba(6, 182, 212, 0.1);
     border: 1px solid rgba(6, 182, 212, 0.3);
-    
+
     svg {
       transform: translateX(2px);
     }
@@ -273,28 +305,29 @@ $accent-magenta: #d946ef;
   border: none;
   border-radius: 6px;
   background: rgba(255, 255, 255, 0.05);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2), inset 0 0 0 1px rgba(255, 255, 255, 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2),
+    inset 0 0 0 1px rgba(255, 255, 255, 0.1);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  
+
   @media (max-width: 768px) {
     width: 34px;
     height: 34px;
     background: rgba(255, 255, 255, 0.1);
     display: none;
   }
-  
+
   svg {
     color: white;
     width: 18px;
     height: 18px;
     transition: transform 0.3s ease;
   }
-  
+
   &:hover {
     background: linear-gradient(135deg, $accent-cyan, $accent-magenta);
     box-shadow: 0 4px 15px rgba(6, 182, 212, 0.2);
     transform: translateY(-50%) scale(1.05);
-    
+
     @media (max-width: 768px) {
       transform: scale(1.05);
     }
@@ -303,11 +336,11 @@ $accent-magenta: #d946ef;
 
 .arrowLeft {
   left: 0;
-  
+
   @media (max-width: 768px) {
     left: 0.25rem;
   }
-  
+
   &:hover svg {
     transform: translateX(-2px);
   }
@@ -315,11 +348,11 @@ $accent-magenta: #d946ef;
 
 .arrowRight {
   right: 0;
-  
+
   @media (max-width: 768px) {
     right: 0.25rem;
   }
-  
+
   &:hover svg {
     transform: translateX(2px);
   }
@@ -330,7 +363,7 @@ $accent-magenta: #d946ef;
   display: flex;
   justify-content: center;
   z-index: 5;
-  
+
   @media (max-width: 768px) {
     margin-top: 1rem;
   }
@@ -352,13 +385,13 @@ $accent-magenta: #d946ef;
   position: relative;
   overflow: hidden;
   transition: background 0.3s ease;
-  
+
   @media (max-width: 768px) {
     width: 16px;
   }
-  
+
   &::before {
-    content: '';
+    content: "";
     position: absolute;
     top: 0;
     left: 0;
@@ -368,13 +401,13 @@ $accent-magenta: #d946ef;
     transform: translateX(-101%);
     transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  
+
   &.activeDot {
     &::before {
       transform: translateX(0);
     }
   }
-  
+
   &:hover:not(.activeDot) {
     background: rgba(255, 255, 255, 0.2);
   }
@@ -384,4 +417,108 @@ $accent-magenta: #d946ef;
   display: block;
   height: 100%;
   width: 100%;
+}
+
+.errorContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 300px;
+}
+
+.errorText {
+  font-size: 1rem;
+  font-weight: 500;
+  color: #ef4444;
+}
+
+.emptyContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 300px;
+}
+
+.emptyText {
+  font-size: 1rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+/* Skeleton Styles */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeletonBase {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeletonImage {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(135deg, #1a1a30 0%, #303052 100%);
+
+  &::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgba(255, 255, 255, 0.05),
+      transparent
+    );
+    animation: shimmerEffect 1.5s infinite;
+  }
+}
+
+@keyframes shimmerEffect {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.skeletonTitle {
+  @extend .skeletonBase;
+  width: 80%;
+  height: 16px;
+  margin-bottom: 8px;
+}
+
+.skeletonFloor {
+  @extend .skeletonBase;
+  width: 60%;
+  height: 12px;
+}
+
+.skeletonButton {
+  @extend .skeletonBase;
+  width: 60px;
+  height: 28px;
+  border-radius: 6px;
 }
