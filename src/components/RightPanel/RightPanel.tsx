@@ -1,8 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import { toast } from "react-toastify";
-import { useState, useRef, useEffect } from "react";
 import {
   Download,
   Coins,
@@ -17,60 +15,73 @@ import {
   AlertOctagon,
   Star,
 } from "lucide-react";
-import {
-  subscribeToEnhanceStarted,
-  subscribeToEnhanceCompleted,
-  subscribeToEnhanceFailed,
-  EnhanceStartedEvent,
-  EnhanceCompletedEvent,
-  EnhanceFailedEvent,
-} from "@/lib/events";
-import { useMintNFT } from "@/lib/mintNFT";
+import { toast } from "react-toastify";
+
 import { usePoolStore } from "@/stores/poolStore";
 import { useModeStore } from "@/stores/modeStore";
 import { useEnhanceStore } from "@/stores/enhanceStore";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { uploadMetadataToIPFS } from "@/lib/uploadMetadataToIPFS";
-import { uploadToIPFSUsingPinata } from "@/lib/uploadToIPFSUsingPinata";
+import { useMintNFT } from "@/lib/mintNFT";
 
-import styles from "./RightPanel.module.scss";
 import ParentalControl from "../ParentalControl/ParentalContrl";
 
-// Extend event type to include base64 data (optional chaining used in code)
-interface EnhanceCompletedEventWithBase64 extends EnhanceCompletedEvent {
-  images_base64?: string[];
-}
-
-// Image type definition
-interface GeneratedImage {
-  id: number;
-  title: string;
-  src: string; // Can be blob URL or base64 data URI
-  url: string; // Full URL for the original image from the backend (for download)
-}
+// Import custom hooks and utilities
+import {
+  useResponsiveBehavior,
+  useEnhanceEvents,
+  useImageGallery,
+  useParentalControl,
+  useAdvancedParameters,
+} from "./hooks";
+import {
+  handleExport,
+  handleDownloadImage,
+  mintNFT,
+  isKidsMode,
+} from "./utils";
+import styles from "./RightPanel.module.scss";
 
 const RightPanel: React.FC = () => {
-  const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
-  const [isMobile, setIsMobile] = useState<boolean>(false);
-  const [isTablet, setIsTablet] = useState<boolean>(false);
-  const [showGallery, setShowGallery] = useState<boolean>(true);
-  const [generatedImages, setGeneratedImages] = useState<GeneratedImage[]>([]);
-  const [selectedImageId, setSelectedImageId] = useState<number | null>(null);
-  const [isProcessing, setIsProcessing] = useState<boolean>(false);
-  const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [currentJobId, setCurrentJobId] = useState<string | null>(null);
-  // Parental control state
-  const [showParentalDialog, setShowParentalDialog] = useState<boolean>(false);
-  const [mintingImage, setMintingImage] = useState<GeneratedImage | null>(null);
+  // Get custom hooks
+  const {
+    sidebarOpen,
+    setSidebarOpen,
+    isMobile,
+    isTablet,
+    sidebarRef,
+    toggleSidebar,
+  } = useResponsiveBehavior();
 
-  const sidebarRef = useRef<HTMLElement | null>(null);
+  // Get enhance events
+  const {
+    generatedImages,
+    selectedImageId,
+    setSelectedImageId,
+    isProcessing,
+    error,
+  } = useEnhanceEvents(sidebarOpen, setSidebarOpen);
+
+  // Get image gallery
+  const { showGallery, setShowGallery } = useImageGallery(
+    setSelectedImageId
+  );
+
+  // Get parental control
+  const {
+    showParentalDialog,
+    setShowParentalDialog,
+    mintingImage,
+    setMintingImage,
+    handleCloseParentalDialog,
+  } = useParentalControl();
+
+  // Get advanced parameters
+  const { showAdvanced, setShowAdvanced } = useAdvancedParameters();
+
+  // Context and stores
   const walletContext = useWallet();
   const mode = useModeStore((s) => s.mode);
   const { selectedPool } = usePoolStore();
-
-  const isKidsMode = () => mode === "kids";
-
   const { mintNft } = useMintNFT();
 
   // Get enhance store values
@@ -88,525 +99,16 @@ const RightPanel: React.FC = () => {
     resetToDefaults,
   } = useEnhanceStore();
 
-  // Defining default pools for Kids and Pro modes
-  const DEFAULT_POOLS = {
-    kids: {
-      address: `6Gj1WnJiN4ie7EQgKzDXDy7Tfqik1EXubkziVaXRdzNR`,
-      name: "Kids Collection",
-    },
-    pro: {
-      address: `6Gj1WnJiN4ie7EQgKzDXDy7Tfqik1EXubkziVaXRdzNR`,
-      name: "Pro Collection",
-    },
-  };
-
-  // Handle responsive behavior
-  useEffect(() => {
-    const checkWidth = () => {
-      const width = window.innerWidth;
-      const isMobileView = width < 640;
-      const isTabletView = width >= 640 && width < 1024;
-
-      setIsMobile(isMobileView);
-      setIsTablet(isTabletView);
-
-      // Auto-close sidebar on mobile and tablet initial load
-      if (isMobileView || isTabletView) {
-        setSidebarOpen(false);
-      }
-    };
-
-    checkWidth();
-    window.addEventListener("resize", checkWidth);
-    return () => window.removeEventListener("resize", checkWidth);
-  }, []);
-
-  // Handle click outside to close sidebar on mobile
-  useEffect(() => {
-    if (!isMobile && !isTablet) return;
-
-    const handleClickOutside = (event: MouseEvent) => {
-      if (
-        sidebarRef.current &&
-        !sidebarRef.current.contains(event.target as Node)
-      ) {
-        setSidebarOpen(false);
-      }
-    };
-
-    if (sidebarOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [isMobile, isTablet, sidebarOpen]);
-
-  // Subscribe to enhance events
-  useEffect(() => {
-    // Handle enhance started event
-    const unsubscribeStarted = subscribeToEnhanceStarted(
-      (data: EnhanceStartedEvent) => {
-        setIsProcessing(true);
-        setGeneratedImages([]); // Clear previous images
-        setError(null);
-        setCurrentJobId(data.jobId);
-
-        // Auto-expand the panel when processing starts
-        if (!sidebarOpen) {
-          setSidebarOpen(true);
-        }
-      }
-    );
-
-    // Handle enhance completed event
-    const unsubscribeCompleted = subscribeToEnhanceCompleted(
-      async (data: EnhanceCompletedEventWithBase64) => {
-        setIsProcessing(false);
-        setCurrentJobId(null); // Clear job ID once completed
-
-        try {
-          let images: GeneratedImage[] = [];
-
-          // *** USE BASE64 DATA IF AVAILABLE ***
-          if (data.images_base64 && data.images_base64.length > 0) {
-            images = data.images_base64.map((base64String, index) => {
-              const filename =
-                data.images[index]?.split("/").pop() ||
-                `generated_${index}.png`;
-              const originalUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
-              return {
-                id: index + 1,
-                title: `Generated Image ${index + 1}`,
-                src: `data:image/png;base64,${base64String}`, // Use base64 data URI
-                url: originalUrl, // Store original URL for downloads
-              };
-            });
-          }
-          // *** FALLBACK TO FETCHING FROM URL (OLD METHOD) ***
-          else if (data.images && data.images.length > 0) {
-            console.warn(
-              "[RightPanel] Base64 data not found in event, falling back to fetching URLs."
-            );
-            images = await Promise.all(
-              data.images.map(async (imagePath, index) => {
-                const pathParts = imagePath.split("/");
-                const filename = pathParts[pathParts.length - 1];
-                const fullUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
-
-                try {
-                  const response = await fetch(fullUrl);
-                  if (!response.ok)
-                    throw new Error(
-                      `Failed to fetch image: ${response.status}`
-                    );
-                  const blob = await response.blob();
-                  return {
-                    id: index + 1,
-                    title: `Generated Image ${index + 1}`,
-                    src: URL.createObjectURL(blob), // Create local URL for the Image component
-                    url: fullUrl, // Store original URL for downloads
-                  };
-                } catch {
-                  return null;
-                }
-              })
-            ).then(
-              (results) =>
-                results.filter((img) => img !== null) as GeneratedImage[]
-            ); // Filter out nulls
-          } else {
-            console.warn(
-              "[RightPanel] No image data found in completed event."
-            );
-          }
-
-          if (images.length > 0) {
-            setGeneratedImages(images);
-            setShowGallery(true);
-
-            // Show just ONE success toast
-            toast.success(
-              `${images.length} image${images.length > 1 ? "s" : ""} generated successfully!`,
-              {
-                position: "bottom-left",
-                autoClose: 4000,
-                icon: () => <span>✨</span>,
-              }
-            );
-          } else {
-            setError("Failed to load generated images from event.");
-
-            // Show error toast
-            toast.error("Failed to load generated images", {
-              position: "bottom-left",
-              autoClose: 4000,
-            });
-          }
-        } catch {
-          setError("Failed to process generated images");
-
-          // Show error toast
-          toast.error("Failed to process generated images", {
-            position: "bottom-left",
-            autoClose: 4000,
-          });
-        }
-      }
-    );
-
-    // Handle enhance failed event
-    const unsubscribeFailed = subscribeToEnhanceFailed(
-      (data: EnhanceFailedEvent) => {
-        setIsProcessing(false);
-        setCurrentJobId(null); // Clear job ID on failure
-        setError(data.error || "Image generation failed");
-
-        // Show error toast
-        toast.error(data.error || "Image generation failed", {
-          position: "bottom-left",
-          autoClose: 5000,
-        });
-      }
-    );
-
-    // Clean up subscriptions
-    return () => {
-      unsubscribeStarted();
-      unsubscribeCompleted();
-      unsubscribeFailed();
-    };
-  }, [sidebarOpen]); // Rerun if sidebarOpen changes (might affect auto-expand logic)
-
-  // Polling for job status (as a backup, primarily rely on events)
-  useEffect(() => {
-    if (!currentJobId || !isProcessing) return;
-
-    let pollInterval: NodeJS.Timeout | null = null;
-
-    const pollStatus = async () => {
-      if (!currentJobId) {
-        if (pollInterval) clearInterval(pollInterval);
-        return;
-      }
-      try {
-        const statusUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/status/${currentJobId}`;
-
-        const response = await fetch(statusUrl);
-
-        const contentType = response.headers.get("content-type");
-        if (contentType && contentType.includes("text/html")) {
-          // Don't immediately fail, maybe it's temporary
-          // setError("Connection issue with backend - ngrok limitation?");
-          // if (pollInterval) clearInterval(pollInterval);
-          // setIsProcessing(false);
-          return; // Try polling again
-        }
-
-        if (!response.ok) {
-          // Keep polling unless it's a 404 (job not found)
-          if (response.status === 404) {
-            setError("Job not found. Please try again.");
-            if (pollInterval) clearInterval(pollInterval);
-            setIsProcessing(false);
-            setCurrentJobId(null);
-
-            // Show error toast
-            toast.error("Job not found. Please try again.", {
-              position: "bottom-left",
-              autoClose: 4000,
-            });
-          }
-          return;
-        }
-
-        const data = await response.json();
-
-        if (data.status === "completed") {
-          if (pollInterval) clearInterval(pollInterval); // Stop polling
-          setIsProcessing(false);
-          setCurrentJobId(null); // Clear job ID
-
-          let images: GeneratedImage[] = [];
-          // *** USE BASE64 DATA IF AVAILABLE ***
-          if (data.images_base64 && data.images_base64.length > 0) {
-            images = data.images_base64.map(
-              (base64String: string, index: number) => {
-                const filename =
-                  data.images[index]?.split("/").pop() ||
-                  `generated_${index}.png`;
-                const originalUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
-                return {
-                  id: index + 1,
-                  title: `Generated Image ${index + 1}`,
-                  src: `data:image/png;base64,${base64String}`,
-                  url: originalUrl,
-                };
-              }
-            );
-          }
-          // *** FALLBACK TO FETCHING FROM URL (OLD METHOD) ***
-          else if (data.images && data.images.length > 0) {
-            console.warn(
-              "[Polling] Base64 data not found in status, falling back to fetching URLs."
-            );
-            images = await Promise.all(
-              data.images.map(async (imagePath: string, index: number) => {
-                const pathParts = imagePath.split("/");
-                const filename = pathParts[pathParts.length - 1];
-                const fullUrl = `${process.env.NEXT_PUBLIC_BACKEND_URL}/generated/${filename}`;
-
-                try {
-                  const response = await fetch(fullUrl);
-                  if (!response.ok)
-                    throw new Error(
-                      `Failed to fetch image: ${response.status}`
-                    );
-                  const blob = await response.blob();
-                  return {
-                    id: index + 1,
-                    title: `Generated Image ${index + 1}`,
-                    src: URL.createObjectURL(blob),
-                    url: fullUrl,
-                  };
-                } catch {
-                  return null;
-                }
-              })
-            ).then(
-              (results) =>
-                results.filter((img) => img !== null) as GeneratedImage[]
-            ); // Filter out nulls
-          } else {
-            console.warn(
-              "[Polling] No image data found in completed status response."
-            );
-          }
-
-          if (images.length > 0) {
-            setGeneratedImages(images);
-            setShowGallery(true);
-            setError(null); // Clear any previous error
-
-            // Show success toast
-            toast.success(
-              `${images.length} image${images.length > 1 ? "s" : ""
-              } generated successfully!`,
-              {
-                position: "bottom-left",
-                autoClose: 4000,
-                icon: () => <span>✨</span>,
-              }
-            );
-          } else {
-            setError("Failed to load generated images from status poll.");
-
-            // Show error toast
-            toast.error("Failed to load generated images", {
-              position: "bottom-left",
-              autoClose: 4000,
-            });
-          }
-        } else if (data.status === "failed") {
-          if (pollInterval) clearInterval(pollInterval);
-          setIsProcessing(false);
-          setCurrentJobId(null);
-          setError(data.error || "Generation failed");
-
-          // Show error toast
-          toast.error(data.error || "Generation failed", {
-            position: "bottom-left",
-            autoClose: 5000,
-          });
-        } else if (data.status === "processing") {
-          // Continue polling
-        } else {
-          console.warn("[Polling] Unknown job status:", data.status);
-          // Continue polling for a while
-        }
-      } catch {
-        // Don't stop polling immediately on generic error, could be temporary network issue
-      }
-    };
-
-    // Start polling immediately and then set interval
-    pollStatus();
-    pollInterval = setInterval(pollStatus, 5000); // Poll every 5 seconds
-
-    // Cleanup function
-    return () => {
-      if (pollInterval) clearInterval(pollInterval);
-    };
-  }, [currentJobId, isProcessing]); // Only restart polling if jobId changes or processing state changes
-
-  // Clean up object URLs on unmount or when images change
-  useEffect(() => {
-    const currentImageSrcs = generatedImages.map((img) => img.src);
-    return () => {
-      currentImageSrcs.forEach((src) => {
-        if (src.startsWith("blob:")) {
-          URL.revokeObjectURL(src);
-        }
-      });
-    };
-  }, [generatedImages]);
-
-  const toggleSidebar = () => {
-    setSidebarOpen(!sidebarOpen);
-  };
-
-  // Download the selected image
-  const handleExport = () => {
-    if (!selectedImageId) {
-      toast.warning("Please select an image to export", {
-        position: "bottom-left",
-        autoClose: 3000,
-      });
-      return;
-    }
-    const selectedImage = generatedImages.find(
-      (img) => img.id === selectedImageId
-    );
-    if (!selectedImage) return;
-
-    // Show a toast notification that download is starting
-    toast.info("Starting download...", {
-      position: "bottom-left",
-      autoClose: 2000,
-      icon: () => <span>📥</span>,
-    });
-
-    const link = document.createElement("a");
-    link.href = selectedImage.url; // Use the original URL for download
-    link.download = `generated-image-${selectedImageId}.png`; // This forces download instead of navigation
-    // Remove target="_blank" to prevent opening in new tab
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    // Show a success toast
-    setTimeout(() => {
-      toast.success("Image downloaded successfully!", {
-        position: "bottom-left",
-        autoClose: 3000,
-        icon: () => <span>✅</span>,
-      });
-    }, 1000); // Slight delay to avoid toast overlap
-  };
-
+  // Handle NFT minting
   const handleMintNFT = async () => {
-    if (!walletContext.connected || !walletContext.publicKey) {
-      toast.error("Please connect your wallet first!", {
-        position: "bottom-left",
-        autoClose: 3000,
-      });
-      return;
-    }
-
-    if (!selectedImageId) {
-      toast.warning("Please select an image to mint!", {
-        position: "bottom-left",
-        autoClose: 3000,
-      });
-      return;
-    }
-
-    const selectedImage = generatedImages.find(
-      (img) => img.id === selectedImageId
+    await mintNFT(
+      walletContext,
+      selectedImageId,
+      generatedImages,
+      mode,
+      selectedPool,
+      mintNft
     );
-    if (!selectedImage) {
-      toast.error("Selected image not found.", {
-        position: "bottom-left",
-        autoClose: 3000,
-      });
-      return;
-    }
-
-    try {
-      // Determine which pool to use
-      const defaultPool = isKidsMode()
-        ? DEFAULT_POOLS.kids
-        : { ...DEFAULT_POOLS.pro, name: "Pro Collection" };
-
-      const poolInfo = selectedPool
-        ? { address: selectedPool.address, name: selectedPool.name }
-        : defaultPool;
-
-      // Show a loading toast that includes pool information
-      const mintingToastId = toast.loading(
-        `Starting NFT minting process on ${poolInfo.name}...`,
-        {
-          position: "bottom-left",
-        }
-      );
-
-      // Fetch the image blob from the original URL
-      const response = await fetch(selectedImage.url);
-      if (!response.ok) {
-        throw new Error(
-          `Failed to fetch image for minting: ${response.status}`
-        );
-      }
-      const blob = await response.blob();
-
-      // Upload image to IPFS
-      toast.update(mintingToastId, {
-        render: "Uploading image to IPFS...",
-        type: "info",
-        isLoading: true,
-      });
-      const imageIpfsUrl = await uploadToIPFSUsingPinata(blob);
-
-      // Upload metadata to IPFS
-      toast.update(mintingToastId, {
-        render: "Uploading metadata to IPFS...",
-        type: "info",
-        isLoading: true,
-      });
-      const metadataIpfsUrl = await uploadMetadataToIPFS(
-        poolInfo.name + " Artwork", // Use pool name in metadata
-        "AI-enhanced artwork created with SketchXpress.",
-        imageIpfsUrl
-      );
-
-      // Mint the NFT with pool info
-      toast.update(mintingToastId, {
-        render: `Creating your NFT on the ${poolInfo.name}...`,
-        type: "info",
-        isLoading: true,
-      });
-
-      const result = await mintNft(
-        poolInfo.address,
-        poolInfo.name + " Artwork",
-        "SXP",
-        metadataIpfsUrl,
-        500, // sellerFeeBasisPoints (5%)
-      );
-
-      const nftAddress = result?.nftMint;
-
-      // Success toast with pool information
-      toast.update(mintingToastId, {
-        render: `🎉 NFT minted successfully on ${poolInfo.name}!\nAddress: ${nftAddress}`,
-        type: "success",
-        isLoading: false,
-        autoClose: 5000,
-        closeButton: true,
-        draggable: true,
-        icon: () => <span>🖼️</span>,
-      });
-    } catch (error) {
-      toast.error(
-        `Minting failed: ${error instanceof Error ? error.message : String(error)
-        }`,
-        {
-          position: "bottom-left",
-          autoClose: 5000,
-        }
-      );
-    }
   };
 
   // Handle Kids Mode mint button click with parental control
@@ -619,64 +121,7 @@ const RightPanel: React.FC = () => {
     setShowParentalDialog(true);
   };
 
-  // Handle parental approval
-  const handleParentalApproval = () => {
-    // Close dialog first
-    setShowParentalDialog(false);
-
-    // Then proceed with minting
-    setTimeout(() => handleMintNFT(), 100);
-  };
-
-  // Handle parental dialog close
-  const handleCloseParentalDialog = () => {
-    setShowParentalDialog(false);
-    setMintingImage(null);
-  };
-
-  const handleImageSelect = (id: number) => {
-    setSelectedImageId(id === selectedImageId ? null : id);
-
-    // Optional: Show toast when selecting image
-    if (id !== selectedImageId) {
-      toast.info(`Image ${id} selected`, {
-        position: "bottom-left",
-        autoClose: 1500,
-        hideProgressBar: true,
-      });
-    }
-  };
-
-  // Individual image download button
-  const handleDownloadImage = (e: React.MouseEvent, image: GeneratedImage) => {
-    e.stopPropagation();
-
-    // Show downloading toast
-    toast.info("Starting download...", {
-      position: "bottom-left",
-      autoClose: 2000,
-      icon: () => <span>📥</span>,
-    });
-
-    const link = document.createElement("a");
-    link.href = image.url;
-    link.download = `generated-image-${image.id}.png`;
-    link.target = "_blank";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    // Show success toast
-    setTimeout(() => {
-      toast.success("Image downloaded successfully!", {
-        position: "bottom-left",
-        autoClose: 3000,
-        icon: () => <span>✅</span>,
-      });
-    }, 1000); // Slight delay to avoid toast overlap
-  };
-
-  // Individual image mint button
+  // Handle image minting click (with potential parental control)
   const handleMintClick = (e: React.MouseEvent, imageId: number) => {
     e.stopPropagation();
     setSelectedImageId(imageId); // Select the image first
@@ -686,7 +131,7 @@ const RightPanel: React.FC = () => {
       toast.info("Preparing to mint image...", {
         position: "bottom-left",
         autoClose: 2000,
-        icon: () => <RefreshCw size={16} />,
+        icon: () => <span>⏳</span>,
       });
 
       // Use setTimeout to allow state update before calling mint
@@ -695,6 +140,15 @@ const RightPanel: React.FC = () => {
       // Kids mode: Show parental control dialog
       handleKidsMintClick(imageId);
     }
+  };
+
+  // Handle parental approval
+  const handleParentalApproval = () => {
+    // Close dialog first
+    setShowParentalDialog(false);
+
+    // Then proceed with minting
+    setTimeout(() => handleMintNFT(), 100);
   };
 
   return (
@@ -917,7 +371,7 @@ const RightPanel: React.FC = () => {
                         <div className={styles.poolIcon}>
                           {selectedPool ? (
                             <Coins size={16} />
-                          ) : isKidsMode() ? (
+                          ) : isKidsMode(mode) ? (
                             <Star size={16} />
                           ) : (
                             <Coins size={16} />
@@ -926,7 +380,7 @@ const RightPanel: React.FC = () => {
                         <span className={styles.poolName}>
                           {selectedPool
                             ? `Minting to: ${selectedPool.name}`
-                            : `Minting to: ${isKidsMode() ? "Kids" : "Pro"
+                            : `Minting to: ${isKidsMode(mode) ? "Kids" : "Pro"
                             } Collection`}
                         </span>
                         {selectedPool && (
@@ -1010,7 +464,17 @@ const RightPanel: React.FC = () => {
                           key={image.id}
                           className={`${styles.generatedImageCard} ${selectedImageId === image.id ? styles.selected : ""
                             }`}
-                          onClick={() => handleImageSelect(image.id)}
+                          onClick={() => {
+                            const newId = image.id === selectedImageId ? null : image.id;
+                            setSelectedImageId(newId);
+                            if (newId !== null) {
+                              toast.info(`Image ${image.id} selected`, {
+                                position: "bottom-left",
+                                autoClose: 1500,
+                                hideProgressBar: true,
+                              });
+                            }
+                          }}
                         >
                           <div className={styles.imageContainer}>
                             <Image
@@ -1065,7 +529,7 @@ const RightPanel: React.FC = () => {
                     <button
                       className={`${styles.actionButton} ${!selectedImageId ? styles.disabled : ""
                         }`}
-                      onClick={handleExport}
+                      onClick={() => handleExport(selectedImageId, generatedImages)}
                       disabled={!selectedImageId}
                       type="button"
                     >
