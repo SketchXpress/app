@@ -5,7 +5,8 @@ $accent-magenta: #d946ef;
   width: 100%;
   padding: 2rem 1rem;
   background-color: #ffffff;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    Helvetica, Arial, sans-serif;
 }
 
 .container {
@@ -36,7 +37,7 @@ $accent-magenta: #d946ef;
   border: none;
   border-radius: 6px; // 6px border-radius as requested
   cursor: pointer;
-  
+
   &.activeTab {
     background-color: white;
     color: #111827;
@@ -54,7 +55,7 @@ $accent-magenta: #d946ef;
   border-radius: 6px; // 6px border-radius as requested
   cursor: pointer;
   transition: all 0.2s ease;
-  
+
   &:hover {
     border-color: #d1d5db;
     background-color: #f9fafb;
@@ -65,7 +66,7 @@ $accent-magenta: #d946ef;
 .tableContainer {
   display: block;
   width: 100%;
-  
+
   @media (max-width: 768px) {
     display: none;
   }
@@ -75,7 +76,7 @@ $accent-magenta: #d946ef;
   display: grid;
   grid-template-columns: 1fr 1fr;
   grid-template-rows: auto 1fr;
-  grid-template-areas: 
+  grid-template-areas:
     "left-header right-header"
     "left-content right-content";
   column-gap: 100px; // Gap between left and right columns
@@ -91,17 +92,19 @@ $accent-magenta: #d946ef;
   padding: 16px 20px;
   border-bottom: 1px solid #f0f0f0;
   background-color: #ffffff;
-  
+
   &:first-child {
     grid-area: left-header;
   }
-  
+
   &:last-child {
     grid-area: right-header;
   }
 }
 
-.rankHeader, .collectionHeader, .priceHeader {
+.rankHeader,
+.collectionHeader,
+.priceHeader {
   font-size: 12px;
   font-weight: 600;
   color: #9ca3af;
@@ -120,11 +123,11 @@ $accent-magenta: #d946ef;
 .columnContent {
   display: flex;
   flex-direction: column;
-  
+
   &:first-child {
     grid-area: left-content;
   }
-  
+
   &:last-child {
     grid-area: right-content;
   }
@@ -138,11 +141,11 @@ $accent-magenta: #d946ef;
   border-bottom: 1px solid #f0f0f0;
   transition: background-color 0.2s ease;
   cursor: pointer;
-  
+
   &:last-child {
     border-bottom: none;
   }
-  
+
   &:hover {
     background-color: #f9fafb;
   }
@@ -212,7 +215,7 @@ $accent-magenta: #d946ef;
   border-radius: 12px;
   border: 1px solid #f0f0f0;
   overflow: hidden;
-  
+
   @media (max-width: 768px) {
     display: block;
   }
@@ -224,11 +227,13 @@ $accent-magenta: #d946ef;
   padding: 12px 16px;
   border-bottom: 1px solid #f0f0f0;
   background-color: #ffffff;
-  
-  .rankHeader, .collectionHeader, .priceHeader {
+
+  .rankHeader,
+  .collectionHeader,
+  .priceHeader {
     font-size: 12px;
   }
-  
+
   .priceHeader {
     text-align: right;
   }
@@ -240,19 +245,19 @@ $accent-magenta: #d946ef;
     padding: 12px 16px;
     cursor: pointer;
   }
-  
+
   .rankCell {
     font-size: 14px;
   }
-  
+
   .collectionName {
     font-size: 14px;
   }
-  
+
   .priceCell {
     font-size: 14px;
   }
-  
+
   .imageContainer {
     width: 32px;
     height: 32px;
@@ -292,7 +297,14 @@ $accent-magenta: #d946ef;
 
 .retryButton {
   padding: 0.5rem 1rem;
-  background: var(--accent-gradient, linear-gradient(135deg, var(--accent-cyan, #06b6d4), var(--accent-magenta, #d946ef)));
+  background: var(
+    --accent-gradient,
+    linear-gradient(
+      135deg,
+      var(--accent-cyan, #06b6d4),
+      var(--accent-magenta, #d946ef)
+    )
+  );
   color: white;
   border: none;
   border-radius: 6px;
@@ -300,7 +312,7 @@ $accent-magenta: #d946ef;
   margin-top: 1rem;
   cursor: pointer;
   transition: all 0.2s;
-  
+
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -312,4 +324,78 @@ $accent-magenta: #d946ef;
   padding: 3rem 0;
   color: var(--foreground-muted, #6b7280);
   font-size: 1rem;
+}
+
+/* Skeleton Styles */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeletonBase {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: 4px;
+}
+
+.skeletonRank {
+  @extend .skeletonBase;
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+}
+
+.skeletonImage {
+  @extend .skeletonBase;
+  width: 40px;
+  height: 40px;
+  border-radius: 6px;
+  flex-shrink: 0;
+
+  @media (max-width: 768px) {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+.skeletonName {
+  @extend .skeletonBase;
+  width: 120px;
+  height: 16px;
+
+  @media (max-width: 768px) {
+    width: 100px;
+    height: 14px;
+  }
+}
+
+.skeletonPrice {
+  @extend .skeletonBase;
+  width: 80px;
+  height: 16px;
+  margin-left: auto;
+
+  @media (max-width: 768px) {
+    width: 70px;
+    height: 14px;
+  }
+}
+
+/* Fade-in animation for content transitions */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.fadeIn {
+  animation: fadeIn 0.3s ease-in-out;
 }
