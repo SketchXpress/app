@@ -10,10 +10,10 @@ import {
   Image as ImageIcon,
   ChevronDown,
   ChevronUp,
-  Settings,
   RefreshCw,
   AlertOctagon,
   Star,
+  Sliders,
 } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -34,12 +34,11 @@ import {
   useAdvancedParameters,
 } from "./hooks";
 import {
-  handleExport,
-  handleDownloadImage,
   mintNFT,
   isKidsMode,
 } from "./utils";
 import styles from "./RightPanel.module.scss";
+import { GeneratedImage } from "./types";
 
 const RightPanel: React.FC = () => {
   // Get custom hooks
@@ -86,10 +85,6 @@ const RightPanel: React.FC = () => {
 
   // Get enhance store values
   const {
-    prompt,
-    setPrompt,
-    negativePrompt,
-    setNegativePrompt,
     temperature,
     setTemperature,
     guidanceScale,
@@ -98,6 +93,60 @@ const RightPanel: React.FC = () => {
     setNumImages,
     resetToDefaults,
   } = useEnhanceStore();
+
+  // Handle direct download instead of opening in new tab
+  const handleDirectDownload = () => {
+    if (!selectedImageId) {
+      toast.warning("Please select an image to download", {
+        position: "bottom-left",
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    const selectedImage = generatedImages.find(
+      (img) => img.id === selectedImageId
+    );
+
+    if (!selectedImage) return;
+
+    // Show toast notification that download is starting
+    toast.info("Starting download...", {
+      position: "bottom-left",
+      autoClose: 2000,
+      icon: () => <span>📥</span>,
+    });
+
+    // Create a fetch request to get the image as a blob
+    fetch(selectedImage.url)
+      .then(response => response.blob())
+      .then(blob => {
+        // Create a download link and trigger it
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `generated-image-${selectedImageId}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        // Show success toast
+        setTimeout(() => {
+          toast.success("Image downloaded successfully!", {
+            position: "bottom-left",
+            autoClose: 3000,
+            icon: () => <span>✅</span>,
+          });
+        }, 1000);
+      })
+      .catch(error => {
+        toast.error(`Download failed: ${error.message}`, {
+          position: "bottom-left",
+          autoClose: 4000,
+        });
+      });
+  };
 
   // Handle NFT minting
   const handleMintNFT = async () => {
@@ -151,6 +200,48 @@ const RightPanel: React.FC = () => {
     setTimeout(() => handleMintNFT(), 100);
   };
 
+  // Handle direct image download
+  const handleDirectImageDownload = (e: React.MouseEvent, image: GeneratedImage) => {
+    e.stopPropagation();
+
+    // Show downloading toast
+    toast.info("Starting download...", {
+      position: "bottom-left",
+      autoClose: 2000,
+      icon: () => <span>📥</span>,
+    });
+
+    // Create a fetch request to get the image as a blob
+    fetch(image.url)
+      .then(response => response.blob())
+      .then(blob => {
+        // Create a download link and trigger it
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `generated-image-${image.id}.png`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+
+        // Show success toast
+        setTimeout(() => {
+          toast.success("Image downloaded successfully!", {
+            position: "bottom-left",
+            autoClose: 3000,
+            icon: () => <span>✅</span>,
+          });
+        }, 1000);
+      })
+      .catch(error => {
+        toast.error(`Download failed: ${error.message}`, {
+          position: "bottom-left",
+          autoClose: 4000,
+        });
+      });
+  };
+
   return (
     <>
       {/* Mobile/tablet toggle button */}
@@ -196,7 +287,7 @@ const RightPanel: React.FC = () => {
                   onClick={() => setSidebarOpen(true)}
                   title="AI Parameters"
                 >
-                  <Settings size={20} />
+                  <Sliders size={20} />
                 </button>
               )}
               <button
@@ -212,191 +303,167 @@ const RightPanel: React.FC = () => {
           {/* Expanded view content */}
           {sidebarOpen && (
             <>
-              {/* Pro mode parameters */}
+              {/* Pro mode parameters section - Redesigned */}
               {mode === "pro" && !isProcessing && (
                 <div className={styles.section}>
-                  {/* Text Prompt Input */}
-                  <div className={styles.promptInputGroup}>
-                    <label htmlFor="prompt-input" className={styles.inputLabel}>
-                      Describe Your Art 🎨
-                    </label>
-                    <textarea
-                      id="prompt-input"
-                      className={styles.promptInput}
-                      placeholder="Describe what you want to create..."
-                      rows={3}
-                      value={prompt}
-                      onChange={(e) => setPrompt(e.target.value)}
-                    />
-                  </div>
-
-                  {/* Negative Prompt Input */}
-                  <div className={styles.promptInputGroup}>
-                    <label
-                      htmlFor="negative-prompt-input"
-                      className={styles.inputLabel}
-                    >
-                      Negative Prompt (Optional)
-                    </label>
-                    <textarea
-                      id="negative-prompt-input"
-                      className={styles.promptInput}
-                      placeholder="Describe what to avoid..."
-                      rows={2}
-                      value={negativePrompt}
-                      onChange={(e) => setNegativePrompt(e.target.value)}
-                    />
-                  </div>
-
-                  {/* Advanced Parameters Toggle */}
-                  <div className={styles.parametersToggle}>
-                    <button
-                      className={styles.toggleButton}
+                  <div className={styles.advancedParametersCard}>
+                    <div
+                      className={styles.cardHeader}
                       onClick={() => setShowAdvanced(!showAdvanced)}
-                      type="button"
                     >
-                      <Settings size={14} className={styles.settingsIcon} />
-                      <span>Advanced Parameters</span>
-                      {showAdvanced ? (
-                        <ChevronUp size={14} />
-                      ) : (
-                        <ChevronDown size={14} />
-                      )}
-                    </button>
-                  </div>
-
-                  {/* Advanced Parameters Panel */}
-                  {showAdvanced && (
-                    <div className={styles.advancedParams}>
-                      {/* Temperature Slider */}
-                      <div className={styles.paramSlider}>
-                        <div className={styles.paramHeader}>
-                          <label htmlFor="temperature-slider">
-                            Temperature: {temperature.toFixed(2)}
-                          </label>
-                          <div className={styles.paramLabels}>
-                            <span>Precise</span>
-                            <span>Creative</span>
-                          </div>
-                        </div>
-                        <input
-                          id="temperature-slider"
-                          type="range"
-                          min="0"
-                          max="1"
-                          step="0.01"
-                          value={temperature}
-                          onChange={(e) =>
-                            setTemperature(parseFloat(e.target.value))
-                          }
-                          className={styles.slider}
-                        />
+                      <div className={styles.cardTitle}>
+                        <Sliders size={18} className={styles.cardIcon} />
+                        <h3>Advanced Parameters</h3>
                       </div>
-                      {/* Guidance Scale Slider */}
-                      <div className={styles.paramSlider}>
-                        <div className={styles.paramHeader}>
-                          <label htmlFor="guidance-slider">
-                            Guidance Scale: {guidanceScale.toFixed(2)}
-                          </label>
-                          <div className={styles.paramLabels}>
-                            <span>Creative</span>
-                            <span>Precise</span>
-                          </div>
-                        </div>
-                        <input
-                          id="guidance-slider"
-                          type="range"
-                          min="1"
-                          max="15"
-                          step="0.5"
-                          value={guidanceScale}
-                          onChange={(e) =>
-                            setGuidanceScale(parseFloat(e.target.value))
-                          }
-                          className={styles.slider}
-                        />
-                      </div>
-                      {/* Number of Images Slider */}
-                      <div className={styles.paramSlider}>
-                        <div className={styles.paramHeader}>
-                          <label htmlFor="num-images-slider">
-                            Number of Images: {numImages}
-                          </label>
-                        </div>
-                        <input
-                          id="num-images-slider"
-                          type="range"
-                          min="1"
-                          max="4"
-                          step="1"
-                          value={numImages}
-                          onChange={(e) =>
-                            setNumImages(parseInt(e.target.value, 10))
-                          }
-                          className={styles.slider}
-                        />
-                        <div className={styles.numImagesIndicator}>
-                          {Array.from({ length: 4 }).map((_, idx) => (
-                            <div
-                              key={idx}
-                              className={`${styles.numBox} ${idx < numImages ? styles.active : ""
-                                }`}
-                            />
-                          ))}
-                        </div>
-                      </div>
-                      {/* Reset Button */}
                       <button
-                        className={styles.resetButton}
-                        onClick={() => {
-                          resetToDefaults();
-                          toast.info("Parameters reset to defaults", {
-                            position: "bottom-left",
-                            autoClose: 2000,
-                            icon: () => <RefreshCw size={16} />,
-                          });
+                        className={styles.toggleAdvancedButton}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowAdvanced(!showAdvanced);
                         }}
                         type="button"
+                        aria-label={showAdvanced ? "Hide parameters" : "Show parameters"}
                       >
-                        <RefreshCw size={14} />
-                        <span>Reset to Defaults</span>
+                        {showAdvanced ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
                       </button>
                     </div>
-                  )}
 
-                  {/* Pool Selection Indicator */}
-                  {sidebarOpen && (
-                    <div className={styles.poolIndicator}>
-                      <div className={styles.poolBadge}>
-                        <div className={styles.poolIcon}>
-                          {selectedPool ? (
-                            <Coins size={16} />
-                          ) : isKidsMode(mode) ? (
-                            <Star size={16} />
-                          ) : (
-                            <Coins size={16} />
-                          )}
-                        </div>
-                        <span className={styles.poolName}>
-                          {selectedPool
-                            ? `Minting to: ${selectedPool.name}`
-                            : `Minting to: ${isKidsMode(mode) ? "Kids" : "Pro"
-                            } Collection`}
-                        </span>
-                        {selectedPool && (
-                          <button
-                            className={styles.clearPoolButton}
-                            onClick={() =>
-                              usePoolStore.getState().clearSelectedPool()
+                    {showAdvanced && (
+                      <div className={styles.cardContent}>
+                        {/* Temperature Slider */}
+                        <div className={styles.paramSlider}>
+                          <div className={styles.paramHeader}>
+                            <label htmlFor="temperature-slider">
+                              <span className={styles.paramLabel}>Temperature:</span>
+                              <span className={styles.paramValue}>{temperature.toFixed(2)}</span>
+                            </label>
+                            <div className={styles.paramLabels}>
+                              <span>Precise</span>
+                              <span>Creative</span>
+                            </div>
+                          </div>
+                          <input
+                            id="temperature-slider"
+                            type="range"
+                            min="0"
+                            max="1"
+                            step="0.01"
+                            value={temperature}
+                            onChange={(e) =>
+                              setTemperature(parseFloat(e.target.value))
                             }
-                            title="Clear pool selection"
-                          >
-                            <X size={14} />
-                          </button>
+                            className={styles.slider}
+                          />
+                        </div>
+
+                        {/* Guidance Scale Slider */}
+                        <div className={styles.paramSlider}>
+                          <div className={styles.paramHeader}>
+                            <label htmlFor="guidance-slider">
+                              <span className={styles.paramLabel}>Guidance Scale:</span>
+                              <span className={styles.paramValue}>{guidanceScale.toFixed(2)}</span>
+                            </label>
+                            <div className={styles.paramLabels}>
+                              <span>Creative</span>
+                              <span>Precise</span>
+                            </div>
+                          </div>
+                          <input
+                            id="guidance-slider"
+                            type="range"
+                            min="1"
+                            max="15"
+                            step="0.5"
+                            value={guidanceScale}
+                            onChange={(e) =>
+                              setGuidanceScale(parseFloat(e.target.value))
+                            }
+                            className={styles.slider}
+                          />
+                        </div>
+
+                        {/* Number of Images Slider */}
+                        <div className={styles.paramSlider}>
+                          <div className={styles.paramHeader}>
+                            <label htmlFor="num-images-slider">
+                              <span className={styles.paramLabel}>Number of Images:</span>
+                              <span className={styles.paramValue}>{numImages}</span>
+                            </label>
+                          </div>
+                          <input
+                            id="num-images-slider"
+                            type="range"
+                            min="1"
+                            max="4"
+                            step="1"
+                            value={numImages}
+                            onChange={(e) =>
+                              setNumImages(parseInt(e.target.value, 10))
+                            }
+                            className={styles.slider}
+                          />
+                          <div className={styles.numImagesIndicator}>
+                            {Array.from({ length: 4 }).map((_, idx) => (
+                              <div
+                                key={idx}
+                                className={`${styles.numBox} ${idx < numImages ? styles.active : ""
+                                  }`}
+                              />
+                            ))}
+                          </div>
+                        </div>
+
+                        {/* Reset Button */}
+                        <button
+                          className={styles.resetButton}
+                          onClick={() => {
+                            resetToDefaults();
+                            toast.info("Parameters reset to defaults", {
+                              position: "bottom-left",
+                              autoClose: 2000,
+                              icon: () => <RefreshCw size={16} />,
+                            });
+                          }}
+                          type="button"
+                        >
+                          <RefreshCw size={14} />
+                          <span>Reset to Defaults</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Pool Selection Indicator - Redesigned */}
+                  <div className={styles.poolBadgeContainer}>
+                    <div className={styles.poolBadge}>
+                      <div className={styles.poolIcon}>
+                        {selectedPool ? (
+                          <Coins size={16} />
+                        ) : isKidsMode(mode) ? (
+                          <Star size={16} />
+                        ) : (
+                          <Coins size={16} />
                         )}
                       </div>
+                      <span className={styles.poolName}>
+                        {selectedPool
+                          ? `Minting to: ${selectedPool.name}`
+                          : `Minting to: ${isKidsMode(mode) ? "Kids" : "Pro"
+                          } Collection`}
+                      </span>
+                      {selectedPool && (
+                        <button
+                          className={styles.clearPoolButton}
+                          onClick={() =>
+                            usePoolStore.getState().clearSelectedPool()
+                          }
+                          title="Clear pool selection"
+                        >
+                          <X size={14} />
+                        </button>
+                      )}
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
 
@@ -435,13 +502,14 @@ const RightPanel: React.FC = () => {
                 </div>
               )}
 
-              {/* Generated Images Section */}
+              {/* Generated Images Section - Enhanced */}
               {generatedImages.length > 0 && (
                 <div className={styles.section}>
                   <div className={styles.galleryHeader}>
                     <h3 className={styles.sectionTitle}>
                       <ImageIcon size={16} className={styles.sectionIcon} />
                       <span>Generated Images</span>
+                      <span className={styles.imageCount}>{generatedImages.length}</span>
                     </h3>
                     <button
                       className={styles.toggleGallery}
@@ -478,23 +546,22 @@ const RightPanel: React.FC = () => {
                         >
                           <div className={styles.imageContainer}>
                             <Image
-                              src={image.src} // Use the src (base64 or blob URL)
+                              src={image.src}
                               alt={image.title}
-                              width={150} // Adjust size as needed
+                              width={150}
                               height={150}
                               className={styles.generatedImage}
-                              unoptimized={image.src.startsWith("blob:")} // Avoid Next.js optimization for blob URLs
+                              unoptimized={image.src.startsWith("blob:")}
                             />
                             <div className={styles.imageActions}>
                               <button
                                 className={styles.imageActionButton}
                                 title="Download"
-                                onClick={(e) => handleDownloadImage(e, image)}
+                                onClick={(e) => handleDirectImageDownload(e, image)}
                                 type="button"
                               >
                                 <Download size={14} />
                               </button>
-                              {/* Display mint button for both modes, but with different behaviors */}
                               <button
                                 className={styles.imageActionButton}
                                 title={
@@ -513,6 +580,9 @@ const RightPanel: React.FC = () => {
                                 )}
                               </button>
                             </div>
+                            {selectedImageId === image.id && (
+                              <div className={styles.selectedIndicator} />
+                            )}
                           </div>
                           <div className={styles.imageTitle}>{image.title}</div>
                         </div>
@@ -522,26 +592,15 @@ const RightPanel: React.FC = () => {
                 </div>
               )}
 
-              {/* Action Buttons */}
+              {/* Action Buttons - Mobile order reversed */}
               {generatedImages.length > 0 && (
                 <div className={styles.section}>
-                  <div className={styles.actionButtons}>
-                    <button
-                      className={`${styles.actionButton} ${!selectedImageId ? styles.disabled : ""
-                        }`}
-                      onClick={() => handleExport(selectedImageId, generatedImages)}
-                      disabled={!selectedImageId}
-                      type="button"
-                    >
-                      <Download size={18} />
-                      <span>Export</span>
-                    </button>
-
-                    {/* Modify the mint button to work with both modes */}
+                  <div className={`${styles.actionButtons} ${isMobile ? styles.mobileActions : ''}`}>
+                    {/* The mint button appears first on mobile */}
                     {mode === "pro" ? (
                       <button
-                        className={`${styles.actionButton} ${styles.mintButton
-                          } ${!selectedImageId ? styles.disabled : ""}`}
+                        className={`${styles.actionButton} ${styles.mintButton}
+                          ${!selectedImageId ? styles.disabled : ""}`}
                         onClick={handleMintNFT}
                         disabled={!selectedImageId}
                         type="button"
@@ -551,8 +610,8 @@ const RightPanel: React.FC = () => {
                       </button>
                     ) : (
                       <button
-                        className={`${styles.actionButton} ${styles.kidsMintButton
-                          } ${!selectedImageId ? styles.disabled : ""}`}
+                        className={`${styles.actionButton} ${styles.kidsMintButton}
+                          ${!selectedImageId ? styles.disabled : ""}`}
                         onClick={() =>
                           selectedImageId &&
                           handleKidsMintClick(selectedImageId)
@@ -567,6 +626,18 @@ const RightPanel: React.FC = () => {
                         </span>
                       </button>
                     )}
+
+                    {/* Download button renamed from Export */}
+                    <button
+                      className={`${styles.actionButton} ${styles.downloadButton}
+                        ${!selectedImageId ? styles.disabled : ""}`}
+                      onClick={handleDirectDownload}
+                      disabled={!selectedImageId}
+                      type="button"
+                    >
+                      <Download size={18} />
+                      <span>Download</span>
+                    </button>
                   </div>
                 </div>
               )}
@@ -574,9 +645,14 @@ const RightPanel: React.FC = () => {
               {/* Empty state */}
               {!isProcessing && !error && generatedImages.length === 0 && (
                 <div className={styles.emptyState}>
-                  <ImageIcon size={40} className={styles.emptyStateIcon} />
+                  <div className={styles.emptyStateIconWrapper}>
+                    <ImageIcon size={30} className={styles.emptyStateIcon} />
+                  </div>
                   <p className={styles.emptyStateText}>
                     Click &quot;AI Enhance&quot; to see results here.
+                  </p>
+                  <p className={styles.emptyStateSubtext}>
+                    Your enhanced images will appear in this panel.
                   </p>
                 </div>
               )}
