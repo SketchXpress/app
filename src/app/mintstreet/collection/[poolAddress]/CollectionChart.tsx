@@ -26,7 +26,7 @@ import { useBondingCurveForPool } from "@/hooks/useBondingCurveForPool";
 import ChartToolbar, { ChartType, Timeframe, SMAPeriod } from "./ChartToolbar";
 
 type Candle = {
-  time: number;    // seconds since epoch
+  time: Time;    // Time type from lightweight-charts
   open: number;
   high: number;
   low: number;
@@ -87,7 +87,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
       .filter((h) => h.blockTime != null)
       .sort((a, b) => (a.blockTime! - b.blockTime!))
       .map((item) => {
-        const t = Math.floor(item.blockTime!) as number;
+        const t = Math.floor(item.blockTime!) as Time;
         const price = item.price ?? lastPrice ?? 0;
         const open = lastPrice ?? price;
         const high = Math.max(open, price);
@@ -106,7 +106,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
     const groupedCandles: Record<number, Candle & { count: number }> = {};
 
     rawCandles.forEach(candle => {
-      const date = new Date(candle.time * 1000);
+      const date = new Date(Number(candle.time) * 1000);
       let timeKey: number;
 
       if (timeframe === '1h') {
@@ -121,7 +121,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
 
       if (!groupedCandles[timeKey]) {
         groupedCandles[timeKey] = {
-          time: timeKey,
+          time: timeKey as Time,
           open: candle.open,
           high: candle.high,
           low: candle.low,
@@ -174,6 +174,24 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
       handleScale: { axisPressedMouseMove: true },
     });
     chartRef.current = chart;
+
+    // Immediately create the candlestick series
+    const candleSeries = chart.addSeries(CandlestickSeries, {
+      upColor: '#22C55E',
+      downColor: '#EF4444',
+      borderUpColor: '#22C55E',
+      borderDownColor: '#EF4444',
+      wickUpColor: '#22C55E',
+      wickDownColor: '#EF4444',
+      priceLineVisible: false,
+    });
+    seriesRef.current = candleSeries;
+
+    // Set data if available
+    if (candles.length > 0) {
+      candleSeries.setData(candles);
+      chart.timeScale().fitContent();
+    }
 
     // Set up crosshair move handler for legend
     chart.subscribeCrosshairMove((param) => {
@@ -232,7 +250,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
       volumeSeriesRef.current = null;
       smaSeriesRef.current = null;
     };
-  }, [container]);
+  }, [container, candles]);
 
   // Handle chart type changes and create appropriate series
   useEffect(() => {
