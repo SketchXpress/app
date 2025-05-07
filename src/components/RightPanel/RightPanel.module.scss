@@ -526,101 +526,6 @@ $mobile-panel-width: 280px;
   }
 }
 
-// Processing overlay
-.processingOverlay {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.9);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  z-index: 1100;
-  backdrop-filter: blur(8px);
-  animation: fadeIn .3s ease;
-}
-
-.processingContent {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 24px;
-  max-width: 280px;
-  text-align: center;
-  padding: 32px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-}
-
-.spinnerContainer {
-  position: relative;
-  width: 80px;
-  height: 80px;
-}
-
-.spinner {
-  position: absolute;
-  width: 100%;
-  height: 100%;
-  border-radius: 50%;
-  border: 3px solid transparent;
-  border-top-color: var(--accent-cyan);
-  border-right-color: var(--accent-magenta);
-  animation: spin 1.5s linear infinite;
-}
-
-.spinnerInner {
-  position: absolute;
-  width: 70%;
-  height: 70%;
-  top: 15%;
-  left: 15%;
-  border-radius: 50%;
-  border: 3px solid transparent;
-  border-top-color: var(--accent-magenta);
-  border-right-color: var(--accent-cyan);
-  animation: spin 1s linear infinite reverse;
-}
-
-.processingTitle {
-  font-size: 1.25rem;
-  font-weight: 600;
-  margin: 0;
-  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
-  -webkit-background-clip: text;
-  background-clip: text;
-  -webkit-text-fill-color: transparent;
-}
-
-.processingText {
-  font-size: .875rem;
-  color: #555;
-  margin: 0;
-  line-height: 1.5;
-  font-weight: 400;
-}
-
-.progressBar {
-  width: 180px;
-  height: 4px;
-  background: rgba(0, 0, 0, 0.06);
-  border-radius: 2px;
-  overflow: hidden;
-  margin-top: 12px;
-}
-
-.progressFill {
-  height: 100%;
-  width: 30%;
-  background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
-  border-radius: 2px;
-  animation: progress 2s ease-in-out infinite;
-}
-
 // Error section
 .errorSection {
   display: flex;
@@ -704,9 +609,7 @@ $mobile-panel-width: 280px;
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.08);
     border-color: rgba(0, 183, 225, 0.2);
 
-    .imageActions {
-      opacity: 1;
-    }
+
   }
 
   &.selected {
@@ -733,51 +636,6 @@ $mobile-panel-width: 280px;
   }
 }
 
-.imageActions {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  display: flex;
-  justify-content: center;
-  gap: .625rem;
-  padding: .625rem;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent);
-  opacity: 0;
-  transition: opacity .3s ease;
-}
-
-.imageActionButton {
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(4px);
-  border: none;
-  border-radius: 50%;
-  color: white;
-  cursor: pointer;
-  transition: all .2s ease;
-
-  &:hover {
-    background: rgba(255, 255, 255, 0.4);
-    transform: scale(1.1);
-  }
-}
-
-.selectedIndicator {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--accent-cyan);
-  border: 2px solid white;
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2);
-}
 
 .imageTitle {
   padding: .5rem;
@@ -1044,9 +902,5 @@ $mobile-panel-width: 280px;
 @include respond-to(small) {
   .panelContent {
     padding: 1rem .875rem;
-  }
-
-  .processingContent {
-    padding: 1.5rem 1rem;
   }
 }

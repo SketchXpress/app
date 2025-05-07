@@ -20,6 +20,7 @@
     "d3": "^7.9.0",
     "d3-format": "^3.1.0",
     "date-fns": "^4.1.0",
+    "embla-carousel-autoplay": "^8.6.0",
     "embla-carousel-react": "^8.6.0",
     "framer-motion": "^12.7.4",
     "lightweight-charts": "^5.0.6",

@@ -3,6 +3,7 @@
 
 import { useCallback, useEffect, useState } from "react"; // Removed useEffect for isInitialLoad
 import useEmblaCarousel from "embla-carousel-react";
+import Autoplay from "embla-carousel-autoplay";
 import Image from "next/image";
 import {
   ChevronLeft,
@@ -39,12 +40,15 @@ const NFTCarousel = () => {
   // Use the hook's loading state directly
   const isLoading = loading;
 
-  const [emblaRef, emblaApi] = useEmblaCarousel({
-    loop: true,
-    dragFree: true,
-    duration: 30,
-    align: "center",
-  });
+  const [emblaRef, emblaApi] = useEmblaCarousel(
+    {
+      loop: false,
+      dragFree: true,
+      duration: 30,
+      align: "center",
+    },
+    [Autoplay()]
+  );
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
@@ -221,9 +225,8 @@ const NFTCarousel = () => {
               <button
                 key={index}
                 onClick={() => emblaApi?.scrollTo(index)} // Allow interaction even if buttons are disabled
-                className={`${styles.progressDot} ${
-                  activeIndex === index ? styles.activeDot : ""
-                }`}
+                className={`${styles.progressDot} ${activeIndex === index ? styles.activeDot : ""
+                  }`}
                 aria-label={`Go to slide ${index + 1}`}
               >
                 <span className={styles.dotInner}></span>
