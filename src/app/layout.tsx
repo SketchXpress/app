@@ -79,7 +79,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </WalletConnectionProvider>
 
         <ToastContainer
-          position="bottom-right"
+          position="bottom-left"
           autoClose={4000}
           hideProgressBar={false}
           newestOnTop

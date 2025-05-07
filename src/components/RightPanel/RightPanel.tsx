@@ -537,7 +537,7 @@ const RightPanel: React.FC = () => {
       const mintingToastId = toast.loading(
         `Starting NFT minting process on ${poolInfo.name}...`,
         {
-          position: "bottom-right",
+          position: "bottom-left",
         }
       );
 

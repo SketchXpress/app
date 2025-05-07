@@ -27,13 +27,13 @@ const MobileMenu = ({ isOpen, onClose }: Props) => {
 
     if (snapshot) {
       toast.success("Project saved successfully!", {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 2000,
         icon: <span>🎨</span>,
       });
     } else {
       toast.info("Nothing to save yet.", {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 2000,
       });
     }
@@ -51,20 +51,20 @@ const MobileMenu = ({ isOpen, onClose }: Props) => {
         })
         .then(() => {
           toast.success("Shared successfully!", {
-            position: "bottom-right",
+            position: "bottom-left",
             autoClose: 2000,
           });
         })
         .catch(() => {
           toast.error("Could not share content", {
-            position: "bottom-right",
+            position: "bottom-left",
             autoClose: 3000,
           });
         });
     } else {
       navigator.clipboard.writeText(url).then(() => {
         toast.info("Link copied to clipboard!", {
-          position: "bottom-right",
+          position: "bottom-left",
           autoClose: 2000,
           icon: <span>📋</span>,
         });

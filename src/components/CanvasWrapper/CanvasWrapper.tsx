@@ -167,7 +167,7 @@ const CanvasWrapper = () => {
         localStorage.setItem(CANVAS_STORAGE_KEY, serializedState);
       } catch {
         toast.error("Failed to save your work. Consider exporting your drawing.", {
-          position: "bottom-right",
+          position: "bottom-left",
           autoClose: 5000,
         });
       }
@@ -204,7 +204,7 @@ const CanvasWrapper = () => {
 
       // Show a single toast notification here
       toast.info(mode === "kids" ? "Adding some magic to your drawing..." : "Enhancing your artwork...", {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 4000,
         icon: <span>{mode === "kids" ? "✨" : "🎨"}</span>
       });
@@ -226,7 +226,7 @@ const CanvasWrapper = () => {
 
     } catch (err) {
       toast.error(`Enhancement failed: ${err instanceof Error ? err.message : "Unknown error"}`, {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 5000,
       });
       setIsProcessing(false);

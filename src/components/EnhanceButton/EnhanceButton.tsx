@@ -36,7 +36,7 @@ const EnhanceButton = ({ onClick }: EnhanceButtonProps) => {
       } else {
         // If no shapes, show a message
         toast.info("Please draw something first!", {
-          position: "bottom-right",
+          position: "bottom-left",
           autoClose: 3000,
           icon: <span>✏️</span>
         });

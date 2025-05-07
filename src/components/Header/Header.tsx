@@ -48,7 +48,7 @@ const Header = () => {
           toast.warning(
             "Your project is too large to save locally. Consider exporting instead.",
             {
-              position: "bottom-right",
+              position: "bottom-left",
               autoClose: 5000,
             }
           );
@@ -58,7 +58,7 @@ const Header = () => {
         localStorage.setItem("sketchxpress-manual-save", serializedState);
 
         toast.success("Project saved successfully!", {
-          position: "bottom-right",
+          position: "bottom-left",
           autoClose: 3000,
           hideProgressBar: false,
           closeOnClick: true,
@@ -68,13 +68,13 @@ const Header = () => {
         });
       } catch {
         toast.error("Failed to save project. Please try again.", {
-          position: "bottom-right",
+          position: "bottom-left",
           autoClose: 3000,
         });
       }
     } else {
       toast.error("Nothing to save yet. Try drawing something first!", {
-        position: "bottom-right",
+        position: "bottom-left",
         autoClose: 3000,
       });
     }
@@ -92,14 +92,14 @@ const Header = () => {
         })
         .then(() => {
           toast.success("Shared successfully!", {
-            position: "bottom-right",
+            position: "bottom-left",
             autoClose: 2000,
           });
         })
         .catch((error) => {
           if (error.name !== "AbortError") {
             toast.error("Could not share content", {
-              position: "bottom-right",
+              position: "bottom-left",
               autoClose: 3000,
             });
           }
@@ -109,14 +109,14 @@ const Header = () => {
         .writeText(url)
         .then(() => {
           toast.info("Link copied to clipboard!", {
-            position: "bottom-right",
+            position: "bottom-left",
             autoClose: 3000,
             icon: <span>📋</span>,
           });
         })
         .catch(() => {
           toast.error("Could not copy the link", {
-            position: "bottom-right",
+            position: "bottom-left",
             autoClose: 3000,
           });
         });
