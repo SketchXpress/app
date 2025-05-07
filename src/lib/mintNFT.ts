@@ -15,12 +15,13 @@ import {
 } from "@solana/spl-token";
 import { useState } from "react";
 import * as anchor from "@coral-xyz/anchor";
-import { Program } from "@coral-xyz/anchor";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { Program } from "@coral-xyz/anchor";
 import IDL from "@/utils/idl";
+// Import the types and helpers from your WalletContextProvider
 import {
-  PhantomWalletInterface,
-  SendOptions,
+  getPhantomProvider,
+  PhantomSendOptions,
 } from "@/contexts/WalletContextProvider";
 
 // Metaplex Token Metadata Program ID
@@ -28,10 +29,10 @@ const TOKEN_METADATA_PROGRAM_ID = new PublicKey(
   "metaqbxxUerdq28cj1RbAWkYQm3ybzjb6a8bt518x1s"
 );
 
-// Your program ID
+// Program ID
 const PROGRAM_ID = new PublicKey(IDL.metadata.address);
 
-// Helper function to safely stringify any error object
+// Helper functions remain the same
 const safeStringifyError = (error: unknown): string => {
   if (error instanceof Error) return error.message;
   if (typeof error === "string") return error;
@@ -56,16 +57,6 @@ const safeStringifyError = (error: unknown): string => {
   return `[Unknown Error: ${typeof error}]`;
 };
 
-// Helper functions for public key validation
-const isValidPublicKeyFormat = (address: string): boolean => {
-  try {
-    new PublicKey(address);
-    return true;
-  } catch {
-    return false;
-  }
-};
-
 const safePublicKey = (address: string): PublicKey | null => {
   try {
     return new PublicKey(address);
@@ -75,7 +66,7 @@ const safePublicKey = (address: string): PublicKey | null => {
 };
 
 export const useMintNFT = () => {
-  const wallet = useWallet();
+  const wallet = useWallet(); // Use wallet hook directly
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [txSignature, setTxSignature] = useState<string | null>(null);
@@ -89,28 +80,22 @@ export const useMintNFT = () => {
     uri: string,
     sellerFeeBasisPoints: number
   ) => {
+    if (!wallet.publicKey || !wallet.signTransaction) {
+      setError("Wallet not connected or invalid.");
+      return null;
+    }
+
     setLoading(true);
     setError(null);
-    try {
-      // Check if wallet is connected
-      if (!wallet.publicKey || !wallet.signTransaction) {
-        throw new Error(
-          "Wallet not connected or wallet doesn't support transaction signing"
-        );
-      }
 
-      // Validate inputs
+    try {
+      // Validation code remains the same
       if (!poolAddress || !name || !symbol || !uri) {
         throw new Error("Pool address, name, symbol, and URI are required");
       }
 
       if (sellerFeeBasisPoints < 0 || sellerFeeBasisPoints > 10000) {
         throw new Error("Seller fee basis points must be between 0 and 10000");
-      }
-
-      // Validate pool address
-      if (!isValidPublicKeyFormat(poolAddress)) {
-        throw new Error("Invalid pool address format");
       }
 
       const pool = safePublicKey(poolAddress);
@@ -120,38 +105,28 @@ export const useMintNFT = () => {
 
       // Create Solana Connection
       const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
-      // Create Anchor provider for fetching account data
-      const anchorProvider = new anchor.AnchorProvider(
+
+      // Create Anchor provider
+      const provider = new anchor.AnchorProvider(
         connection,
         {
           publicKey: wallet.publicKey,
           signTransaction: wallet.signTransaction,
           signAllTransactions:
-            wallet.signAllTransactions ||
-            (async (txs) => {
-              const signedTxs = [];
-              for (const tx of txs) {
-                signedTxs.push(await wallet.signTransaction!(tx));
-              }
-              return signedTxs;
-            }),
+            wallet.signAllTransactions ?? (async (txs) => Promise.resolve(txs)),
         },
         { commitment: "confirmed" }
       );
 
       // Create program instance
-      const program = new Program(
-        IDL as anchor.Idl,
-        PROGRAM_ID,
-        anchorProvider
-      );
+      const program = new Program(IDL as anchor.Idl, PROGRAM_ID, provider);
 
-      // Generate a new keypair for the NFT mint
+      // Generate NFT mint keypair
       const nftMintKeypair = Keypair.generate();
       const nftMint = nftMintKeypair.publicKey;
       console.log("Generated NFT mint keypair:", nftMint.toString());
 
-      // Get pool data to retrieve collection mint
+      // Get pool data
       const poolData = await program.account.bondingCurvePool.fetch(pool);
       type PoolData = { collection: PublicKey; creator: PublicKey };
       const { collection: collectionMint, creator } = poolData as PoolData;
@@ -190,20 +165,22 @@ export const useMintNFT = () => {
         TOKEN_METADATA_PROGRAM_ID
       );
 
-      // Get the associated token address for the NFT
+      // Get token account
       const tokenAccount = await getAssociatedTokenAddress(
         nftMint,
         wallet.publicKey
       );
 
-      // Create transaction
+      // STEP 1: Create transaction manually instead of using RPC
       const transaction = new Transaction();
-      // Add compute unit limit instruction for complex transactions
+
+      // Add compute unit limit instruction
       transaction.add(
         ComputeBudgetProgram.setComputeUnitLimit({ units: 400000 })
       );
-      // Add mint NFT instruction
-      const mintNftIx = await program.methods
+
+      // Build mint NFT instruction using Anchor's instruction() method
+      const mintNftInstruction = await program.methods
         .mintNft(name, symbol, uri, sellerFeeBasisPoints)
         .accounts({
           payer: wallet.publicKey,
@@ -223,43 +200,42 @@ export const useMintNFT = () => {
           rent: SYSVAR_RENT_PUBKEY,
         })
         .instruction();
-      transaction.add(mintNftIx);
-      // Set fee payer and recent blockhash
+
+      // Add the mint NFT instruction to the transaction
+      transaction.add(mintNftInstruction);
+
+      // Setup transaction parameters
       transaction.feePayer = wallet.publicKey;
       const { blockhash, lastValidBlockHeight } =
         await connection.getLatestBlockhash("confirmed");
       transaction.recentBlockhash = blockhash;
-      // Partially sign with the mint keypair
+
+      // Partially sign with mint keypair
       transaction.partialSign(nftMintKeypair);
 
-      // Handle different wallet providers
+      // STEP 2: Handle wallet-specific transaction signing and sending
       let signature: string;
 
-      // Check if wallet is Phantom and supports signAndSendTransaction
-      if ("phantom" in window && wallet.wallet?.adapter?.name === "Phantom") {
-        // Cast wallet to PhantomWalletInterface
-        const phantomWallet = wallet as unknown as PhantomWalletInterface;
+      // Use your existing getPhantomProvider helper function
+      const phantomProvider = getPhantomProvider();
+      if (phantomProvider && wallet.wallet?.adapter?.name === "Phantom") {
+        console.log("Using Phantom's signAndSendTransaction method");
 
-        if (phantomWallet.signAndSendTransaction) {
-          // Prepare send options
-          const sendOptions: SendOptions = {
-            skipPreflight: false,
-            preflightCommitment: "confirmed",
-          };
+        // Define options using your PhantomSendOptions interface
+        const sendOptions: PhantomSendOptions = {
+          skipPreflight: false,
+          preflightCommitment: "confirmed",
+        };
 
-          // Use properly typed signAndSendTransaction
-          const { signature: phantomSig } =
-            await phantomWallet.signAndSendTransaction(
-              transaction,
-              sendOptions
-            );
-          signature = phantomSig;
-        } else {
-          throw new Error(
-            "Phantom wallet doesn't support signAndSendTransaction"
+        // Use Phantom's native signAndSendTransaction with your type definitions
+        const { signature: phantomSig } =
+          await phantomProvider.signAndSendTransaction(
+            transaction,
+            sendOptions
           );
-        }
+        signature = phantomSig;
       } else {
+        console.log("Using standard wallet adapter method");
         // Standard flow for other wallets
         const signedTransaction = await wallet.signTransaction(transaction);
         signature = await connection.sendRawTransaction(
@@ -271,10 +247,8 @@ export const useMintNFT = () => {
         );
       }
 
-      console.log("NFT minted successfully with signature:", signature);
-
-      // Wait for confirmation
-      await connection.confirmTransaction(
+      // STEP 3: Add proper transaction confirmation
+      const confirmationResult = await connection.confirmTransaction(
         {
           blockhash,
           lastValidBlockHeight,
@@ -282,6 +256,16 @@ export const useMintNFT = () => {
         },
         "confirmed"
       );
+
+      if (confirmationResult.value.err) {
+        throw new Error(
+          `Transaction confirmation failed: ${JSON.stringify(
+            confirmationResult.value.err
+          )}`
+        );
+      }
+
+      console.log("NFT minted successfully with signature:", signature);
 
       setTxSignature(signature);
       setNftMintAddress(nftMint.toString());
