@@ -464,7 +464,7 @@ const RightPanel: React.FC = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  // Download/Export uses the original URL
+  // Download the selected image
   const handleExport = () => {
     if (!selectedImageId) {
       toast.warning("Please select an image to export", {
@@ -487,8 +487,8 @@ const RightPanel: React.FC = () => {
 
     const link = document.createElement("a");
     link.href = selectedImage.url; // Use the original URL for download
-    link.target = "_blank"; // Open in new tab might be better for ngrok links
-    link.download = `generated-image-${selectedImageId}.png`;
+    link.download = `generated-image-${selectedImageId}.png`; // This forces download instead of navigation
+    // Remove target="_blank" to prevent opening in new tab
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
