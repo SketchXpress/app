@@ -156,7 +156,13 @@ const RightPanel: React.FC = () => {
       {(isMobile || isTablet) && (
         <button
           className={styles.mobileToggle}
-          onClick={toggleSidebar}
+          onClick={() => {
+            if (sidebarOpen) {
+              setSidebarOpen(false);
+            } else {
+              setSidebarOpen(true);
+            }
+          }}
           aria-label={sidebarOpen ? "Close panel" : "Open panel"}
         >
           {sidebarOpen ? <X size={18} /> : <ChevronsLeft size={18} />}

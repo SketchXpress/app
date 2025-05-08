@@ -141,11 +141,6 @@ export const useEnhanceEvents = (
 
           setGeneratedImages(processedImages);
           setSelectedImageId(savedSession.selectedId);
-
-          // Open sidebar if we have images
-          if (!sidebarOpen && processedImages.length > 0) {
-            setSidebarOpen(true);
-          }
         }
 
         setImagesLoaded(true);
