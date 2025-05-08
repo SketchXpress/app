@@ -20,6 +20,23 @@ const NFT_MINT_DISCRIMINATOR = Buffer.from(sha256("event:NftMint")).subarray(0, 
 const NFT_SALE_DISCRIMINATOR = Buffer.from(sha256("event:NftSale")).subarray(0, 8).toString('hex');
 
 // --- Interfaces ---
+interface DecodedEvent {
+    programId: string;
+    name: string;
+    data: {
+        signature: string;
+        timestamp: string;
+        nft_mint: string;
+        pool: string;
+        sale_price?: string;
+        mint_price?: string;
+        sell_fee?: string;
+        protocol_fee?: string;
+        seller?: string;
+        minter?: string;
+    };
+}
+
 interface BondingCurvePoolAccountData {
     collection: PublicKey;
     basePrice: BN;
@@ -97,22 +114,21 @@ class RateLimitError extends Error {
 
 // --- Helius Configuration ---
 const helius = new Helius(HELIUS_API_KEY, SOLANA_NETWORK);
+const connection = new Connection(helius.endpoint);
 const HELIUS_RATE_LIMITER = asyncRateLimit(
-    async (request: { signatures: string[] }) => {
+    async (signatures: string[]) => {
         const start = Date.now();
         try {
-            const response = await helius.rpc.getTransactions({
-                signatures: request.signatures,
-                commitment: "confirmed"
-            });
+            const response = await connection.getParsedTransactions(signatures);
             logger.debug(`Helius request completed in ${Date.now() - start}ms`);
             return response;
-        } catch (error: any) {
+        } catch (error: unknown) {
             logger.error(`Helius request failed after ${Date.now() - start}ms`, error);
             
-            if (error?.response?.status === 429) {
-                const retryAfter = parseInt(error.response.headers['retry-after']) || 30000;
-                throw new RateLimitError(error.message, retryAfter);
+            if (error && typeof error === 'object' && 'response' in error && error.response && typeof error.response === 'object' && 'status' in error.response && 'headers' in error.response && error.response.status === 429) {
+                const retryAfter = parseInt((error.response.headers as Record<string, string>)['retry-after']) || 30000;
+                const errorMessage = 'message' in error ? String(error.message) : 'Rate limit exceeded';
+                throw new RateLimitError(errorMessage, retryAfter);
             }
             
             throw error;
@@ -120,11 +136,7 @@ const HELIUS_RATE_LIMITER = asyncRateLimit(
     },
     {
         limit: 10,
-        window: 60000,
-        onStateUpdate: (state: { remaining: number; limit: number }) => {
-            const newLimit = Math.max(5, Math.floor(state.remaining * 0.8));
-            HELIUS_RATE_LIMITER.updateConfig({ limit: newLimit });
-        }
+        window: 60000
     }
 );
 
@@ -178,7 +190,7 @@ export function useComprehensivePoolAnalytics(poolAddressString?: string) {
     }, []);
 
     const transformDecodedEventToActivity = useCallback((
-        decodedEvent: any
+        decodedEvent: DecodedEvent
     ): MintSaleActivity | null => {
         try {
             const { name, data } = decodedEvent;
@@ -244,11 +256,10 @@ export function useComprehensivePoolAnalytics(poolAddressString?: string) {
                 return { newActivities: [] };
             }
 
-            const transactions = await HELIUS_RATE_LIMITER({
-                signatures: allSignatures
-            });
+            const transactions = await HELIUS_RATE_LIMITER(allSignatures) ?? [];
 
             const parsedActivities = transactions.flatMap(tx => {
+                if (!tx) return [];
                 const events = parseAnchorEvents(tx.meta?.logMessages || [], tx.transaction.signatures[0]);
                 return events.map(event => transformDecodedEventToActivity(event)).filter(Boolean);
             }) as MintSaleActivity[];
