@@ -1,7 +1,7 @@
 // hooks.ts
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { toast } from "react-toastify";
 import {
   subscribeToEnhanceStarted,
@@ -12,6 +12,7 @@ import {
   EnhanceFailedEvent,
 } from "@/lib/events";
 import { GeneratedImage } from "./types";
+import enhancedImageStorage from "@/lib/enhancedImageStorage";
 
 // Custom hook for responsive behavior
 export const useResponsiveBehavior = () => {
@@ -87,6 +88,93 @@ export const useEnhanceEvents = (
   const [isProcessing, setIsProcessing] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
+  const [imagesLoaded, setImagesLoaded] = useState<boolean>(false);
+
+  // Load saved images on mount
+  useEffect(() => {
+    const loadSavedImages = async () => {
+      try {
+        const savedSession = await enhancedImageStorage.loadImages();
+
+        if (
+          savedSession &&
+          savedSession.images &&
+          savedSession.images.length > 0
+        ) {
+          console.log(
+            "Loaded saved images from storage:",
+            savedSession.images.length
+          );
+
+          // Process saved images to convert blob URLs if needed
+          const processedImages = await Promise.all(
+            savedSession.images.map(async (img) => {
+              // If it's a base64 image, we can use it directly
+              if (img.src.startsWith("data:")) {
+                return img;
+              }
+
+              // If it's a blob URL from a previous session, it won't work
+              // So we need to fetch from the original URL and create a new one
+              if (img.src.startsWith("blob:")) {
+                try {
+                  const response = await fetch(img.url);
+                  if (!response.ok) return img; // Keep original if fetch fails
+
+                  const blob = await response.blob();
+                  return {
+                    ...img,
+                    src: URL.createObjectURL(blob),
+                  };
+                } catch (err) {
+                  console.warn(
+                    "Could not refresh blob URL, using original URL:",
+                    err
+                  );
+                  return img;
+                }
+              }
+
+              return img;
+            })
+          );
+
+          setGeneratedImages(processedImages);
+          setSelectedImageId(savedSession.selectedId);
+
+          // Open sidebar if we have images
+          if (!sidebarOpen && processedImages.length > 0) {
+            setSidebarOpen(true);
+          }
+        }
+
+        setImagesLoaded(true);
+      } catch (err) {
+        console.error("Error loading saved images:", err);
+        setImagesLoaded(true);
+      }
+    };
+
+    loadSavedImages();
+  }, [sidebarOpen, setSidebarOpen]);
+
+  // Save images when they change
+  const saveCurrentImages = useCallback(
+    async (images: GeneratedImage[], selected: number | null) => {
+      if (images.length > 0) {
+        console.log("Saving images to storage:", images.length);
+        await enhancedImageStorage.saveImages(images, selected);
+      }
+    },
+    []
+  );
+
+  // Save when images or selection changes
+  useEffect(() => {
+    if (imagesLoaded && generatedImages.length > 0) {
+      saveCurrentImages(generatedImages, selectedImageId);
+    }
+  }, [generatedImages, selectedImageId, imagesLoaded, saveCurrentImages]);
 
   // Subscribe to enhance events
   useEffect(() => {
@@ -94,9 +182,11 @@ export const useEnhanceEvents = (
     const unsubscribeStarted = subscribeToEnhanceStarted(
       (data: EnhanceStartedEvent) => {
         setIsProcessing(true);
-        setGeneratedImages([]); // Clear previous images
         setError(null);
         setCurrentJobId(data.jobId);
+
+        // No longer clear previous images here
+        // We'll keep showing old images until new ones are ready
 
         // Important: Close the sidebar during processing
         if (sidebarOpen) {
@@ -170,6 +260,13 @@ export const useEnhanceEvents = (
           if (images.length > 0) {
             setGeneratedImages(images);
 
+            // Set first image as selected by default
+            const defaultSelectedId = images[0]?.id || null;
+            setSelectedImageId(defaultSelectedId);
+
+            // Save the new images to storage
+            await saveCurrentImages(images, defaultSelectedId);
+
             // NOW open the sidebar since enhancement is complete
             setSidebarOpen(true);
           } else {
@@ -181,7 +278,8 @@ export const useEnhanceEvents = (
               autoClose: 4000,
             });
           }
-        } catch {
+        } catch (err) {
+          console.error("Error processing generated images:", err);
           setError("Failed to process generated images");
 
           // Show error toast
@@ -214,7 +312,7 @@ export const useEnhanceEvents = (
       unsubscribeCompleted();
       unsubscribeFailed();
     };
-  }, [sidebarOpen, setSidebarOpen]); // Rerun if sidebarOpen changes (might affect auto-expand logic)
+  }, [sidebarOpen, setSidebarOpen, saveCurrentImages]); // Rerun if sidebarOpen changes
 
   // Polling for job status (as a backup, primarily rely on events)
   useEffect(() => {
@@ -318,6 +416,14 @@ export const useEnhanceEvents = (
 
           if (images.length > 0) {
             setGeneratedImages(images);
+
+            // Set first image as selected by default
+            const defaultSelectedId = images[0]?.id || null;
+            setSelectedImageId(defaultSelectedId);
+
+            // Save images to storage
+            await saveCurrentImages(images, defaultSelectedId);
+
             setError(null); // Clear any previous error
 
             // Now that processing is complete and we have images, open the sidebar
@@ -361,7 +467,7 @@ export const useEnhanceEvents = (
     return () => {
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [currentJobId, isProcessing, setSidebarOpen]); // Only restart polling if jobId changes or processing state changes
+  }, [currentJobId, isProcessing, setSidebarOpen, saveCurrentImages]); // Only restart polling if needed
 
   // Clean up object URLs on unmount or when images change
   useEffect(() => {
