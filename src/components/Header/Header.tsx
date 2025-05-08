@@ -13,12 +13,14 @@ import {
   Save,
   Coins,
 } from "lucide-react";
+import { getSnapshot } from "tldraw";
 
 import styles from "./Header.module.scss";
 import logo from "../../../public/logo.png";
 import responsive from "./HeaderResponsive.module.scss";
 import MobileMenu from "../MobileMenu/MobileMenu";
 import ModeToggle from "../ModeToggle/ModeToggle";
+import canvasStorage from '@/lib/canvasStorage';
 
 import ConnectWalletButton from "@/wallet/ConnectWalletButton";
 
@@ -36,26 +38,54 @@ const Header = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  const handleSave = () => {
+  // Change handleSave to be async
+  const handleSave = async () => {
     const editor = useCanvasStore.getState().editor;
 
-    if (editor) {
+    if (!editor) {
+      toast.error("Nothing to save yet. Try drawing something first!", {
+        position: "bottom-left",
+        autoClose: 3000,
+      });
+      return;
+    }
+
+    try {
+      const snapshot = getSnapshot(editor.store);
+
+      // Save with a timestamp-based name for manual saves
+      const saveName = `manual-${Date.now()}`;
+
+      // Show loading toast
+      const loadingToast = toast.loading("Saving your artwork...", {
+        position: "bottom-left",
+      });
+
+      // Generate a small preview thumbnail
+      let previewBase64 = '';
       try {
-        const snapshot = editor.store.getSnapshot();
-        const serializedState = JSON.stringify(snapshot);
+        // Get a small SVG preview if possible
+        const svgResult = await editor.getSvgString(editor.getSelectedShapeIds(), {
+          scale: 0.2,
+          background: true,
+        });
 
-        if (serializedState.length > 4.5 * 1024 * 1024) {
-          toast.warning(
-            "Your project is too large to save locally. Consider exporting instead.",
-            {
-              position: "bottom-left",
-              autoClose: 5000,
-            }
-          );
-          return;
+        if (svgResult && svgResult.svg) {
+          previewBase64 = `data:image/svg+xml;base64,${btoa(svgResult.svg)}`;
         }
+      } catch (previewErr) {
+        console.warn('Failed to generate preview:', previewErr);
+      }
 
-        localStorage.setItem("sketchxpress-manual-save", serializedState);
+      // Save canvas with the preview
+      const success = await canvasStorage.saveCanvas(snapshot, saveName);
+      toast.dismiss(loadingToast);
+
+      if (success) {
+        // If we got a preview, save it
+        if (previewBase64) {
+          await canvasStorage.saveCanvasPreview(saveName, previewBase64);
+        }
 
         toast.success("Project saved successfully!", {
           position: "bottom-left",
@@ -66,20 +96,20 @@ const Header = () => {
           draggable: true,
           icon: <span>🎨</span>,
         });
-      } catch {
+      } else {
         toast.error("Failed to save project. Please try again.", {
           position: "bottom-left",
           autoClose: 3000,
         });
       }
-    } else {
-      toast.error("Nothing to save yet. Try drawing something first!", {
+    } catch (err) {
+      console.error('Error in handleSave:', err);
+      toast.error("Failed to save project. Please try again.", {
         position: "bottom-left",
         autoClose: 3000,
       });
     }
   };
-
   const handleShare = () => {
     const url = window.location.href;
 

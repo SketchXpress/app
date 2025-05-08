@@ -21,9 +21,7 @@ import EnhanceButton from "../EnhanceButton/EnhanceButton";
 import OnboardingGuide from "../OnboardingGuide/OnboardingGuide";
 import { useEnhanceStore } from "@/stores/enhanceStore";
 import { useModeStore } from "@/stores/modeStore";
-
-// Storage key for persisting canvas state
-const CANVAS_STORAGE_KEY = 'sketchxpress-canvas-state';
+import canvasStorage from "@/lib/canvasStorage";
 
 // Debounce helper with proper typing
 const debounce = <T extends (...args: Parameters<T>) => ReturnType<T>>(
@@ -116,18 +114,21 @@ const CanvasWrapper = () => {
   const store = useMemo(() => {
     const newStore = createTLStore();
 
-    // Only try to access localStorage in the browser
+    // Only try to access storage in the browser
     if (isBrowser) {
-      try {
-        const savedState = localStorage.getItem(CANVAS_STORAGE_KEY);
-        if (savedState) {
-          const parsedState = JSON.parse(savedState);
-          loadSnapshot(newStore, parsedState);
+      // Load the canvas state asynchronously
+      const loadSavedCanvas = async () => {
+        try {
+          const savedState = await canvasStorage.loadCanvas();
+          if (savedState) {
+            loadSnapshot(newStore, savedState);
+          }
+        } catch (err) {
+          console.warn('Failed to restore canvas state:', err);
         }
-      } catch (err) {
-        // Continue with empty canvas if restore fails
-        console.warn('Failed to restore canvas state:', err);
-      }
+      };
+
+      loadSavedCanvas();
     }
 
     return newStore;
@@ -151,21 +152,22 @@ const CanvasWrapper = () => {
 
     // Create debounced save function to avoid excessive writes
     const saveCanvasState = debounce(() => {
-      // Only save if we're in the browser
-      if (!isBrowser) return;
+      if (!isBrowser || !editor) return;
 
       try {
         const snapshot = getSnapshot(editor.store);
-        const serializedState = JSON.stringify(snapshot);
 
-        // Check for localStorage size limits (~5MB)
-        if (serializedState.length > 4.5 * 1024 * 1024) {
-          console.warn('Canvas state too large for localStorage');
-          return;
-        }
-
-        localStorage.setItem(CANVAS_STORAGE_KEY, serializedState);
-      } catch {
+        // Save asynchronously
+        canvasStorage.saveCanvas(snapshot).then(success => {
+          if (!success) {
+            toast.error("Failed to save your work. Consider exporting your drawing.", {
+              position: "bottom-left",
+              autoClose: 5000,
+            });
+          }
+        });
+      } catch (err) {
+        console.error('Error getting snapshot:', err);
         toast.error("Failed to save your work. Consider exporting your drawing.", {
           position: "bottom-left",
           autoClose: 5000,
