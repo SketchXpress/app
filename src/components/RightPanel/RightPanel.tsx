@@ -24,6 +24,7 @@ import { useWallet } from "@solana/wallet-adapter-react";
 import { useMintNFT } from "@/lib/mintNFT";
 
 import ParentalControl from "../ParentalControl/ParentalContrl";
+import CollectionDropdown from "@/components/CollectionDropdown/CollectionDropdown";
 
 import {
   useResponsiveBehavior,
@@ -358,24 +359,25 @@ const RightPanel: React.FC = () => {
                     )}
                   </div>
 
-                  <div className={styles.poolBadgeContainer}>
-                    <div className={styles.poolBadge}>
-                      <div className={styles.poolIcon}>
-                        {selectedPool ? (
+                  {/* Collection Dropdown Section */}
+                  <div className={styles.poolSection}>
+                    <h3 className={styles.sectionTitle}>
+                      <Coins size={16} className={styles.sectionIcon} />
+                      <span>Collection</span>
+                    </h3>
+
+                    {/* Collection Dropdown Component */}
+                    <CollectionDropdown mode={mode} />
+
+                    {/* Keep the selected pool display for user confirmation */}
+                    {selectedPool && (
+                      <div className={styles.poolBadge}>
+                        <div className={styles.poolIcon}>
                           <Coins size={16} />
-                        ) : isKidsMode(mode) ? (
-                          <Star size={16} />
-                        ) : (
-                          <Coins size={16} />
-                        )}
-                      </div>
-                      <span className={styles.poolName}>
-                        {selectedPool
-                          ? `Minting to: ${selectedPool.name}`
-                          : `Minting to: ${isKidsMode(mode) ? "Kids" : "Pro"
-                          } Collection`}
-                      </span>
-                      {selectedPool && (
+                        </div>
+                        <span className={styles.poolName}>
+                          Minting to: {selectedPool.name}
+                        </span>
                         <button
                           className={styles.clearPoolButton}
                           onClick={() =>
@@ -385,8 +387,24 @@ const RightPanel: React.FC = () => {
                         >
                           <X size={14} />
                         </button>
-                      )}
-                    </div>
+                      </div>
+                    )}
+
+                    {/* Show default collection when no selection */}
+                    {!selectedPool && (
+                      <div className={styles.poolBadge}>
+                        <div className={styles.poolIcon}>
+                          {isKidsMode(mode) ? (
+                            <Star size={16} />
+                          ) : (
+                            <Coins size={16} />
+                          )}
+                        </div>
+                        <span className={styles.poolName}>
+                          Default: {isKidsMode(mode) ? "Kids" : "Pro"} Collection
+                        </span>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

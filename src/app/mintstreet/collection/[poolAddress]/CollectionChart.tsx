@@ -20,10 +20,13 @@ import {
   CrosshairMode,
   ColorType,
   Time,
+  SeriesType,
 } from "lightweight-charts";
 import styles from "./CollectionChart.module.scss";
 import { useBondingCurveForPool } from "@/hooks/useBondingCurveForPool";
 import ChartToolbar, { ChartType, Timeframe, SMAPeriod } from "./ChartToolbar";
+import { useHeliusSales } from "@/hooks/useHeliusSales";
+
 
 type Candle = {
   time: Time;    // Time type from lightweight-charts
@@ -79,23 +82,191 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
 
   // Fetch data directly using the hook
   const { history, isLoading } = useBondingCurveForPool(poolAddress);
+  const { data: sales } = useHeliusSales(poolAddress, "69b4db73-1ed1-4558-8e85-192e0994e556");
 
-  // Build raw candles from history
-  const rawCandles: Candle[] = useMemo(() => {
-    let lastPrice: number | null = null;
-    return history
-      .filter((h) => h.blockTime != null)
-      .sort((a, b) => (a.blockTime! - b.blockTime!))
-      .map((item) => {
-        const t = Math.floor(item.blockTime!) as Time;
-        const price = item.price ?? lastPrice ?? 0;
-        const open = lastPrice ?? price;
-        const high = Math.max(open, price);
-        const low = Math.min(open, price);
-        lastPrice = price;
-        return { time: t, open, high, low, close: price };
-      });
-  }, [history]);
+  // Price calculation function matching your smart contract
+  function calculateSellPrice(basePrice: number, growthFactor: number, currentSupply: number): number {
+    try {
+      // Match the logic in calculate_sell_price
+      // This is the equivalent of your Rust function
+      // Subtract 1 from supply first since we're calculating price AFTER the sell
+      const supplyAfterSell = currentSupply - 1;
+
+      // Formula: base_price + (growth_factor * supply)
+      // This calculates the price after removing one NFT from supply
+      const price = basePrice + (growthFactor * supplyAfterSell);
+
+      // Return price in SOL
+      return Math.max(price, basePrice);
+    } catch (error) {
+      console.error("Error in calculateSellPrice:", error);
+      // Return a fallback price (20% less than current price)
+      return basePrice * 0.8;
+    }
+  }
+
+  // Build raw candles from history and sales - focusing on price changes
+  const rawCandles = useMemo(() => {
+    console.log("Building candles based on mint and sell prices");
+
+    // Extract mint prices and timestamps from history
+    const mintEvents = history
+      .filter(h => h.blockTime != null && h.instructionName === "mintNft" && h.price != null)
+      .map(item => ({
+        time: Math.floor(item.blockTime!) as Time,
+        price: item.price!,
+        type: 'mint' as const,
+        signature: item.signature
+      }))
+      .sort((a, b) => Number(a.time) - Number(b.time));
+
+    // Log the raw sales data for debugging
+    console.log("Raw sales data:", sales);
+
+    // Extract sell events from Helius sales data
+    // Only include sell events that aren't duplicates of mint events
+    const sellEvents = sales && sales.length > 0
+      ? sales
+        .filter(s => {
+          // Check if this sale is a duplicate of a mint event
+          const isDuplicateOfMint = mintEvents.some(mint =>
+            Math.abs(mint.price - (s.soldSol || 0)) < 0.0001 && // Similar price
+            mint.signature === s.signature // Same transaction
+          );
+
+          console.log("Checking sell event:", {
+            signature: s.signature,
+            blockTime: s.blockTime,
+            soldSol: s.soldSol,
+            isDuplicateOfMint
+          });
+
+          // Only include if it's not a duplicate mint and has a valid blockTime
+          return s.blockTime != null && !isDuplicateOfMint;
+        })
+        .map(item => {
+          return {
+            time: Math.floor(item.blockTime) as Time,
+            price: item.soldSol || 0,
+            type: 'sell' as const,
+            signature: item.signature
+          };
+        })
+        .sort((a, b) => Number(a.time) - Number(b.time))
+      : [];
+
+    // Find your actual sell transaction from history
+    const sellTransactions = history.filter(tx =>
+      tx.instructionName === "sellNft" && tx.blockTime != null
+    );
+
+    console.log("Sell transactions from history:", sellTransactions);
+
+    // If we have actual sell transactions, use them instead of Helius data
+    if (sellTransactions.length > 0) {
+      // Create sell events from actual sell transactions
+      const historySellEvents = sellTransactions.map(tx => ({
+        time: Math.floor(tx.blockTime!) as Time,
+        price: tx.price || 0, // Use 0 as fallback
+        type: 'sell' as const,
+        signature: tx.signature
+      }));
+
+      console.log("Using sell events from transaction history:", historySellEvents);
+
+      // Replace or augment the sell events
+      if (historySellEvents.length > 0) {
+        // Use history sells instead of Helius data
+        sellEvents.push(...historySellEvents);
+      }
+    }
+
+    console.log("Final mint events:", mintEvents);
+    console.log("Final sell events:", sellEvents);
+
+    // Sort mint and sell events chronologically by timestamp
+    const allEvents = [...mintEvents, ...sellEvents].sort((a, b) =>
+      Number(a.time) - Number(b.time)
+    );
+
+    console.log("All events in chronological order:", allEvents);
+
+    // Build candles based on the events
+    const candles: Candle[] = [];
+    let lastPrice = 0;
+
+    // Process events in order
+    allEvents.forEach((event, index) => {
+      if (index === 0 && event.type === 'mint') {
+        // First mint - create initial candle from 0
+        candles.push({
+          time: (Number(event.time) - 86400) as Time, // One day before
+          open: 0,
+          high: event.price,
+          low: 0,
+          close: event.price
+        });
+        lastPrice = event.price;
+      } else {
+        // Subsequent events
+        if (event.type === 'mint') {
+          // Mint event - price increases
+          candles.push({
+            time: event.time,
+            open: lastPrice,
+            high: event.price,
+            low: lastPrice,
+            close: event.price
+          });
+          lastPrice = event.price;
+          console.log(`Added green candle for mint: time=${new Date(Number(event.time) * 1000).toLocaleString()}, open=${lastPrice}, close=${event.price}`);
+        } else if (event.type === 'sell') {
+          // Sell event - price decreases
+
+          // Get pool parameters from your bond curve pool
+          // These should match your smart contract values
+          const basePrice = 0.05; // Example, update with your actual base price
+          const growthFactor = 0.02; // Example, update with your actual growth factor
+
+          // Calculate the supply before the sell operation (current supply + 1)
+          // If you have 3 mints and are selling 1, the current supply is 3
+          const supplyBeforeSell = mintEvents.length;
+
+          // Calculate theoretical sell price using the same algorithm as your smart contract
+          const sellPrice = calculateSellPrice(basePrice, growthFactor, supplyBeforeSell);
+
+          console.log(`Calculated sell price using smart contract logic: ${sellPrice} SOL`);
+          console.log(`Supply before sell: ${supplyBeforeSell}, basePrice: ${basePrice}, growthFactor: ${growthFactor}`);
+
+          candles.push({
+            time: event.time,
+            open: lastPrice,
+            high: lastPrice,
+            low: sellPrice,
+            close: sellPrice
+          });
+
+          lastPrice = sellPrice;
+          console.log(`Added red candle for sell: time=${new Date(Number(event.time) * 1000).toLocaleString()}, open=${lastPrice}, close=${sellPrice}`);
+        }
+      }
+    });
+
+    // Output the final candles
+    console.table(candles.map((candle, index) => ({
+      index,
+      time: new Date(Number(candle.time) * 1000).toLocaleString(),
+      open: candle.open,
+      high: candle.high,
+      low: candle.low,
+      close: candle.close,
+      isGreen: candle.close > candle.open,
+      isRed: candle.close < candle.open,
+      change: candle.open !== 0 ? ((candle.close - candle.open) / candle.open * 100).toFixed(2) + '%' : 'Infinity%'
+    })));
+
+    return candles;
+  }, [history, sales]);
 
   // Aggregate candles based on timeframe
   const candles = useMemo(() => {
@@ -142,9 +313,9 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
 
   // Chart and series refs
   const chartRef = useRef<IChartApi | null>(null);
-  const seriesRef = useRef<ISeriesApi<any> | null>(null);
-  const volumeSeriesRef = useRef<ISeriesApi<any> | null>(null);
-  const smaSeriesRef = useRef<ISeriesApi<any> | null>(null);
+  const seriesRef = useRef<ISeriesApi<SeriesType, Time> | null>(null);
+  const volumeSeriesRef = useRef<ISeriesApi<SeriesType, Time> | null>(null);
+  const smaSeriesRef = useRef<ISeriesApi<SeriesType, Time> | null>(null);
 
   // Create chart and configure container
   useEffect(() => {
@@ -165,10 +336,13 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
       timeScale: {
         timeVisible: true,
         secondsVisible: true,
-        borderColor: '#eee'
+        borderColor: '#eee',
+        rightOffset: 5,  // Add some padding on the right
+        barSpacing: 15,  // Set spacing between bars
       },
       rightPriceScale: {
         borderColor: '#eee',
+        autoScale: true,  // Enable auto scaling
       },
       handleScroll: { mouseWheel: true, pressedMouseMove: true },
       handleScale: { axisPressedMouseMove: true },
@@ -177,8 +351,8 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
 
     // Immediately create the candlestick series
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: '#22C55E',
-      downColor: '#EF4444',
+      upColor: '#22C55E',       // Green for up candles (mints)
+      downColor: '#EF4444',     // Red for down candles (sells)
       borderUpColor: '#22C55E',
       borderDownColor: '#EF4444',
       wickUpColor: '#22C55E',
@@ -307,16 +481,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
       priceScaleId: 'volume',
     });
 
-    // Then apply scale margins separately
-    if (volumeSeriesRef.current) {
-      chartRef.current.priceScale('volume').applyOptions({
-        scaleMargins: {
-          top: 0.8,
-          bottom: 0,
-        },
-      });
-    }
-
     // Configure scale margins
     const priceSeries = seriesRef.current;
     if (priceSeries) {
@@ -324,6 +488,18 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
         scaleMargins: {
           top: 0.1,
           bottom: 0.3,
+        },
+        autoScale: true,  // Enable auto scaling
+        entireTextOnly: true,
+      });
+    }
+
+    // Then apply scale margins separately for volume
+    if (volumeSeriesRef.current) {
+      chartRef.current.priceScale('volume').applyOptions({
+        scaleMargins: {
+          top: 0.8,
+          bottom: 0,
         },
       });
     }
@@ -354,7 +530,10 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
       );
     }
 
-    chartRef.current?.timeScale().fitContent();
+    // Fit content with some padding and adjust visible range
+    if (chartRef.current) {
+      chartRef.current.timeScale().fitContent();
+    }
   }, [candles, chartType]);
 
   // Handle SMA indicator
@@ -364,7 +543,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
     if (showSMA) {
       // Calculate SMA
       const smaData = candles.map((_, index, array) => {
-        if (index < smaPeriod - 1) return null;
+        if (index < smaPeriod - 1) return { time: array[index].time, value: null };
 
         const sum = array
           .slice(index - smaPeriod + 1, index + 1)
@@ -374,7 +553,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
           time: array[index].time,
           value: sum / smaPeriod,
         };
-      }).filter(Boolean);
+      });
 
       // Create or update SMA series
       if (!smaSeriesRef.current) {
@@ -422,6 +601,22 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
     );
   };
 
+  // Add a legend for sales
+  const SalesLegend = () => {
+    return (
+      <div className={styles.salesLegend}>
+        <div className={styles.legendItem}>
+          <div className={styles.mintIndicator}></div>
+          <span>Mint</span>
+        </div>
+        <div className={styles.legendItem}>
+          <div className={styles.sellIndicator}></div>
+          <span>Sell</span>
+        </div>
+      </div>
+    );
+  };
+
   // Loading & empty states
   if (isLoading) {
     return <div className={styles.loading}>Loading chart…</div>;
@@ -448,7 +643,10 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
       />
 
       {/* Legend */}
-      <Legend />
+      <div className={styles.legendContainer}>
+        <Legend />
+        <SalesLegend />
+      </div>
 
       {/* Chart container */}
       <div
@@ -456,6 +654,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({ poolAddress }) => {
         className={styles.chartContainer}
       />
     </div>
+
   );
 };
 

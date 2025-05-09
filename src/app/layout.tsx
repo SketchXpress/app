@@ -8,6 +8,8 @@ import 'react-toastify/dist/ReactToastify.css';
 import HeaderWrapper from "@/components/HeaderWrapper/HeaderWrapper";
 import Script from "next/script";
 import { registerServiceWorker } from "./sw-register";
+import TanStackQueryProvider from "@/providers/TanStackQueryProvider";
+import AnchorContextProvider from "@/contexts/AnchorContextProvider";
 
 export const viewport: Viewport = {
   themeColor: '#00B7E1',
@@ -73,23 +75,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
-        <WalletConnectionProvider>
-          <HeaderWrapper />
-          <main className={styles.main}>{children}</main>
-        </WalletConnectionProvider>
+        <TanStackQueryProvider>
 
-        <ToastContainer
-          position="bottom-left"
-          autoClose={4000}
-          hideProgressBar={false}
-          newestOnTop
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-          theme="light"
-        />
+          <WalletConnectionProvider>
+            <AnchorContextProvider>
+              <HeaderWrapper />
+              <main className={styles.main}>{children}</main>
+            </AnchorContextProvider>
+          </WalletConnectionProvider>
+
+          <ToastContainer
+            position="bottom-left"
+            autoClose={4000}
+            hideProgressBar={false}
+            newestOnTop
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+            theme="light"
+          />
+        </TanStackQueryProvider>
       </body>
     </html>
   )

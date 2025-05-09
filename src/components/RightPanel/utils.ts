@@ -9,11 +9,11 @@ import { GeneratedImage, Pool } from "./types";
 // Defining default pools for Kids and Pro modes
 export const DEFAULT_POOLS = {
   kids: {
-    address: `6Gj1WnJiN4ie7EQgKzDXDy7Tfqik1EXubkziVaXRdzNR`,
+    address: `Dw3DsPgXDVDPxVHoWhDcxKyJVu3ZEqkViwkpAahP9Knv`,
     name: "Kids Collection",
   },
   pro: {
-    address: `6Gj1WnJiN4ie7EQgKzDXDy7Tfqik1EXubkziVaXRdzNR`,
+    address: `8RKh6HYujHmwPCG6qgNJZCzGJZv1zyzyhhWVhPYAJBG3`,
     name: "Pro Collection",
   },
 };

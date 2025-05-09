@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useState, useEffect } from 'react';
 import Image from 'next/image';
-import styles from './PoolNFTsGrid.module.scss';
 import { formatDistanceToNow } from 'date-fns';
 import { useSellNft } from '@/hooks/useSellNFT';
+import styles from './PoolNFTsGrid.module.scss';
+import React, { useState, useEffect } from 'react';
 import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
 
 interface NFT {
