@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
         protocol: "https",
         hostname: "gateway.pinata.cloud",
       },
+      {
+        protocol: "https",
+        hostname: "ipfs.filebase.io",
+      },
+      {
+        protocol: "https",
+        hostname: "eligible-beige-crawdad.myfilebase.com",
+      },
     ],
   },
   // Add headers for PWA
