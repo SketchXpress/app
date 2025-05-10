@@ -128,6 +128,15 @@ const RightPanel: React.FC = () => {
 
   // Mint handler
   const handleMintNFT = async () => {
+    // Check if an image is selected
+    if (!selectedImageId) {
+      toast.warning("Please select an image from Generated Images to mint", {
+        position: "bottom-left",
+        autoClose: 3000,
+      });
+      return;
+    }
+
     await mintNFT(
       walletContext,
       selectedImageId,
@@ -146,6 +155,15 @@ const RightPanel: React.FC = () => {
 
   // Kids-mode mint click
   const handleKidsMintClick = (imageId: number) => {
+    // Check if an image is selected
+    if (!imageId) {
+      toast.warning("Please select an image from Generated Images to mint", {
+        position: "bottom-left",
+        autoClose: 3000,
+      });
+      return;
+    }
+
     const img = generatedImages.find((i) => i.id === imageId);
     if (!img) return;
     setSelectedImageId(imageId);
@@ -219,7 +237,7 @@ const RightPanel: React.FC = () => {
 
           {sidebarOpen && (
             <>
-              {/* Advanced Params */}
+              {/* Advanced Params - Only show in Pro mode */}
               {mode === "pro" && (
                 <div className={styles.section}>
                   <div className={styles.advancedParametersCard}>
@@ -366,56 +384,57 @@ const RightPanel: React.FC = () => {
                       </div>
                     )}
                   </div>
-
-                  {/* Collection Dropdown Section */}
-                  <div className={styles.poolSection}>
-                    <h3 className={styles.sectionTitle}>
-                      <Coins size={16} className={styles.sectionIcon} />
-                      <span>Collection</span>
-                    </h3>
-
-                    {/* Collection Dropdown Component */}
-                    <CollectionDropdown mode={mode} />
-
-                    {/* Keep the selected pool display for user confirmation */}
-                    {selectedPool && (
-                      <div className={styles.poolBadge}>
-                        <div className={styles.poolIcon}>
-                          <Coins size={16} />
-                        </div>
-                        <span className={styles.poolName}>
-                          Minting to: {selectedPool.name}
-                        </span>
-                        <button
-                          className={styles.clearPoolButton}
-                          onClick={() =>
-                            usePoolStore.getState().clearSelectedPool()
-                          }
-                          title="Clear pool selection"
-                        >
-                          <X size={14} />
-                        </button>
-                      </div>
-                    )}
-
-                    {/* Show default collection when no selection */}
-                    {!selectedPool && (
-                      <div className={styles.poolBadge}>
-                        <div className={styles.poolIcon}>
-                          {isKidsMode(mode) ? (
-                            <Star size={16} />
-                          ) : (
-                            <Coins size={16} />
-                          )}
-                        </div>
-                        <span className={styles.poolName}>
-                          Default: {isKidsMode(mode) ? "Kids" : "Pro"} Collection
-                        </span>
-                      </div>
-                    )}
-                  </div>
                 </div>
               )}
+
+              {/* Collection Dropdown Section - Available in both modes */}
+              <div className={styles.section}>
+                {/* Section Title */}
+                <h3 className={styles.sectionTitle}>
+                  <Coins size={16} className={styles.sectionIcon} />
+                  <span>Collection</span>
+                </h3>
+
+                {/* Show default collection */}
+                {!selectedPool && (
+                  <div className={styles.poolBadge}>
+                    <div className={styles.poolIcon}>
+                      {isKidsMode(mode) ? (
+                        <Star size={16} />
+                      ) : (
+                        <Coins size={16} />
+                      )}
+                    </div>
+                    <span className={styles.poolName}>
+                      Default: {isKidsMode(mode) ? "Kids" : "Pro"} Collection
+                    </span>
+                  </div>
+                )}
+
+                {/* Collection Dropdown Component */}
+                <CollectionDropdown mode={mode} />
+
+                {/* Show selected pool */}
+                {selectedPool && (
+                  <div className={styles.poolBadge}>
+                    <div className={styles.poolIcon}>
+                      <Coins size={16} />
+                    </div>
+                    <span className={styles.poolName}>
+                      Selected: {selectedPool.name}
+                    </span>
+                    <button
+                      className={styles.clearPoolButton}
+                      onClick={() =>
+                        usePoolStore.getState().clearSelectedPool()
+                      }
+                      title="Clear pool selection"
+                    >
+                      <X size={14} />
+                    </button>
+                  </div>
+                )}
+              </div>
 
               {/* Error */}
               {error && (
@@ -571,6 +590,13 @@ const RightPanel: React.FC = () => {
                       <span>Download</span>
                     </button>
                   </div>
+
+                  {/* Show hint message when no image is selected */}
+                  {!selectedImageId && (
+                    <p className={styles.selectionHint}>
+                      Select an image from Generated Images above to mint or download
+                    </p>
+                  )}
                 </div>
               )}
 
