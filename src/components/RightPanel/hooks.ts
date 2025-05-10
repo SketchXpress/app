@@ -211,6 +211,7 @@ export const useEnhanceEvents = (
                 title: `Generated Image ${index + 1}`,
                 src: `data:image/png;base64,${base64String}`, // Use base64 data URI
                 url: originalUrl, // Store original URL for downloads
+                customName: "",
               };
             });
           }
