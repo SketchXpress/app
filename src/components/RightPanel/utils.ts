@@ -113,13 +113,7 @@ export const mintNFT = async (
   ) => Promise<any>,
   customNftName: string
 ) => {
-  if (!walletContext.connected || !walletContext.publicKey) {
-    toast.error("Please connect your wallet first!", {
-      position: "bottom-left",
-      autoClose: 3000,
-    });
-    return false;
-  }
+  // Don't check for wallet connection here anymore - let the component handle it
 
   if (!selectedImageId) {
     toast.warning("Please select an image to mint!", {
@@ -206,18 +200,12 @@ export const mintNFT = async (
 
     const nftAddress = result?.nftMint;
 
-    // Success toast with pool information
-    toast.update(mintingToastId, {
-      render: `🎉 NFT minted successfully on ${poolInfo.name}!\nAddress: ${nftAddress}`,
-      type: "success",
-      isLoading: false,
-      autoClose: 5000,
-      closeButton: true,
-      draggable: true,
-      icon: () => React.createElement("span", null, "🖼️"),
-    });
+    // Close the loading toast first
+    toast.dismiss(mintingToastId);
 
-    return true;
+    // Don't show success toast here - let the component show enhanced feedback
+    // Just return success
+    return { success: true, nftAddress, poolInfo };
   } catch (error) {
     toast.error(
       `Minting failed: ${
@@ -228,6 +216,6 @@ export const mintNFT = async (
         autoClose: 5000,
       }
     );
-    return false;
+    return { success: false };
   }
 };

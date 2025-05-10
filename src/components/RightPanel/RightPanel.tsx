@@ -14,6 +14,7 @@ import {
   AlertOctagon,
   Star,
   Sliders,
+  ExternalLink,
 } from "lucide-react";
 import { toast } from "react-toastify";
 
@@ -22,6 +23,7 @@ import { useModeStore } from "@/stores/modeStore";
 import { useEnhanceStore } from "@/stores/enhanceStore";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useMintNFT } from "@/lib/mintNFT";
+import { useWalletModal } from "@solana/wallet-adapter-react-ui";
 
 import ParentalControl from "../ParentalControl/ParentalContrl";
 import CollectionDropdown from "@/components/CollectionDropdown/CollectionDropdown";
@@ -36,6 +38,7 @@ import {
 import { mintNFT, isKidsMode } from "./utils";
 import styles from "./RightPanel.module.scss";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 const RightPanel: React.FC = () => {
   const {
@@ -66,9 +69,11 @@ const RightPanel: React.FC = () => {
   const { showAdvanced, setShowAdvanced } = useAdvancedParameters();
 
   const walletContext = useWallet();
+  const { setVisible } = useWalletModal();
   const mode = useModeStore((s) => s.mode);
   const { selectedPool } = usePoolStore();
   const { mintNft } = useMintNFT();
+  const router = useRouter();
 
   const {
     temperature,
@@ -128,6 +133,16 @@ const RightPanel: React.FC = () => {
 
   // Mint handler
   const handleMintNFT = async () => {
+    // Check if wallet is connected - if not, open wallet modal
+    if (!walletContext.connected || !walletContext.publicKey) {
+      toast.info("Please connect your wallet to mint NFT", {
+        position: "bottom-left",
+        autoClose: 3000,
+      });
+      setVisible(true); // Open wallet connection modal
+      return;
+    }
+
     // Check if an image is selected
     if (!selectedImageId) {
       toast.warning("Please select an image from Generated Images to mint", {
@@ -137,7 +152,7 @@ const RightPanel: React.FC = () => {
       return;
     }
 
-    await mintNFT(
+    const success = await mintNFT(
       walletContext,
       selectedImageId,
       generatedImages,
@@ -147,9 +162,46 @@ const RightPanel: React.FC = () => {
       nftName.trim()
     );
 
-    // Clear the name after successful mint
-    if (nftName.trim()) {
-      setNftName("");
+    // If minting was successful, show extended success toast with link to Mintstreet
+    if (success) {
+      // Clear the name after successful mint
+      if (nftName.trim()) {
+        setNftName("");
+      }
+
+      // Show extended success message with action to navigate to Mintstreet
+      toast.success(
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <span>🎉 NFT minted successfully!</span>
+          <button
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+              background: 'white',
+              color: '#06b6d4',
+              border: '1px solid #06b6d4',
+              borderRadius: '6px',
+              padding: '6px 12px',
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+            onClick={() => {
+              router.push('/mintstreet');
+              toast.dismiss();
+            }}
+          >
+            View in Mintstreet <ExternalLink size={14} />
+          </button>
+        </div>,
+        {
+          position: "bottom-left",
+          autoClose: 8000,
+          closeOnClick: false,
+          style: { maxWidth: '320px' }
+        }
+      );
     }
   };
 
