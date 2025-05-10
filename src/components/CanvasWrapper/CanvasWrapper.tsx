@@ -193,7 +193,7 @@ const CanvasWrapper = () => {
     const shapes = editor.getCurrentPageShapes();
     if (shapes.length === 0) {
       toast.info("Please draw something first!", {
-        position: "bottom-center",
+        position: "bottom-left",
         autoClose: 3000,
         icon: false
       });
@@ -224,6 +224,19 @@ const CanvasWrapper = () => {
         // Access the enhanceStore directly from the import
         const { setPrompt } = useEnhanceStore.getState();
         setPrompt("");
+
+        // Switch to select tool after enhancement is complete
+        editor.setCurrentTool('select');
+
+        // Update the canvas store to reflect the tool change
+        const { setActiveTool } = useCanvasStore.getState();
+        setActiveTool('select');
+
+        // Select all shapes that were just enhanced
+        const allShapes = editor.getCurrentPageShapes();
+        if (allShapes.length > 0) {
+          editor.selectAll();
+        }
       }, 500);
 
     } catch (err) {

@@ -1,4 +1,3 @@
-// EnhancePromptModal.tsx
 "use client";
 
 import { useState, useEffect, useRef } from 'react';
@@ -24,7 +23,6 @@ const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalPr
   // Get prompt from store and update function
   const prompt = useEnhanceStore((s) => s.prompt);
   const setPrompt = useEnhanceStore((s) => s.setPrompt);
-  // Get setModalOpen from store to update global modal state
   const setModalOpen = useEnhanceStore((s) => s.setModalOpen);
 
   // Local state for prompt input
@@ -34,29 +32,25 @@ const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalPr
   useEffect(() => {
     if (isOpen) {
       setPromptInput(prompt);
+      setModalOpen(true);
     }
-  }, [isOpen, prompt]);
+  }, [isOpen, prompt, setModalOpen]);
 
   // Animation handling
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
-      // Focus the textarea when modal opens
+
       setTimeout(() => {
         inputRef.current?.focus();
       }, 300);
     } else {
-      setIsVisible(false);
+      const timer = setTimeout(() => {
+        setIsVisible(false);
+        setModalOpen(false);
+      }, 300);
+      return () => clearTimeout(timer);
     }
-  }, [isOpen]);
-
-  // Update global modal state when local isOpen changes
-  useEffect(() => {
-    setModalOpen(isOpen);
-    return () => {
-      // Clean up when component unmounts
-      setModalOpen(false);
-    };
   }, [isOpen, setModalOpen]);
 
   // Close when clicking outside
@@ -79,11 +73,8 @@ const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalPr
   // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isOpen) {
-        // Close on Escape
-        if (e.key === 'Escape') {
-          onClose();
-        }
+      if (isOpen && e.key === 'Escape') {
+        onClose();
       }
     };
 
@@ -92,13 +83,11 @@ const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalPr
   }, [isOpen, onClose]);
 
   const handleSubmit = () => {
-    // Update the store with the prompt
     setPrompt(promptInput);
     onConfirm();
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    // Submit on Ctrl+Enter or Command+Enter
     if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
       handleSubmit();
     }
@@ -107,53 +96,87 @@ const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalPr
   // Don't render anything if modal is fully closed
   if (!isOpen && !isVisible) return null;
 
+  // Content configuration based on mode
+  const content = {
+    title: mode === 'kids' ? 'Tell us your magic idea!' : 'Enhance Your Artwork',
+    description: mode === 'kids'
+      ? "Tell us about your drawing to make the magic better!🦄✨"
+      : "Add context to help our AI enhance your artwork with precision",
+    placeholder: mode === 'kids'
+      ? "What's in your cool picture? 'Dragon eating ice cream' or 'Superhero cat' 🦸‍♀️🐱"
+      : "Describe your vision (e.g., 'cyberpunk cityscape with neon lights and rain')",
+    buttonText: mode === 'kids' ? 'Make Magic!' : 'Enhance Artwork',
+    skipText: mode === 'kids' ? 'Skip' : 'Skip Description'
+  };
+
   return (
     <div className={`${styles.modalOverlay} ${isVisible ? styles.visible : ''}`}>
       <div
         ref={modalRef}
         className={`${styles.modalContainer} ${isVisible ? styles.visible : ''}`}
       >
-        <button className={styles.closeButton} onClick={onClose} aria-label="Close">
+        <button
+          className={styles.closeButton}
+          onClick={onClose}
+          aria-label="Close"
+        >
           <X size={18} />
         </button>
 
         <div className={styles.modalContent}>
-          <h3 className={styles.modalTitle}>
-            {mode === 'kids' ? 'Tell us your magic idea!' : 'Describe your artwork'}
-          </h3>
+          <div className={styles.headerSection}>
+            <h3 className={styles.modalTitle}>
+              {content.title}
+            </h3>
+            <p className={styles.modalDescription}>
+              {content.description}
+            </p>
+          </div>
 
-          <p className={styles.modalDescription}>
-            {mode === 'kids'
-              ? "Tell us about your drawing to make the magic better!🦄✨"
-              : "Adding a description helps the AI understand your vision!"}
-          </p>
-
-          <textarea
-            ref={inputRef}
-            className={styles.promptInput}
-            placeholder={mode === 'kids'
-              ? "What's in your cool picture? 'Dragon eating ice cream' or 'Superhero cat' 🦸‍♀️🐱"
-              : "Describe what you're going for (e.g., 'Moody cyberpunk alley, neon signs, rain')"}
-            value={promptInput}
-            onChange={(e) => setPromptInput(e.target.value)}
-            onKeyDown={handleKeyDown}
-            rows={4}
-            aria-label="Artwork description"
-          />
+          <div className={styles.inputSection}>
+            <label htmlFor="promptInput" className={styles.inputLabel}>
+              {mode === 'kids' ? 'Your Description' : 'Artwork Description'}
+            </label>
+            <textarea
+              id="promptInput"
+              ref={inputRef}
+              className={styles.promptInput}
+              placeholder={content.placeholder}
+              value={promptInput}
+              onChange={(e) => setPromptInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              rows={4}
+              aria-label="Artwork description"
+            />
+            {mode === 'pro' && (
+              <p className={styles.inputHint}>
+                Tip: Be specific about style, mood, colors, and details
+              </p>
+            )}
+          </div>
 
           <div className={styles.buttonGroup}>
             <button
               className={styles.skipButton}
               onClick={onConfirm}
             >
-              Skip
+              {content.skipText}
             </button>
             <button
               className={styles.enhanceButton}
               onClick={handleSubmit}
             >
-              {mode === 'kids' ? 'Make Magic!' : 'Enhance Now'}
+              {content.buttonText}
             </button>
+          </div>
+
+          <div className={styles.termsSection}>
+            <p className={styles.termsDisclaimer}>
+              * By enhancing, you agree to our{' '}
+              <a href="/terms" target="_blank" rel="noopener noreferrer">
+                Terms and Conditions
+              </a>
+            </p>
           </div>
         </div>
       </div>
