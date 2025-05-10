@@ -110,6 +110,62 @@ const CanvasWrapper = () => {
     };
   }, []);
 
+  // In CanvasWrapper.tsx, add these after your existing useEffect hooks
+
+  // Clear canvas on new session
+  useEffect(() => {
+    if (!isBrowser) return;
+
+    // Check if this is a new browser session
+    const isNewSession = !sessionStorage.getItem('canvasSessionStarted');
+
+    if (isNewSession) {
+      // Clear the saved canvas state
+      canvasStorage.deleteCanvas('current')
+        .then(() => {
+          console.log('Canvas cleared for new session');
+          sessionStorage.setItem('canvasSessionStarted', 'true');
+        })
+        .catch(err => {
+          console.warn('Failed to clear canvas data:', err);
+        });
+    }
+
+    // Also clear if the user has been away for more than 30 minutes
+    const lastActivity = localStorage.getItem('lastCanvasActivity');
+    if (lastActivity) {
+      const timeSinceLastActivity = Date.now() - parseInt(lastActivity, 10);
+      const thirtyMinutes = 30 * 60 * 1000;
+
+      if (timeSinceLastActivity > thirtyMinutes) {
+        canvasStorage.deleteCanvas('current')
+          .then(() => console.log('Canvas cleared due to inactivity'))
+          .catch(console.warn);
+      }
+    }
+
+    // Update last activity timestamp
+    localStorage.setItem('lastCanvasActivity', Date.now().toString());
+  }, []);
+
+  // Optional: Add activity tracking
+  useEffect(() => {
+    if (!isBrowser) return;
+
+    const updateActivity = () => {
+      localStorage.setItem('lastCanvasActivity', Date.now().toString());
+    };
+
+    // Update activity on user interaction
+    window.addEventListener('mousemove', updateActivity);
+    window.addEventListener('touchstart', updateActivity);
+
+    return () => {
+      window.removeEventListener('mousemove', updateActivity);
+      window.removeEventListener('touchstart', updateActivity);
+    };
+  }, []);
+
   // Create the tldraw store with persistence support
   const store = useMemo(() => {
     const newStore = createTLStore();
