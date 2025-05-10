@@ -10,6 +10,7 @@ interface EnhanceState {
   steps: number;
   seed: number | null;
   isModalOpen: boolean;
+  nftName: string;
 
   setPrompt: (prompt: string) => void;
   setNegativePrompt: (negativePrompt: string) => void;
@@ -20,6 +21,8 @@ interface EnhanceState {
   setSeed: (seed: number | null) => void;
   resetToDefaults: () => void;
   setModalOpen: (isOpen: boolean) => void;
+  resetNftName: () => void;
+  setNftName: (name: string) => void;
 }
 
 const DEFAULT_STATE = {
@@ -31,6 +34,7 @@ const DEFAULT_STATE = {
   steps: 30,
   seed: null,
   isModalOpen: false,
+  nftName: "",
 };
 
 export const useEnhanceStore = create<EnhanceState>((set) => ({
@@ -45,4 +49,6 @@ export const useEnhanceStore = create<EnhanceState>((set) => ({
   setSeed: (seed) => set({ seed }),
   resetToDefaults: () => set(DEFAULT_STATE),
   setModalOpen: (isOpen) => set({ isModalOpen: isOpen }),
+  setNftName: (name) => set({ nftName: name }),
+  resetNftName: () => set({ nftName: "" }),
 }));

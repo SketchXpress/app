@@ -35,6 +35,7 @@ import {
 } from "./hooks";
 import { mintNFT, isKidsMode } from "./utils";
 import styles from "./RightPanel.module.scss";
+import { useState } from "react";
 
 const RightPanel: React.FC = () => {
   const {
@@ -54,6 +55,7 @@ const RightPanel: React.FC = () => {
   } = useEnhanceEvents(sidebarOpen, setSidebarOpen);
 
   const { showGallery, setShowGallery } = useImageGallery(setSelectedImageId);
+  const [nftName, setNftName] = useState<string>("");
   const {
     showParentalDialog,
     setShowParentalDialog,
@@ -132,8 +134,14 @@ const RightPanel: React.FC = () => {
       generatedImages,
       mode,
       selectedPool,
-      mintNft
+      mintNft,
+      nftName.trim()
     );
+
+    // Clear the name after successful mint
+    if (nftName.trim()) {
+      setNftName("");
+    }
   };
 
   // Kids-mode mint click
@@ -488,6 +496,31 @@ const RightPanel: React.FC = () => {
                       ))}
                     </div>
                   )}
+                </div>
+              )}
+
+              {generatedImages.length > 0 && (
+                <div className={styles.section}>
+                  <h3 className={styles.sectionTitle}>
+                    NFT Details
+                  </h3>
+                  <div className={styles.nftNameInput}>
+                    <label htmlFor="nft-name">NFT Name (Optional)</label>
+                    <input
+                      id="nft-name"
+                      type="text"
+                      value={nftName}
+                      onChange={(e) => setNftName(e.target.value)}
+                      placeholder={`${selectedPool?.name ||
+                        (isKidsMode(mode) ? "Kids Collection" : "Pro Collection")
+                        } Artwork`}
+                      className={styles.inputField}
+                      maxLength={50}
+                    />
+                    <small className={styles.helperText}>
+                      Leave empty to use default name
+                    </small>
+                  </div>
                 </div>
               )}
 

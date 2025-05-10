@@ -110,7 +110,8 @@ export const mintNFT = async (
     metadataUri: string,
     sellerFeeBasisPoints: number
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  ) => Promise<any>
+  ) => Promise<any>,
+  customNftName: string
 ) => {
   if (!walletContext.connected || !walletContext.publicKey) {
     toast.error("Please connect your wallet first!", {
@@ -150,6 +151,9 @@ export const mintNFT = async (
       ? { address: selectedPool.address, name: selectedPool.name }
       : defaultPool;
 
+    // Use custom name if provided, otherwise use default
+    const nftName = customNftName || `${poolInfo.name} Artwork`;
+
     // Show a loading toast that includes pool information
     const mintingToastId = toast.loading(
       `Starting NFT minting process on ${poolInfo.name}...`,
@@ -180,7 +184,7 @@ export const mintNFT = async (
       isLoading: true,
     });
     const metadataIpfsUrl = await uploadMetadataToIPFS(
-      poolInfo.name + " Artwork", // Use pool name in metadata
+      nftName,
       "AI-enhanced artwork created with SketchXpress.",
       imageIpfsUrl
     );
@@ -194,10 +198,10 @@ export const mintNFT = async (
 
     const result = await mintNft(
       poolInfo.address,
-      poolInfo.name + " Artwork",
+      nftName,
       "SXP",
       metadataIpfsUrl,
-      500 // sellerFeeBasisPoints (5%)
+      500
     );
 
     const nftAddress = result?.nftMint;

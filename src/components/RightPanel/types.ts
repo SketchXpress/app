@@ -12,6 +12,7 @@ export interface GeneratedImage {
   title: string;
   src: string; // Can be blob URL or base64 data URI
   url: string; // Full URL for the original image from the backend (for download)
+  customName: string;
 }
 
 // Pool type
