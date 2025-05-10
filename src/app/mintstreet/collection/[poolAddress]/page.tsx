@@ -148,7 +148,7 @@ export default function CollectionDetailPage() {
 
                 <div className={styles.infoItem}>
                   <span className={styles.infoLabel}>Protocol Fee</span>
-                  <span className={styles.infoValue}>{info.protocolFeePercent}%</span>
+                  <span className={styles.infoValue}>{info.protocolFeePercent / 100}%</span>
                 </div>
               </div>
             </div>
