@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
-import { AssetRecordType } from "@tldraw/tldraw";
 import Image from "next/image";
+import { examples, drawingTips } from "./data";
 import styles from "./LeftSidebar.module.scss";
 import { useModeStore } from "@/stores/modeStore";
+import { useState, useEffect, useRef } from "react";
+import { useCanvasStore } from "@/stores/canvasStore";
+import { handleUploadArt, handleUseExample } from "./utils";
 import {
   Upload,
   Lightbulb,
@@ -19,9 +21,11 @@ import {
   X,
   ChevronsLeft,
   ChevronsRight,
+  Github,
+  FileText,
+  ScrollText,
+  Copyright,
 } from "lucide-react";
-import { useCanvasStore } from "@/stores/canvasStore";
-import { examples, drawingTips } from "./data";
 
 const LeftSidebar = () => {
   const mode = useModeStore((s) => s.mode);
@@ -76,7 +80,7 @@ const LeftSidebar = () => {
     checkWidth();
     window.addEventListener("resize", checkWidth);
     return () => window.removeEventListener("resize", checkWidth);
-  }, []); // Empty dependency array so it only runs on mount
+  }, []);
 
   // Handle click outside to close sidebar on mobile
   useEffect(() => {
@@ -114,131 +118,10 @@ const LeftSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  const handleUploadArt = () => {
-    const fileInput = document.createElement("input");
-    fileInput.type = "file";
-    fileInput.accept = "image/*";
-    fileInput.click();
-
-    fileInput.onchange = (event) => {
-      const target = event.target as HTMLInputElement;
-      const file = target.files?.[0];
-      if (!file) return;
-
-      const editor = useCanvasStore.getState().editor;
-      if (!editor) return;
-
-      const assetId = AssetRecordType.createId();
-      const reader = new FileReader();
-
-      reader.onload = () => {
-        const base64DataUrl = reader.result as string;
-        const image = new window.Image();
-
-        image.onload = () => {
-          const { width, height } = image;
-
-          editor.createAssets([
-            {
-              id: assetId,
-              type: "image",
-              typeName: "asset",
-              props: {
-                name: file.name,
-                src: base64DataUrl,
-                w: width,
-                h: height,
-                mimeType: file.type,
-                isAnimated: false,
-              },
-              meta: {},
-            },
-          ]);
-
-          editor.createShape({
-            type: "image",
-            x: (window.innerWidth - width) / 2,
-            y: (window.innerHeight - height) / 2,
-            props: {
-              assetId,
-              w: width,
-              h: height,
-            },
-          });
-        };
-
-        image.src = base64DataUrl;
-      };
-
-      reader.readAsDataURL(file);
-    };
-  };
-
-  const handleUseExample = (example: {
-    id: number;
-    title: string;
-    thumbnail: string;
-  }) => {
-    const editor = useCanvasStore.getState().editor;
-    if (!editor) return;
-
-    const assetId = AssetRecordType.createId();
-    const image = new window.Image();
-
-    image.crossOrigin = "anonymous";
-    image.onload = () => {
-      const { width, height } = image;
-
-      const base64DataUrl = getBase64FromImage(image);
-
-      base64DataUrl.then((src) => {
-        editor.createAssets([
-          {
-            id: assetId,
-            type: "image",
-            typeName: "asset",
-            props: {
-              name: example.title,
-              src,
-              w: width,
-              h: height,
-              mimeType: "image/png",
-              isAnimated: false,
-            },
-            meta: {},
-          },
-        ]);
-
-        editor.createShape({
-          type: "image",
-          x: (window.innerWidth - width) / 2,
-          y: (window.innerHeight - height) / 2,
-          props: {
-            assetId,
-            w: width,
-            h: height,
-          },
-        });
-      });
-    };
-
-    image.src = example.thumbnail;
-  };
-
-  // Helper to convert Image object to base64
-  const getBase64FromImage = (img: HTMLImageElement): Promise<string> => {
-    return new Promise((resolve) => {
-      const canvas = document.createElement("canvas");
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      ctx?.drawImage(img, 0, 0);
-      resolve(canvas.toDataURL("image/png"));
-    });
-  };
-
-  // Determine which tips to show based on mode
+  // Determining which tips to show based on mode
   const tipsToShow = mode === "kids" ? drawingTips.kids : drawingTips.pro;
+
+  const year = new Date().getFullYear();
 
   return (
     <>
@@ -256,9 +139,8 @@ const LeftSidebar = () => {
       {/* Desktop collapse toggle - only visible on desktop/tablet */}
       {!isMobile && (
         <button
-          className={`${styles.collapseToggle} ${
-            !sidebarOpen ? styles.collapsed : ""
-          }`}
+          className={`${styles.collapseToggle} ${!sidebarOpen ? styles.collapsed : ""
+            }`}
           onClick={toggleSidebar}
           aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
@@ -273,9 +155,8 @@ const LeftSidebar = () => {
       {/* Sidebar content */}
       <aside
         ref={sidebarRef}
-        className={`${styles.sidebar} ${!sidebarOpen ? styles.collapsed : ""} ${
-          isMobile ? styles.mobile : ""
-        }`}
+        className={`${styles.sidebar} ${!sidebarOpen ? styles.collapsed : ""} ${isMobile ? styles.mobile : ""
+          }`}
       >
         <div className={styles.sidebarContent}>
           {/* Main drawing tools */}
@@ -284,9 +165,8 @@ const LeftSidebar = () => {
 
             <div className={styles.toolsGrid}>
               <button
-                className={`${styles.toolButton} ${
-                  activeTool === "draw" ? styles.active : ""
-                }`}
+                className={`${styles.toolButton} ${activeTool === "draw" ? styles.active : ""
+                  }`}
                 onClick={() => setActiveTool("draw")}
               >
                 <PenTool size={20} />
@@ -294,9 +174,8 @@ const LeftSidebar = () => {
               </button>
 
               <button
-                className={`${styles.toolButton} ${
-                  activeTool === "eraser" ? styles.active : ""
-                }`}
+                className={`${styles.toolButton} ${activeTool === "eraser" ? styles.active : ""
+                  }`}
                 onClick={() => setActiveTool("eraser")}
               >
                 <Eraser size={20} />
@@ -343,54 +222,11 @@ const LeftSidebar = () => {
             </button>
           </div>
 
-          {/* Drawing Tips Section */}
-          <div className={styles.section}>
-            <button
-              className={`${styles.sectionHeader} ${
-                showTips ? styles.active : ""
-              }`}
-              onClick={() => {
-                if (!sidebarOpen) setSidebarOpen(true);
-                setShowTips(!showTips);
-              }}
-            >
-              <div className={styles.sectionHeaderLeft}>
-                <Lightbulb size={18} className={styles.sectionIcon} />
-                <span>Drawing Tips</span>
-              </div>
-              <div className={styles.chevron}>
-                {showTips ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-              </div>
-            </button>
-
-            {showTips && (
-              <div className={styles.tipsContainer}>
-                <ul className={styles.tips}>
-                  {tipsToShow.map((item, index) => (
-                    <li key={index} className={styles.tip}>
-                      <span className={styles.tipIcon}>{item.icon}</span>
-                      <span className={styles.tipText}>{item.tip}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                {/* Kids mode gets an encouraging message */}
-                {mode === "kids" && (
-                  <div className={styles.encouragement}>
-                    <span className={styles.sparkle}>✨</span> Remember,
-                    there&apos;s no wrong way to draw! Have fun!
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-
           {/* Example Gallery Section */}
           <div className={styles.section}>
             <button
-              className={`${styles.sectionHeader} ${
-                showGallery ? styles.active : ""
-              }`}
+              className={`${styles.sectionHeader} ${showGallery ? styles.active : ""
+                }`}
               onClick={() => {
                 if (!sidebarOpen) setSidebarOpen(true);
                 setShowGallery(!showGallery);
@@ -434,6 +270,91 @@ const LeftSidebar = () => {
               </div>
             )}
           </div>
+
+          {/* Drawing Tips Section */}
+          <div className={styles.section}>
+            <button
+              className={`${styles.sectionHeader} ${showTips ? styles.active : ""
+                }`}
+              onClick={() => {
+                if (!sidebarOpen) setSidebarOpen(true);
+                setShowTips(!showTips);
+              }}
+            >
+              <div className={styles.sectionHeaderLeft}>
+                <Lightbulb size={18} className={styles.sectionIcon} />
+                <span>Drawing Tips</span>
+              </div>
+              <div className={styles.chevron}>
+                {showTips ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+              </div>
+            </button>
+
+            {showTips && (
+              <div className={styles.tipsContainer}>
+                <ul className={styles.tips}>
+                  {tipsToShow.map((item, index) => (
+                    <li key={index} className={styles.tip}>
+                      <span className={styles.tipIcon}>{item.icon}</span>
+                      <span className={styles.tipText}>{item.tip}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Kids mode gets an encouraging message */}
+                {mode === "kids" && (
+                  <div className={styles.encouragement}>
+                    <span className={styles.sparkle}>✨</span> Remember,
+                    there&apos;s no wrong way to draw! Have fun!
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Footer Section - spacer to push footer down */}
+          <div className={styles.spacer} />
+
+          {/* Footer with links */}
+          <footer className={styles.sidebarFooter}>
+            <div className={styles.footerLinks}>
+              <a
+                href="https://github.com/SketchXpress"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.footerIcon}
+                title="GitHub"
+              >
+                <Github size={16} />
+              </a>
+
+              <a
+                href="/whitepaper.pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.footerIcon}
+                title="Whitepaper"
+              >
+                <FileText size={16} />
+              </a>
+
+              <a
+                href="/terms"
+                target="_blank"
+                rel="noopener noreferrer"
+                className={styles.footerIcon}
+                title="Terms & Conditions"
+              >
+                <ScrollText size={16} />
+              </a>
+            </div>
+
+            <div className={styles.copyright}>
+              <Copyright size={12} />
+              <span>{year}</span>
+              {sidebarOpen && <span>MintStreet</span>}
+            </div>
+          </footer>
         </div>
       </aside>
 

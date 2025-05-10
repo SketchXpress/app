@@ -23,6 +23,7 @@ interface CanvasState {
   activeTool: string;
   selectedShapeIds: TLShapeId[];
   lastAction: string;
+
   setEditor: (editor: Editor | null) => void;
   setActiveTool: (tool: string) => void;
   setSelectedShapeIds: (ids: TLShapeId[]) => void;
