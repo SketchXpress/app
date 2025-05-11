@@ -13,15 +13,15 @@ import { ArrowRight, Wallet, Image as ImageIcon, Gem, ChevronDown, AlertCircle }
 
 // Confirmed list of valid fallback/placeholder images in /public folder
 const VALID_NFT_IMAGES = [
-  "/defaultNFT.png",
-  "/nft1.jpeg",
-  "/nft3.jpg",
-  "/nft4.jpg",
-  "/nft5.png",
-  "/nft6.webp",
-  "/demoCar.png",
-  "/demoHouse.png",
-  "/demoRobot.webp",
+  "/assets/images/defaultNFT.png",
+  "/assets/images/nft1.jpeg",
+  "/assets/images/nft3.jpg",
+  "/assets/images/nft4.jpg",
+  "/assets/images/nft5.png",
+  "/assets/images/nft6.webp",
+  "/assets/images/demoCar.png",
+  "/assets/images/demoHouse.png",
+  "/assets/images/demoRobot.webp",
 ];
 
 const INITIAL_VISIBLE_COUNT = 8;

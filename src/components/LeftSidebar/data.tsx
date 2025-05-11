@@ -1,10 +1,10 @@
 import { Brush, Eraser, Layers, Lightbulb, PenTool, Zap } from "lucide-react";
 
 export const examples = [
-  { id: 1, title: "House Sketch", thumbnail: "/demoHouse.png" },
-  { id: 2, title: "Robot Sketch", thumbnail: "/demoRobot.webp" },
-  { id: 3, title: "Car Sketch", thumbnail: "/demoCar.png" },
-  { id: 4, title: "IronMan Sketch", thumbnail: "/demoIronMan.jpg" },
+  { id: 1, title: "House Sketch", thumbnail: "/assets/images/demoHouse.png" },
+  { id: 2, title: "Robot Sketch", thumbnail: "/assets/images/demoRobot.webp" },
+  { id: 3, title: "Car Sketch", thumbnail: "/assets/images/demoCar.png" },
+  { id: 4, title: "IronMan Sketch", thumbnail: "/assets/images/demoIronMan.jpg" },
 ];
 
 // Drawing tips for kids and pro modes

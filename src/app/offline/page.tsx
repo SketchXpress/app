@@ -9,7 +9,7 @@ export default function Offline() {
       <div className={styles.content}>
         <div className={styles.logoContainer}>
           <Image
-            src="/logo.png"
+            src="/assets/images/logo.png"
             alt="SketchXpress Logo"
             width={80}
             height={80}

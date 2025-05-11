@@ -18,12 +18,12 @@ import {
 
 // Array of placeholder images. Ensure these paths are correct and images exist in /public
 const PLACEHOLDER_NFT_IMAGES = [
-  "/nft1.jpeg",
-  "/nft2.avif",
-  "/nft3.jpg",
-  "/nft4.jpg",
-  "/nft5.png",
-  "/nft6.webp",
+  "/assets/images/nft1.jpeg",
+  "/assets/images/nft2.avif",
+  "/assets/images/nft3.jpg",
+  "/assets/images/nft4.jpg",
+  "/assets/images/nft5.png",
+  "/assets/images/nft6.webp",
 ];
 
 /**

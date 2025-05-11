@@ -47,7 +47,7 @@ const OnboardingGuide = () => {
         <div className={styles.logoWrap}>
           <div className={styles.iconWrapper}>
             <Image
-              src="/logo.png"
+              src="/assets/images/logo.png"
               alt="SketchXpress Logo"
               width={48}
               height={48}

@@ -7,13 +7,13 @@ import {
 } from "@/hooks/useBondingCurveHistory";
 
 const VALID_NFT_IMAGES = [
-  "/defaultNFT.png",
-  "/nft1.jpeg",
-  "/nft2.avif",
-  "/nft3.jpg",
-  "/nft4.jpg",
-  "/nft5.png",
-  "/nft6.webp",
+  "/assets/images/defaultNFT.png",
+  "/assets/images/nft1.jpeg",
+  "/assets/images/nft2.avif",
+  "/assets/images/nft3.jpg",
+  "/assets/images/nft4.jpg",
+  "/assets/images/nft5.png",
+  "/assets/images/nft6.webp",
 ];
 
 // Processing transaction history to find collections and their stats

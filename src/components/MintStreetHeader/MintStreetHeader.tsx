@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import logo from "../../../public/assets/images/logo.png";;
+import logo from "../../../public/assets/images/logo.png";
 import styles from "./MintStreetHeader.module.scss";
 import { ArrowLeft, Search } from "lucide-react";
 import { useState, useEffect } from "react";

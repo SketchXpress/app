@@ -374,7 +374,7 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
       case 'burned':
         return { text: 'Burned', className: styles.burnedStatus };
       case 'other':
-        return { text: 'Secondary', className: styles.secondaryStatus };
+        return { text: 'Others', className: styles.secondaryStatus };
       default:
         return { text: 'Unknown', className: styles.unknownStatus };
     }
