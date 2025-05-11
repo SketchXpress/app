@@ -9,6 +9,7 @@ export interface NFT {
 }
 
 export interface NFTCollection {
+  uri?: string;
   id: number;
   poolAddress: string;
   title: string;

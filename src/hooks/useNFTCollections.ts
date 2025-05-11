@@ -16,8 +16,37 @@ const VALID_NFT_IMAGES = [
   "/assets/images/nft6.webp",
 ];
 
+// Add this function to fetch metadata from URI
+const fetchMetadataFromUri = async (
+  uri: string
+): Promise<{ name?: string; image?: string } | null> => {
+  try {
+    // Convert IPFS URI if necessary
+    let metadataUrl = uri;
+    if (uri.startsWith("ipfs://")) {
+      metadataUrl = `https://ipfs.io/ipfs/${uri.substring(7)}`;
+    } else if (uri.startsWith("ar://")) {
+      metadataUrl = `https://arweave.net/${uri.substring(5)}`;
+    }
+
+    const response = await fetch(metadataUrl);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch metadata: ${response.status}`);
+    }
+
+    const metadata = await response.json();
+    return {
+      name: metadata.name,
+      image: metadata.image,
+    };
+  } catch (error) {
+    console.error("Error fetching metadata from URI:", error);
+    return null;
+  }
+};
+
 // Processing transaction history to find collections and their stats
-const processPoolDataFromHistory = (transactions: HistoryItem[]) => {
+const processPoolDataFromHistory = async (transactions: HistoryItem[]) => {
   const poolMap = new Map<
     string,
     {
@@ -28,6 +57,7 @@ const processPoolDataFromHistory = (transactions: HistoryItem[]) => {
       lastMintPrice: number;
       lastMintTime: number;
       name: string;
+      image?: string; // Add image field
       nftCount: number;
       collectionMint: string | undefined;
       collectionFound: boolean;
@@ -36,26 +66,50 @@ const processPoolDataFromHistory = (transactions: HistoryItem[]) => {
 
   const collectionCreations = new Map<
     string,
-    { name: string; symbol: string }
+    { name: string; symbol: string; uri?: string; image?: string }
   >();
 
-  transactions.forEach((tx) => {
+  // First pass: Process collection creations and fetch metadata
+  for (const tx of transactions) {
     if (tx.instructionName === "createCollectionNft" && tx.args) {
       const name = tx.args.name as string;
       const symbol = tx.args.symbol as string;
+      const uri = tx.args.uri as string | undefined;
+
+      console.log("--------------");
+      console.log("Collection Name:", name);
+      console.log("Symbol:", symbol);
+      console.log("URI:", uri);
+
+      // Fetch metadata from URI if available
+      let metadata = null;
+      if (uri) {
+        metadata = await fetchMetadataFromUri(uri);
+        if (metadata) {
+          console.log("Fetched Name from metadata:", metadata.name);
+          console.log("Fetched Image from metadata:", metadata.image);
+        }
+      }
+
+      console.log("--------------");
 
       // Get the collection mint address from the accounts array in the transaction
       if (tx.accounts && tx.accounts.length > 1) {
         const collectionMintAddress = tx.accounts[1].toString();
-        collectionCreations.set(collectionMintAddress, { name, symbol });
+        collectionCreations.set(collectionMintAddress, {
+          name: metadata?.name || name, // Use metadata name if available
+          symbol,
+          uri,
+          image: metadata?.image,
+        });
       }
     }
-  });
+  }
 
   // Map pool addresses to their collection mints using pool creation transactions
   const poolToCollectionMap = new Map<
     string,
-    { name: string; collectionMint: string }
+    { name: string; collectionMint: string; image?: string }
   >();
 
   transactions.forEach((tx) => {
@@ -73,6 +127,7 @@ const processPoolDataFromHistory = (transactions: HistoryItem[]) => {
           poolToCollectionMap.set(poolAddress, {
             name: collection.name,
             collectionMint: collectionMintAddress,
+            image: collection.image,
           });
         }
       }
@@ -98,6 +153,7 @@ const processPoolDataFromHistory = (transactions: HistoryItem[]) => {
         name:
           collectionInfo?.name ||
           `Collection ${tx.poolAddress.substring(0, 6)}...`,
+        image: collectionInfo?.image, // Include the image
         collectionMint: collectionInfo?.collectionMint,
         nftCount: 0,
         collectionFound: !!collectionInfo,
@@ -165,8 +221,8 @@ export const useNFTCollections = (limit: number = 6) => {
     // If history loading finished successfully (historyLoading is false and no historyError)
     const processData = async () => {
       try {
-        // Process transaction history to find all pool data
-        const allPoolsData = processPoolDataFromHistory(history);
+        // Process transaction history to find all pool data (now async)
+        const allPoolsData = await processPoolDataFromHistory(history);
 
         // Determine trending status based on ALL processed pools by transaction count
         const sortedByActivityForTrending = [...allPoolsData].sort(
@@ -189,9 +245,13 @@ export const useNFTCollections = (limit: number = 6) => {
         // Format collections for display
         const formattedCollections: NFTCollection[] = topPoolsForDisplay.map(
           (pool, index) => {
-            // Get a consistent, valid image path for this collection
-            const imageIndex = index % VALID_NFT_IMAGES.length;
-            const imagePath = VALID_NFT_IMAGES[imageIndex];
+            // Use the dynamic image from metadata if available, otherwise fallback to placeholder
+            let imagePath = pool.image;
+            if (!imagePath) {
+              // Fallback to placeholder images
+              const imageIndex = index % VALID_NFT_IMAGES.length;
+              imagePath = VALID_NFT_IMAGES[imageIndex];
+            }
 
             return {
               id: index + 1, // Simple index as ID
@@ -206,7 +266,7 @@ export const useNFTCollections = (limit: number = 6) => {
                     `${(pool.totalVolume / pool.nftCount).toFixed(2)} SOL`
                   : // Final fallback if no data is available
                     "N/A",
-              // Use images confirmed to exist in the public folder
+              // Use dynamic image from metadata or fallback
               image: imagePath,
               // Check if the pool's address is in the set of trending addresses
               trending: trendingPoolAddresses.has(pool.poolAddress),

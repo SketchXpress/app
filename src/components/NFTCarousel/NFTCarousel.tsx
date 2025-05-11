@@ -32,6 +32,7 @@ import styles from "./NFTCarousel.module.scss";
 const NFTCarousel = () => {
   // Fetch NFT collections
   const { collections, loading, error } = useNFTCollections(6);
+  console.table(collections)
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
@@ -119,7 +120,7 @@ const NFTCarousel = () => {
       collections.forEach((nft, index) => {
         console.log(`NFT ${index}:`, {
           title: nft.title,
-          image: nft.image,
+          image: nft.uri,
           formattedImage: formatImageUrl(nft.image)
         });
       });
