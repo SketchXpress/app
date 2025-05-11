@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useAnchorContext } from "@/contexts/AnchorContextProvider";
 import { useTransactionHistory } from "@/hooks/queries/useTransactionHistory";
 import { usePoolPrices } from "@/hooks/queries/usePoolPrices";
-import { processTrendingCollections } from "@/utils/processTrendingCollections"; // Assuming this utility is optimized or backend processing is considered
+import { processTrendingCollections } from "@/utils/processTrendingCollections";
 import { DynamicCollection } from "@/types/collections";
 import styles from "./TrendingCollections.module.scss";
 import {
@@ -14,35 +14,10 @@ import {
   Header,
   MobileCollectionTable,
   SkeletonLoader,
-} from "./Utility"; // Assuming these are optimized/memoized if necessary
+} from "./Utility";
 
-// Array of placeholder images. Ensure these paths are correct and images exist in /public
-const PLACEHOLDER_NFT_IMAGES = [
-  "/assets/images/nft1.jpeg",
-  "/assets/images/nft2.avif",
-  "/assets/images/nft3.jpg",
-  "/assets/images/nft4.jpg",
-  "/assets/images/nft5.png",
-  "/assets/images/nft6.webp",
-];
 
-/**
- * @typedef {object} ProcessedPoolData
- * @property {string} poolAddress - The address of the pool.
- * @property {string} name - The name of the pool.
- * @property {number} nftCount - The number of NFTs in the pool.
- * @property {number} totalVolume - The total volume of the pool.
- * @property {number} timestamp - The timestamp of the last activity or creation.
- */
 
-/**
- * TrendingCollections component displays a list of trending and top volume NFT collections.
- * It fetches transaction history, processes it to identify collections, and then fetches their prices.
- * Handles loading, error, and empty states, and allows switching between "trending" and "top volume" views.
- *
- * @component
- * @returns {React.ReactElement} The rendered trending collections section.
- */
 const TrendingCollections: React.FC = () => {
   const router = useRouter();
   const { program } = useAnchorContext();
@@ -52,8 +27,7 @@ const TrendingCollections: React.FC = () => {
   const [processedCollections, setProcessedCollections] = useState<DynamicCollection[]>([]);
   const [poolAddressesForPricing, setPoolAddressesForPricing] = useState<string[]>([]);
 
-  // Fetch transaction history - consider if 50 is the optimal limit or if pagination is needed for the source hook.
-  // Recommendation: The core logic of `processTrendingCollections` should ideally be on the backend for performance.
+  // Fetch transaction history
   const {
     data: history,
     isLoading: historyLoading,
@@ -69,10 +43,19 @@ const TrendingCollections: React.FC = () => {
 
   const isProgramInitialized = !!program;
 
-  // Memoized function to get a random NFT image
+  // Placeholder NFT images for fallback
+  const PLACEHOLDER_NFT_IMAGES = [
+    "/assets/images/defaultNFT.png",
+    "/assets/images/placeholder1.png",
+    "/assets/images/placeholder2.png",
+    "/assets/images/placeholder3.png",
+  ];
+
+  // Memoized function to get a random NFT image (used as fallback)
   const getRandomNftImage = useCallback(() => {
     const randomIndex = Math.floor(Math.random() * PLACEHOLDER_NFT_IMAGES.length);
     return PLACEHOLDER_NFT_IMAGES[randomIndex];
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Effect to process history and derive collections
@@ -87,51 +70,54 @@ const TrendingCollections: React.FC = () => {
 
     if (!history || history.length === 0) {
       setProcessedCollections([]);
-      setError(null); // Clear previous errors if any
+      setError(null);
       return;
     }
 
-    try {
-      // Recommendation: `processTrendingCollections` should be highly optimized if it remains client-side.
-      // Ideally, this processing happens on a backend and returns pre-sorted/filtered data.
-      const poolData = processTrendingCollections(history);
+    const processData = async () => {
+      try {
+        // Process trending collections with metadata fetching (now async)
+        const poolData = await processTrendingCollections(history);
 
-      const sortedPools = [...poolData];
-      if (activeTab === "trending") {
-        sortedPools.sort((a, b) => b.timestamp - a.timestamp); // Sort by most recent
-      } else { // activeTab === "top"
-        sortedPools.sort((a, b) => b.totalVolume - a.totalVolume); // Sort by highest volume
+        const sortedPools = [...poolData];
+        if (activeTab === "trending") {
+          sortedPools.sort((a, b) => b.timestamp - a.timestamp); // Sort by most recent
+        } else { // activeTab === "top"
+          sortedPools.sort((a, b) => b.totalVolume - a.totalVolume); // Sort by highest volume
+        }
+
+        const topPools = sortedPools.slice(0, 8);
+
+        const formattedCollections: DynamicCollection[] = topPools.map((pool, index) => ({
+          id: pool.poolAddress,
+          rank: index + 1,
+          name: pool.name,
+          // Use the dynamic image from metadata, fallback to placeholder if not available
+          image: pool.image || getRandomNftImage(),
+          verified: true,
+          nftCount: pool.nftCount,
+          totalVolume: pool.totalVolume,
+        }));
+
+        setProcessedCollections(formattedCollections);
+        setPoolAddressesForPricing(formattedCollections.map(c => c.id));
+        setError(null);
+      } catch (err) {
+        console.error("Error processing collections:", err);
+        setError(err instanceof Error ? err.message : "An error occurred while processing collections.");
+        setProcessedCollections([]);
       }
+    };
 
-      const topPools = sortedPools.slice(0, 8);
-
-      const formattedCollections: DynamicCollection[] = topPools.map((pool, index) => ({
-        id: pool.poolAddress,
-        rank: index + 1,
-        name: pool.name || `Collection ${pool.poolAddress.slice(0, 6)}...`,
-        image: getRandomNftImage(), // Placeholder image logic
-        verified: true, // Assuming verification logic exists or is static
-        nftCount: pool.nftCount,
-        totalVolume: pool.totalVolume,
-        // poolAddress is part of pool object, ensure it is passed if needed by DynamicCollection type
-      }));
-
-      setProcessedCollections(formattedCollections);
-      setPoolAddressesForPricing(formattedCollections.map(c => c.id));
-      setError(null); // Clear previous errors
-    } catch (err) {
-      console.error("Error processing collections:", err);
-      setError(err instanceof Error ? err.message : "An error occurred while processing collections.");
-      setProcessedCollections([]);
-    }
-  }, [history, historyLoading, historyError, activeTab, getRandomNftImage]);
+    // Execute the async processing
+    processData();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [history, historyLoading, historyError, activeTab]);
 
   // Effect to handle price loading errors
   useEffect(() => {
     if (pricesError) {
       console.error("Error fetching pool prices:", pricesError);
-      // Decide how to handle price errors, e.g., show a message or fallback display for prices
-      // For now, it will just log, and renderPoolPrice will fallback to volume.
     }
   }, [pricesError]);
 
@@ -139,7 +125,6 @@ const TrendingCollections: React.FC = () => {
     if (tab !== "trending" && tab !== "top") return;
     if (tab === activeTab) return;
     setActiveTab(tab);
-    // Data will re-process due to `activeTab` dependency in the main useEffect
   }, [activeTab]);
 
   const handleCollectionClick = useCallback((poolAddress: string) => {
@@ -148,8 +133,8 @@ const TrendingCollections: React.FC = () => {
 
   const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.target as HTMLImageElement;
-    target.src = "/assets/images/defaultNFT.png"; // Ensure this fallback image exists in /public
-    target.onerror = null; // Prevent infinite loop
+    target.src = "/assets/images/defaultNFT.png";
+    target.onerror = null;
   }, []);
 
   const renderPoolPrice = useCallback((collection: DynamicCollection): React.ReactNode => {
@@ -204,14 +189,12 @@ const TrendingCollections: React.FC = () => {
               onCollectionClick={handleCollectionClick}
               renderPoolPrice={renderPoolPrice}
               handleImageError={handleImageError}
-            // Consider passing a unique key prefix if items can be unstable
             />
             <MobileCollectionTable
               collections={processedCollections}
               onCollectionClick={handleCollectionClick}
               renderPoolPrice={renderPoolPrice}
               handleImageError={handleImageError}
-            // Consider passing a unique key prefix
             />
           </>
         )}
@@ -221,4 +204,3 @@ const TrendingCollections: React.FC = () => {
 };
 
 export default React.memo(TrendingCollections);
-
