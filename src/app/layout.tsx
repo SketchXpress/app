@@ -135,7 +135,7 @@ export const metadata: Metadata = {
   },
   verification: {
     google: 'google-site-verification=crmxfyyS7T84MHobtEc-g1rAPET1k84JaZ__A-Ur6yY',
-    yandex: 'your-yandex-verification-code',
+    yandex: 'a583f14d6af70938',
   },
   category: 'technology',
   other: {
@@ -217,7 +217,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     "height": 512
                   },
                   "sameAs": [
-                    "https://twitter.com/sketchxpress",
+                    "https://x.com/sketch_xpress",
                     "https://github.com/sketchxpress"
                   ]
                 },
@@ -262,7 +262,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   "@type": "ListItem",
                   "position": 2,
                   "name": "Draw",
-                  "item": "https://sketchxpress.tech/draw"
+                  "item": "https://sketchxpress.tech/"
                 },
                 {
                   "@type": "ListItem",
