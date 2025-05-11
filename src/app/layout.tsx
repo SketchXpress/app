@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     siteName: "SketchXpress",
     images: [
       {
-        url: "https://sketchxpress.com/assets/images/og-image.png",
+        url: "https://sketchxpress.tech/assets/images/og-image.png",
         width: 1200,
         height: 630,
         alt: "SketchXpress AI NFT Creation Workflow: Sketch → AI Enhancement → NFT Minting"
@@ -84,7 +84,7 @@ export const metadata: Metadata = {
     description: "Revolutionizing NFT creation with AI image enhancement and bonding curve market dynamics. #Web3 #NFTs #AI",
     creator: "@SketchXpress",
     images: {
-      url: "https://sketchxpress.com/twitter-ai-nft-flow.jpg",
+      url: "https://sketchxpress.tech/assets/images/og-image.png",
       alt: "Visualization of SketchXpress AI to NFT pipeline"
     }
   },
