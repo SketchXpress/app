@@ -34,9 +34,9 @@ export const metadata: Metadata = {
     "decentralized NFT minting",
     "AI image enhancement",
     "NFT collection analytics",
-    
+
     // Brand name variations and common misspellings
-    "Sketch Xpress", 
+    "Sketch Xpress",
     "Sketch Express",
     "SketchExpress",
     "Sketch X Press",
@@ -48,7 +48,7 @@ export const metadata: Metadata = {
     "SkechXpress",
     "SketchXprez",
     "Skech Express",
-    
+
     // URL variations
     "sketchxpress.com",
     "sketch-xpress.com",
@@ -60,7 +60,7 @@ export const metadata: Metadata = {
   creator: "SketchXpress",
   publisher: "SketchXpress Technologies",
   robots: "index, follow,max-image-preview:large",
-  
+
   openGraph: {
     type: "website",
     locale: "en_US",
@@ -77,7 +77,7 @@ export const metadata: Metadata = {
       }
     ]
   },
-  
+
   twitter: {
     card: "summary_large_image",
     title: "SketchXpress - AI-Driven NFT Ecosystem",
@@ -91,8 +91,8 @@ export const metadata: Metadata = {
 
   // Existing PWA configuration
   icons: {
-    icon: "/favicon.ico",
-    apple: "/apple-touch-icon.png"
+    icon: "/assets/icons/favicon.ico",
+    apple: "/assets/icons/apple-touch-icon.png"
   },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -100,11 +100,11 @@ export const metadata: Metadata = {
     statusBarStyle: "default",
     title: "SketchXpress",
   },
-  
+
   alternates: {
     canonical: "https://sketchxpress.com"
   },
-  
+
   // Enhanced metadata for AI/NFT features
   other: {
     "ai-tool": "sketch-to-image, image-enhancement, nft-generator",
@@ -139,7 +139,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Additional SEO meta tags */}
         <meta name="theme-color" content="#00B7E1" />
         <meta name="color-scheme" content="normal" />
-        
+
         {/* Common misspellings meta tag to capture typo traffic */}
         <meta name="also-known-as" content="Sketch Express, SketchExpress, Sketch Xpress, Sketch X Press" />
 
@@ -295,8 +295,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preload" href="/assets/images/logo.png" as="image" />
 
         {/* PWA icons */}
-        <link rel="icon" href="/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+        <link rel="icon" href="/assets/icons/favicon.ico" sizes="any" />
+        <link rel="apple-touch-icon" href="/assets/icons/apple-touch-icon.png" />
         <link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/icon-32x32.png" />
         <link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/icon-16x16.png" />
         <link rel="mask-icon" href="/assets/icons/safari-pinned-tab.svg" color="#00B7E1" />

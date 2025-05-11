@@ -4,9 +4,9 @@ const urlsToCache = [
   "/offline", // Offline page
 
   // Root level icons and images
-  "/favicon.ico",
-  "/apple-touch-icon.png",
-  "/manifest.json",
+  "/assets/icons/favicon.ico",
+  "/assets/icons/apple-touch-icon.png",
+  "/manifests/manifest.json",
 
   // Icons
   "/assets/icons/icon-48x48.png",
