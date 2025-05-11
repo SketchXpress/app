@@ -70,7 +70,7 @@ export const metadata: Metadata = {
     siteName: "SketchXpress",
     images: [
       {
-        url: "https://sketchxpress.com/og-ai-nft-creation.jpg",
+        url: "https://sketchxpress.com/assets/images/og-image.png",
         width: 1200,
         height: 630,
         alt: "SketchXpress AI NFT Creation Workflow: Sketch → AI Enhancement → NFT Minting"
