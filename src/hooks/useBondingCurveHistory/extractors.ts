@@ -23,15 +23,6 @@ export const extractMintPrice = (
     escrowAddress
   ) {
     const payer = tx.feePayer;
-    // Log transaction details before filtering native transfers
-    console.table([
-      {
-        Signature: tx.signature,
-        FeePayer: payer,
-        EscrowAddress: escrowAddress,
-        Note: "Attempting mint price extraction",
-      },
-    ]);
 
     // Find transfers to escrow (for mint operations)
     const transfersToEscrow = tx.nativeTransfers

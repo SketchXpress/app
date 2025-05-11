@@ -1,202 +1,184 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import styles from "./TrendingCollections.module.scss";
-import { DynamicCollection } from "@/types/collections";
-import { usePoolPrices } from '@/hooks/queries/usePoolPrices';
-import { useAnchorContext } from "@/contexts/AnchorContextProvider";
 import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useTransactionHistory } from '@/hooks/queries/useTransactionHistory';
-import { processTrendingCollections } from '@/utils/processTrendingCollections';
-import { DesktopCollectionTable, EmptyState, Header, MobileCollectionTable, SkeletonLoader } from "./Utility";
+import { useRouter } from "next/navigation";
+import { useAnchorContext } from "@/contexts/AnchorContextProvider";
+import { useTransactionHistory } from "@/hooks/queries/useTransactionHistory";
+import { usePoolPrices } from "@/hooks/queries/usePoolPrices";
+import { processTrendingCollections } from "@/utils/processTrendingCollections"; // Assuming this utility is optimized or backend processing is considered
+import { DynamicCollection } from "@/types/collections";
+import styles from "./TrendingCollections.module.scss";
+import {
+  DesktopCollectionTable,
+  EmptyState,
+  Header,
+  MobileCollectionTable,
+  SkeletonLoader,
+} from "./Utility"; // Assuming these are optimized/memoized if necessary
 
-// Main Component
+// Array of placeholder images. Ensure these paths are correct and images exist in /public
+const PLACEHOLDER_NFT_IMAGES = [
+  "/nft1.jpeg",
+  "/nft2.avif",
+  "/nft3.jpg",
+  "/nft4.jpg",
+  "/nft5.png",
+  "/nft6.webp",
+];
+
+/**
+ * @typedef {object} ProcessedPoolData
+ * @property {string} poolAddress - The address of the pool.
+ * @property {string} name - The name of the pool.
+ * @property {number} nftCount - The number of NFTs in the pool.
+ * @property {number} totalVolume - The total volume of the pool.
+ * @property {number} timestamp - The timestamp of the last activity or creation.
+ */
+
+/**
+ * TrendingCollections component displays a list of trending and top volume NFT collections.
+ * It fetches transaction history, processes it to identify collections, and then fetches their prices.
+ * Handles loading, error, and empty states, and allows switching between "trending" and "top volume" views.
+ *
+ * @component
+ * @returns {React.ReactElement} The rendered trending collections section.
+ */
 const TrendingCollections: React.FC = () => {
   const router = useRouter();
-  const [isLoading, setIsLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState("trending");
-  const [error, setError] = useState<string | null>(null);
-  const [dataProcessed, setDataProcessed] = useState(false);
-  const [poolAddresses, setPoolAddresses] = useState<string[]>([]);
-  const [collections, setCollections] = useState<DynamicCollection[]>([]);
-
-  // Get wallet and Anchor context
   const { program } = useAnchorContext();
 
+  const [activeTab, setActiveTab] = useState<"trending" | "top">("trending");
+  const [error, setError] = useState<string | null>(null);
+  const [processedCollections, setProcessedCollections] = useState<DynamicCollection[]>([]);
+  const [poolAddressesForPricing, setPoolAddressesForPricing] = useState<string[]>([]);
 
-  const { data: history, isLoading: historyLoading, error: historyError } = useTransactionHistory(50);
-  const { data: prices, isLoading: pricesLoading } = usePoolPrices(poolAddresses);
+  // Fetch transaction history - consider if 50 is the optimal limit or if pagination is needed for the source hook.
+  // Recommendation: The core logic of `processTrendingCollections` should ideally be on the backend for performance.
+  const {
+    data: history,
+    isLoading: historyLoading,
+    error: historyError
+  } = useTransactionHistory(50);
 
-  // Checking wallet and program state
+  // Fetch pool prices based on derived pool addresses
+  const {
+    data: prices,
+    isLoading: pricesLoading,
+    error: pricesError
+  } = usePoolPrices(poolAddressesForPricing);
+
   const isProgramInitialized = !!program;
 
-  // Get a random NFT image from the available images
+  // Memoized function to get a random NFT image
   const getRandomNftImage = useCallback(() => {
-    const nftImages = [
-      "/nft1.jpeg",
-      "/nft2.avif",
-      "/nft3.jpg",
-      "/nft4.jpg",
-      "/nft5.png",
-      "/nft6.webp",
-    ];
-
-    // Select a random image from the array
-    const randomIndex = Math.floor(Math.random() * nftImages.length);
-    return nftImages[randomIndex];
+    const randomIndex = Math.floor(Math.random() * PLACEHOLDER_NFT_IMAGES.length);
+    return PLACEHOLDER_NFT_IMAGES[randomIndex];
   }, []);
 
-  // Update loading state when history loading changes
+  // Effect to process history and derive collections
   useEffect(() => {
-    if (historyLoading) {
-      setIsLoading(true);
-    }
-  }, [historyLoading]);
+    if (historyLoading) return;
 
-  // Process history data when it's available
-  useEffect(() => {
-    if (historyLoading) {
+    if (historyError) {
+      setError(historyError instanceof Error ? historyError.message : "Failed to load transaction history.");
+      setProcessedCollections([]);
+      return;
+    }
+
+    if (!history || history.length === 0) {
+      setProcessedCollections([]);
+      setError(null); // Clear previous errors if any
       return;
     }
 
     try {
-      if (historyError) {
-        setError(historyError instanceof Error ? historyError.message : 'An unknown error occurred');
-        setIsLoading(false);
-        return;
-      }
-
-      // Set collections to empty array if no history
-      if (!history || history.length === 0) {
-        setCollections([]);
-        setIsLoading(false);
-        setDataProcessed(true);
-        return;
-      }
-
-      // Process collections from history
+      // Recommendation: `processTrendingCollections` should be highly optimized if it remains client-side.
+      // Ideally, this processing happens on a backend and returns pre-sorted/filtered data.
       const poolData = processTrendingCollections(history);
 
-      // Sort based on active tab
-      let sortedPools = [...poolData];
+      const sortedPools = [...poolData];
       if (activeTab === "trending") {
-        sortedPools.sort((a, b) => b.timestamp - a.timestamp);
-      } else {
-        sortedPools.sort((a, b) => b.totalVolume - a.totalVolume);
+        sortedPools.sort((a, b) => b.timestamp - a.timestamp); // Sort by most recent
+      } else { // activeTab === "top"
+        sortedPools.sort((a, b) => b.totalVolume - a.totalVolume); // Sort by highest volume
       }
 
-      // Take top 8
-      sortedPools = sortedPools.slice(0, 8);
+      const topPools = sortedPools.slice(0, 8);
 
-      const formattedCollections: DynamicCollection[] = sortedPools.map(
-        (pool, index) => ({
-          id: pool.poolAddress,
-          rank: index + 1,
-          name: pool.name,
-          image: getRandomNftImage(),
-          verified: true,
-          nftCount: pool.nftCount,
-          totalVolume: pool.totalVolume,
-        })
-      );
+      const formattedCollections: DynamicCollection[] = topPools.map((pool, index) => ({
+        id: pool.poolAddress,
+        rank: index + 1,
+        name: pool.name || `Collection ${pool.poolAddress.slice(0, 6)}...`,
+        image: getRandomNftImage(), // Placeholder image logic
+        verified: true, // Assuming verification logic exists or is static
+        nftCount: pool.nftCount,
+        totalVolume: pool.totalVolume,
+        // poolAddress is part of pool object, ensure it is passed if needed by DynamicCollection type
+      }));
 
-      setPoolAddresses(formattedCollections.map((collection) => collection.id));
-      setCollections(formattedCollections);
-      setIsLoading(false);
-      setDataProcessed(true);
+      setProcessedCollections(formattedCollections);
+      setPoolAddressesForPricing(formattedCollections.map(c => c.id));
+      setError(null); // Clear previous errors
     } catch (err) {
       console.error("Error processing collections:", err);
-      setError(
-        err instanceof Error ? err.message : "An unknown error occurred"
-      );
-      setIsLoading(false);
-      setDataProcessed(true);
+      setError(err instanceof Error ? err.message : "An error occurred while processing collections.");
+      setProcessedCollections([]);
     }
   }, [history, historyLoading, historyError, activeTab, getRandomNftImage]);
 
-  // Handle tab change
-  const handleTabChange = useCallback(
-    (tab: string) => {
-      // If clicking the same tab, don't trigger loading state
-      if (tab === activeTab) {
-        return;
+  // Effect to handle price loading errors
+  useEffect(() => {
+    if (pricesError) {
+      console.error("Error fetching pool prices:", pricesError);
+      // Decide how to handle price errors, e.g., show a message or fallback display for prices
+      // For now, it will just log, and renderPoolPrice will fallback to volume.
+    }
+  }, [pricesError]);
+
+  const handleTabChange = useCallback((tab: string) => {
+    if (tab !== "trending" && tab !== "top") return;
+    if (tab === activeTab) return;
+    setActiveTab(tab);
+    // Data will re-process due to `activeTab` dependency in the main useEffect
+  }, [activeTab]);
+
+  const handleCollectionClick = useCallback((poolAddress: string) => {
+    router.push(`/mintstreet/collection/${poolAddress}`);
+  }, [router]);
+
+  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const target = e.target as HTMLImageElement;
+    target.src = "/defaultNFT.png"; // Ensure this fallback image exists in /public
+    target.onerror = null; // Prevent infinite loop
+  }, []);
+
+  const renderPoolPrice = useCallback((collection: DynamicCollection): React.ReactNode => {
+    if (isProgramInitialized && !pricesLoading && prices && typeof prices === "object" && collection.id in prices) {
+      const price = prices[collection.id];
+      if (typeof price === "number") {
+        return <div className={styles.priceCell}>{price.toFixed(4)} SOL</div>;
       }
-      setActiveTab(tab);
-      // When changing tabs, show skeleton loader while data is being sorted
-      setIsLoading(true);
-      setDataProcessed(false);
-    },
-    [activeTab]
-  );
+    }
+    // Fallback to showing total volume if price isn't available or still loading
+    return <div className={styles.priceCell}>{collection.totalVolume.toFixed(4)} SOL</div>;
+  }, [isProgramInitialized, pricesLoading, prices]);
 
-  // Handle collection click - Navigate to collection page
-  const handleCollectionClick = useCallback(
-    (poolAddress: string) => {
-      router.push(`/mintstreet/collection/${poolAddress}`);
-    },
-    [router]
-  );
+  const { leftCollections, rightCollections } = useMemo(() => ({
+    leftCollections: processedCollections.slice(0, 4),
+    rightCollections: processedCollections.slice(4, 8),
+  }), [processedCollections]);
 
-  // Handle image error
-  const handleImageError = useCallback(
-    (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-      const target = e.target as HTMLImageElement;
-      target.src = "/defaultNFT.png";
-    },
-    []
-  );
+  const isLoading = historyLoading || (poolAddressesForPricing.length > 0 && pricesLoading);
 
-  const renderPoolPrice = useCallback(
-    (collection: DynamicCollection) => {
-      // If program is initialized and prices are loaded, use the price
-      if (
-        isProgramInitialized &&
-        !pricesLoading &&
-        prices &&
-        typeof prices === 'object' &&
-        collection.id in prices
-      ) {
-        const price = prices[collection.id];
-        if (typeof price === 'number') {
-          return (
-            <div className={styles.priceCell}>
-              {price.toFixed(4)} SOL
-            </div>
-          );
-        }
-      }
-
-      // Fallback to showing total volume
-      return (
-        <div className={styles.priceCell}>
-          {collection.totalVolume.toFixed(4)} SOL
-        </div>
-      );
-    },
-    [isProgramInitialized, pricesLoading, prices]
-  );
-
-  // Split collections for two columns - memoized to prevent unnecessary recalculations
-  const { leftCollections, rightCollections } = useMemo(() => {
-    return {
-      leftCollections: collections.slice(0, 4),
-      rightCollections: collections.slice(4, 8),
-    };
-  }, [collections]);
-
-  // Render error state
-  if (error) {
+  if (error && !isLoading && processedCollections.length === 0) {
     return (
-      <section className={styles.trendingSection}>
+      <section className={styles.trendingSection} aria-labelledby="trending-collections-heading">
         <div className={styles.container}>
           <Header activeTab={activeTab} onTabChange={handleTabChange} />
           <div className={styles.errorContainer}>
-            <p>Error loading collections: {error}</p>
-            <button
-              className={styles.retryButton}
-              onClick={() => window.location.reload()}
-            >
-              Retry
+            <p role="alert">Error loading collections: {error}</p>
+            <button className={styles.retryButton} onClick={() => window.location.reload()}>
+              Retry Page
             </button>
           </div>
         </div>
@@ -205,13 +187,14 @@ const TrendingCollections: React.FC = () => {
   }
 
   return (
-    <section className={styles.trendingSection}>
+    <section className={styles.trendingSection} aria-labelledby="trending-collections-heading">
+      <h2 id="trending-collections-heading" className="sr-only">Trending NFT Collections</h2>
       <div className={styles.container}>
         <Header activeTab={activeTab} onTabChange={handleTabChange} />
 
-        {isLoading || historyLoading || !dataProcessed ? (
+        {isLoading ? (
           <SkeletonLoader />
-        ) : collections.length === 0 ? (
+        ) : processedCollections.length === 0 ? (
           <EmptyState />
         ) : (
           <>
@@ -221,12 +204,14 @@ const TrendingCollections: React.FC = () => {
               onCollectionClick={handleCollectionClick}
               renderPoolPrice={renderPoolPrice}
               handleImageError={handleImageError}
+            // Consider passing a unique key prefix if items can be unstable
             />
             <MobileCollectionTable
-              collections={collections}
+              collections={processedCollections}
               onCollectionClick={handleCollectionClick}
               renderPoolPrice={renderPoolPrice}
               handleImageError={handleImageError}
+            // Consider passing a unique key prefix
             />
           </>
         )}
@@ -235,4 +220,5 @@ const TrendingCollections: React.FC = () => {
   );
 };
 
-export default TrendingCollections;
+export default React.memo(TrendingCollections);
+

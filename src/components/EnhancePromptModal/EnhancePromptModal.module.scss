@@ -1,3 +1,5 @@
+$background:#f1f1f1;
+
 .modalOverlay {
   position: fixed;
   top: 0;
@@ -35,7 +37,7 @@
   overflow: hidden;
   
   // Modern glass morphism effect
-  background: rgba(255, 255, 255, 0.95);
+
   backdrop-filter: blur(20px) saturate(180%);
   -webkit-backdrop-filter: blur(20px) saturate(180%);
   

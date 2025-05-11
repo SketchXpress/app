@@ -381,3 +381,84 @@
   object-position: center;
   background-color: #f3f4f6;
 }
+
+
+// Enhanced Skeleton Loader Styles
+@keyframes shimmer {
+  0% {
+    background-position: -1000px 0;
+  }
+  100% {
+    background-position: 1000px 0;
+  }
+}
+
+.skeleton {
+  background-color: #e0e0e0; // A slightly darker base
+  border-radius: 4px;
+  position: relative;
+  overflow: hidden;
+  background-image: linear-gradient(to right, #e0e0e0 0%, #f0f0f0 20%, #e0e0e0 40%, #e0e0e0 100%);
+  background-repeat: no-repeat;
+  background-size: 2000px 100%; // Wider gradient for smoother animation
+  animation: shimmer 1.5s linear infinite; // Slower, smoother animation
+  display: inline-block; // Helps with sizing if not full width
+  line-height: 1; // Prevents extra space if text is accidentally rendered
+}
+
+// Specific skeleton element styles (mimicking content)
+.skeletonTextShort { width: 50px; height: 1em; margin-bottom: 0.25em; }
+.skeletonTextMedium { width: 100px; height: 1em; margin-bottom: 0.25em; }
+.skeletonTextLong { width: 150px; height: 1em; margin-bottom: 0.25em; }
+.skeletonTitle { width: 70%; height: 1.5em; margin-bottom: 0.5em; }
+.skeletonImage { width: 100%; height: 100%; }
+.skeletonButton { width: 60px; height: 30px; border-radius: 6px; }
+
+// Adjustments for NFTRowSkeleton
+.skeletonRow {
+  td {
+    padding-top: 12px; // Add some padding to match real rows better
+    padding-bottom: 12px;
+  }
+  .skeletonImageWrapper {
+    width: 40px;
+    height: 40px;
+    border-radius: 6px;
+    overflow: hidden;
+    background-color: transparent; // Let skeleton div handle background
+  }
+}
+
+// Adjustments for NFTCardSkeleton
+.skeletonCard {
+  background-color: var(--card-bg, #F9F9F9);
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+
+  .skeletonCardImage {
+    width: 100%;
+    height: 60px; // Match card image wrapper height
+    background-color: transparent; // Let skeleton div handle background
+  }
+  .cardImageWrapper .skeletonCardImage { // If nested in a wrapper
+      height: 100%;
+  }
+
+  .skeletonCardIndex { width: 30px; height: 0.8em; margin-bottom: 0.3em; }
+  .skeletonCardName { width: 60%; height: 1.2em; margin-bottom: 0.3em; }
+  .skeletonCardSymbol { width: 40%; height: 1em; margin-bottom: 0.5em; }
+
+  .cardDetails .skeletonTextShort { width: 40%; }
+  .cardDetails .skeletonTextMedium { width: 55%; }
+  .cardActions .skeletonButton { flex: 1; height: 36px; }
+}
+
+// Ensure the skeleton title in PoolNFTsGrid also uses the shimmer
+.skeletonTitle .skeletonTextMedium {
+    width: 200px; // Example width for the title "Pool NFTs"
+    height: 1.25rem; // Match title font size
+}
+

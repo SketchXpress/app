@@ -1,17 +1,17 @@
 "use client";
 
-import Image from 'next/image';
-import { NFT } from '@/types/nft';
-import styles from './MyNFT.module.scss';
-import { useState, useEffect, useCallback, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { useWalletNFTs } from '@/hooks/queries/useWalletNFTs';
+import React, { useState, useCallback, useMemo } from "react";
+import Image from "next/image";
+import { useRouter } from "next/navigation";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { NFT } from "@/types/nft"; // Assuming NFT type is defined here
+import { useWalletNFTs } from "@/hooks/queries/useWalletNFTs"; // Recommendation: This hook should support pagination
+import { useTransactionHistory } from "@/hooks/queries/useTransactionHistory"; // Recommendation: NFT-to-pool mapping ideally from backend
 import ConnectWalletButton from "@/wallet/ConnectWalletButton";
-import { useTransactionHistory } from '@/hooks/queries/useTransactionHistory';
-import { ArrowRight, Wallet, Image as ImageIcon, Gem, ChevronDown } from 'lucide-react';
+import styles from "./MyNFT.module.scss";
+import { ArrowRight, Wallet, Image as ImageIcon, Gem, ChevronDown, AlertCircle } from "lucide-react";
 
-// Available NFT images that are confirmed to exist in the public folder
+// Confirmed list of valid fallback/placeholder images in /public folder
 const VALID_NFT_IMAGES = [
   "/defaultNFT.png",
   "/nft1.jpeg",
@@ -21,141 +21,126 @@ const VALID_NFT_IMAGES = [
   "/nft6.webp",
   "/demoCar.png",
   "/demoHouse.png",
-  "/demoRobot.webp"
+  "/demoRobot.webp",
 ];
 
-const MyNFT = () => {
+const INITIAL_VISIBLE_COUNT = 8;
+const LOAD_MORE_COUNT = 4;
+
+/**
+ * @typedef {object} Transaction
+ * @property {string} instructionName - Name of the instruction (e.g., "mintNft").
+ * @property {Array<{toString: () => string}>} [accounts] - Accounts involved in the transaction.
+ * @property {string} [poolAddress] - Pool address associated with the transaction.
+ */
+
+/**
+ * MyNFT component displays the connected user's NFT gallery.
+ * It fetches NFTs using `useWalletNFTs` and transaction history via `useTransactionHistory`
+ * to map NFTs to their respective pools (client-side, with a recommendation for backend processing).
+ * Features include pagination for NFTs, error handling, loading states, and wallet connection prompts.
+ *
+ * @component
+ * @returns {React.ReactElement} The rendered "My NFTs" section.
+ */
+const MyNFT: React.FC = () => {
   const router = useRouter();
   const { connected } = useWallet();
-  const [hasMore, setHasMore] = useState(false);
-  const [activeTab, setActiveTab] = useState('nfts');
-  const [visibleCount, setVisibleCount] = useState(5);
+  const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
 
-  // Use a more conservative fetch limit to avoid rate limiting
-  const { data: history = [], isLoading: historyLoading } = useTransactionHistory(100);
-  const { data: nfts = [], isLoading: nftsLoading, error: nftsError } = useWalletNFTs();
+  // Fetch user's NFTs. Recommendation: `useWalletNFTs` should ideally support pagination internally.
+  const { data: nfts = [], isLoading: nftsLoading, error: nftsError, refetch: refetchNfts } = useWalletNFTs();
 
-  // Create a mapping of NFT mint addresses to pool addresses
-  const [nftToPoolMap, setNftToPoolMap] = useState<Record<string, string>>({});
-  const [nftsWithPoolCount, setNftsWithPoolCount] = useState(0);
+  // Fetch transaction history. Recommendation: NFT-to-pool mapping should ideally be derived server-side.
+  const { data: history = [], isLoading: historyLoading, error: historyError, refetch: refetchHistory } = useTransactionHistory(100); // Limit history fetch
 
-  // Process history data to find which NFTs correspond to which pools - with memoization
-  useEffect(() => {
-    if (!historyLoading && history && history.length > 0 && nfts && nfts.length > 0) {
-      const map: Record<string, string> = {};
-
-      // Process history to find mint addresses and their corresponding pool addresses
-      history.forEach(tx => {
-        if (tx.instructionName === "mintNft" && tx.accounts && tx.accounts.length > 1 && tx.poolAddress) {
-          // For mint transactions, the NFT mint address is typically the second account (index 1)
-          const mintAddress = tx.accounts[1]?.toString();
-
-          if (mintAddress) {
-            map[mintAddress] = tx.poolAddress;
-          }
-        }
-      });
-
-      // Only update state and trigger re-render if the mapping has changed
-      const count = nfts.filter(nft => map[nft.mintAddress]).length;
-
-      // Update state in one batch to reduce renders
-      setNftToPoolMap(map);
-      setNftsWithPoolCount(count);
+  // Memoized mapping of NFT mint addresses to pool addresses
+  const nftToPoolMap = useMemo(() => {
+    if (historyLoading || !history || history.length === 0 || !nfts || nfts.length === 0) {
+      return {};
     }
+    const map: Record<string, string> = {};
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    history.forEach((tx: any) => { // Use 'any' if Transaction type is not strictly defined for history items
+      if (tx.instructionName === "mintNft" && tx.accounts && tx.accounts.length > 1 && tx.poolAddress) {
+        const mintAddress = tx.accounts[1]?.toString();
+        if (mintAddress) {
+          map[mintAddress] = tx.poolAddress;
+        }
+      }
+    });
+    return map;
   }, [history, historyLoading, nfts]);
 
-  // Check if there are more NFTs to load - memoized
-  useEffect(() => {
-    if (nfts.length > visibleCount) {
-      setHasMore(true);
-    } else {
-      setHasMore(false);
-    }
-  }, [nfts.length, visibleCount]);
+  // Memoized count of NFTs that have an associated pool
+  const nftsWithPoolCount = useMemo(() => {
+    return nfts.filter(nft => !!nftToPoolMap[nft.mintAddress]).length;
+  }, [nfts, nftToPoolMap]);
 
-  // Handle loading more NFTs
   const handleLoadMore = useCallback(() => {
-    setVisibleCount(prevCount => prevCount + 5);
+    setVisibleCount(prevCount => prevCount + LOAD_MORE_COUNT);
   }, []);
 
-  // Get visible NFTs based on current count - memoized
-  const visibleNFTs = useMemo(() => {
-    return nfts.slice(0, visibleCount);
-  }, [nfts, visibleCount]);
+  const visibleNFTs = useMemo(() => nfts.slice(0, visibleCount), [nfts, visibleCount]);
+  const hasMoreNfts = useMemo(() => nfts.length > visibleCount, [nfts, visibleCount]);
 
-  // Handle clicking on an NFT to go to mintstreet/collection page
   const handleNFTClick = useCallback((nft: NFT) => {
     const poolAddress = nftToPoolMap[nft.mintAddress];
-
     if (poolAddress) {
-      // Navigate to the pool's collection page
       router.push(`/mintstreet/collection/${poolAddress}`);
     } else {
-      // If no pool address is found, navigate to a default page
+      // Potentially navigate to a generic NFT details page if available, or stay on MintStreet
       router.push(`/mintstreet`);
+      // console.log(`NFT ${nft.mintAddress} does not have an associated pool in the current history.`);
     }
   }, [nftToPoolMap, router]);
 
-  // Improved fallback image function to handle image loading errors
   const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.currentTarget as HTMLImageElement;
-
-    // Always use a fallback image that is confirmed to exist
-    target.src = '/defaultNFT.png';
-
-    // Prevent further error callbacks
+    target.src = VALID_NFT_IMAGES[0]; // Fallback to the first image in the valid list (defaultNFT.png)
     target.onerror = null;
   }, []);
 
-  // Calculate total value of NFTs - memoized
   const totalValue = useMemo(() => {
     return nfts.reduce((acc: number, nft: NFT) => {
-      const price = parseFloat(nft.price.split(' ')[0]);
+      const priceMatch = nft.price?.match(/(\d+\.?\d*)/); // Extract numeric part of price
+      const price = priceMatch ? parseFloat(priceMatch[0]) : 0;
       return acc + (isNaN(price) ? 0 : price);
     }, 0).toFixed(2);
   }, [nfts]);
 
-  // Render different states based on wallet connection
+  const isLoading = nftsLoading || (connected && historyLoading); // History is only relevant if connected and NFTs are loaded
+  const displayError = nftsError || (connected && historyError && nfts.length > 0) ? (nftsError || historyError) : null;
+
+  const handleRetry = useCallback(() => {
+    if (nftsError) refetchNfts();
+    if (historyError) refetchHistory();
+  }, [nftsError, historyError, refetchNfts, refetchHistory]);
+
   if (!connected) {
     return (
-      <section className={styles.trendingSection}>
+      <section className={styles.trendingSection} aria-labelledby="mynft-gallery-heading-disconnected">
         <div className={styles.container}>
           <div className={styles.header}>
-            <div className={styles.tabs}>
-              <button className={styles.tabButton}>
-                Your NFT Gallery
-              </button>
-            </div>
+            <h2 id="mynft-gallery-heading-disconnected" className={styles.tabButton}>Your NFT Gallery</h2>
             <div className={styles.statsCounter}>
               <span className={styles.nftsCount}>0 NFTs</span>
               <span className={styles.totalValue}>0.00 SOL</span>
             </div>
           </div>
-
           <div className={styles.walletNotConnected}>
             <div className={styles.messageContainer}>
-              <div className={styles.iconWrapper}>
-                <Wallet size={32} className={styles.walletIcon} />
-              </div>
+              <div className={styles.iconWrapper}><Wallet size={32} className={styles.walletIcon} aria-hidden="true" /></div>
               <h3 className={styles.title}>Your NFT Gallery</h3>
-              <p className={styles.message}>
-                Connect your wallet to view your NFT collection
-              </p>
-              <div className={styles.previewGrid}>
+              <p className={styles.message}>Connect your wallet to view your NFT collection.</p>
+              <div className={styles.previewGrid} aria-hidden="true">
                 {[1, 2, 3].map((i) => (
-                  <div key={i} className={styles.previewCard}>
-                    <div className={styles.previewImageContainer}>
-                      <ImageIcon className={styles.placeholderIcon} />
-                    </div>
+                  <div key={`preview-${i}`} className={styles.previewCard}>
+                    <div className={styles.previewImageContainer}><ImageIcon className={styles.placeholderIcon} /></div>
                   </div>
                 ))}
               </div>
-
-              {/* Use the ConnectWalletButton */}
-              <div className="header">
-                <ConnectWalletButton />
-              </div>
+              <div className={styles.connectButtonWrapper}><ConnectWalletButton /></div>
             </div>
           </div>
         </div>
@@ -164,107 +149,76 @@ const MyNFT = () => {
   }
 
   return (
-    <section className={styles.trendingSection}>
+    <section className={styles.trendingSection} aria-labelledby="mynft-gallery-heading-connected">
       <div className={styles.container}>
         <div className={styles.header}>
-          <div className={styles.tabs}>
-            <button
-              className={`${styles.tabButton} ${activeTab === 'nfts' ? styles.activeTab : ''}`}
-              onClick={() => setActiveTab('nfts')}
-            >
-              Your NFT Gallery
-            </button>
-          </div>
+          <h2 id="mynft-gallery-heading-connected" className={`${styles.tabButton} ${styles.activeTab}`}>Your NFT Gallery</h2>
           <div className={styles.statsCounter}>
-            <span className={styles.nftsCount}>{nfts.length} NFTs</span>
-            <span className={styles.totalValue}>
-              {totalValue} SOL
-            </span>
+            <span className={styles.nftsCount} aria-label={`Total NFTs: ${nfts.length}`}>{nfts.length} NFTs</span>
+            <span className={styles.totalValue} aria-label={`Total value: ${totalValue} SOL`}>{totalValue} SOL</span>
             {nfts.length > 0 && (
-              <span className={styles.poolsCount}>
-                {nftsWithPoolCount} with pools
-              </span>
+              <span className={styles.poolsCount} aria-label={`${nftsWithPoolCount} NFTs with associated pools`}>{nftsWithPoolCount} with pools</span>
             )}
           </div>
         </div>
 
-        {nftsLoading || historyLoading ? (
-          <div className={styles.loadingContainer}>
+        {isLoading ? (
+          <div className={styles.loadingContainer} role="status" aria-live="polite">
             <div className={styles.loadingSpinner}></div>
             <p>Loading your NFTs...</p>
           </div>
-        ) : nftsError ? (
-          <div className={styles.errorContainer}>
-            <p className={styles.errorMessage}>{nftsError.message}</p>
-            <button
-              className={styles.retryButton}
-              onClick={() => {
-                // Refresh page to retry
-                window.location.reload();
-              }}
-            >
-              Retry
-            </button>
+        ) : displayError ? (
+          <div className={styles.errorContainer} role="alert">
+            <AlertCircle size={32} className={styles.errorIcon} aria-hidden="true" />
+            <p className={styles.errorMessage}>Error loading your NFTs: {displayError.message || "An unknown error occurred."}</p>
+            <button className={styles.retryButton} onClick={handleRetry}>Retry</button>
           </div>
         ) : nfts.length === 0 ? (
           <div className={styles.emptyState}>
-            <div className={styles.emptyStateIcon}>
-              <ImageIcon size={48} />
-            </div>
-            <p>You don&apos;t have any NFTs yet</p>
+            <div className={styles.emptyStateIcon}><ImageIcon size={48} aria-hidden="true" /></div>
+            <p>You don&apos;t have any NFTs yet.</p>
             <p className={styles.emptyStateSubtext}>Explore collections and mint your first NFT!</p>
-            <button
-              className={styles.exploreButton}
-              onClick={() => router.push('/mintstreet')}
-            >
-              Explore Collections
-              <ArrowRight size={16} className={styles.arrowIcon} />
+            <button className={styles.exploreButton} onClick={() => router.push("/mintstreet")}>
+              Explore Collections <ArrowRight size={16} className={styles.arrowIcon} aria-hidden="true" />
             </button>
           </div>
         ) : (
           <>
             <div className={styles.nftGrid}>
-              {visibleNFTs.map((nft: NFT) => {
+              {visibleNFTs.map((nft, index) => {
                 const hasPool = !!nftToPoolMap[nft.mintAddress];
-                // Ensure the image URL is valid
-                const validImage = nft.image && (
-                  nft.image.startsWith('http') ||
-                  nft.image.startsWith('/') ||
-                  nft.image.startsWith('data:')
-                ) ? nft.image : VALID_NFT_IMAGES[0];
-
+                const imageSrc = (nft.image && (nft.image.startsWith("http") || nft.image.startsWith("/") || nft.image.startsWith("data:"))) ? nft.image : VALID_NFT_IMAGES[0];
                 return (
                   <div
-                    key={nft.id}
-                    className={`${styles.nftCard} ${hasPool ? styles.hasPool : ''}`}
+                    key={nft.id || nft.mintAddress || `nft-${index}`}
+                    className={`${styles.nftCard} ${hasPool ? styles.hasPool : ""}`}
                     onClick={() => handleNFTClick(nft)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyPress={(e) => e.key === "Enter" && handleNFTClick(nft)}
+                    aria-label={`View details for NFT: ${nft.name}`}
                   >
                     <div className={styles.nftImageContainer}>
                       <Image
-                        src={validImage}
-                        alt={nft.name}
-                        width={200}
-                        height={200}
+                        src={imageSrc}
+                        alt={nft.name || "User NFT"}
+                        width={200} // Specify appropriate width
+                        height={200} // Specify appropriate height
                         className={styles.nftImage}
                         onError={handleImageError}
+                        placeholder="blur"
+                        blurDataURL={VALID_NFT_IMAGES[0]} // Use a generic small placeholder
                       />
                       <div className={styles.priceTag}>
-                        <Gem size={14} className={styles.gemIcon} />
-                        {nft.price}
+                        <Gem size={14} className={styles.gemIcon} aria-hidden="true" /> {nft.price}
                       </div>
-                      {hasPool && (
-                        <div className={styles.poolBadge}>
-                          Pool
-                        </div>
-                      )}
+                      {hasPool && <div className={styles.poolBadge}>Pool</div>}
                     </div>
                     <div className={styles.nftInfo}>
                       <h4 className={styles.nftName}>{nft.name}</h4>
-                      <p className={styles.collectionName}>
-                        {nft.collectionName}
-                      </p>
-                      <div className={styles.viewDetailsButton}>
-                        {hasPool ? 'View Collection' : 'View Details'}
+                      <p className={styles.collectionName}>{nft.collectionName}</p>
+                      <div className={styles.viewDetailsButton} aria-hidden="true">
+                        {hasPool ? "View Collection" : "View Details"}
                         <ArrowRight size={14} className={styles.arrowIcon} />
                       </div>
                     </div>
@@ -272,16 +226,10 @@ const MyNFT = () => {
                 );
               })}
             </div>
-
-            {/* Show More Button */}
-            {hasMore && (
+            {hasMoreNfts && (
               <div className={styles.loadMoreContainer}>
-                <button
-                  className={styles.loadMoreButton}
-                  onClick={handleLoadMore}
-                >
-                  Show More
-                  <ChevronDown size={16} className={styles.chevronIcon} />
+                <button className={styles.loadMoreButton} onClick={handleLoadMore} disabled={isLoading}>
+                  Show More <ChevronDown size={16} className={styles.chevronIcon} aria-hidden="true" />
                 </button>
               </div>
             )}
@@ -292,4 +240,5 @@ const MyNFT = () => {
   );
 };
 
-export default MyNFT;
+export default React.memo(MyNFT);
+
