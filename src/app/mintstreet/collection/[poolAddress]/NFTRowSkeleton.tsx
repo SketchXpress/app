@@ -20,6 +20,7 @@ const NFTRowSkeleton: React.FC = () => {
       <td className={styles.symbolCell}><div className={`${styles.skeleton} ${styles.skeletonTextShort}`}></div></td>
       <td className={styles.priceCell}><div className={`${styles.skeleton} ${styles.skeletonTextShort}`}></div></td>
       <td className={styles.timeCell}><div className={`${styles.skeleton} ${styles.skeletonTextMedium}`}></div></td>
+      <td className={styles.timeCell}><div className={`${styles.skeleton} ${styles.skeletonTextMedium}`}></div></td>
       <td className={styles.actionsCell}>
         <div className={`${styles.skeleton} ${styles.skeletonButton}`}></div>
         <div className={`${styles.skeleton} ${styles.skeletonButton}`}></div>

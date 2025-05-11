@@ -462,3 +462,220 @@
     height: 1.25rem; // Match title font size
 }
 
+
+// Add these new styles to your existing PoolNFTsGrid.module.scss file
+
+.titleContainer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.refreshButton {
+  padding: 0.5rem 1rem;
+  background-color: #0070f3;
+  color: white;
+  border: none;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+
+  &:hover:not(:disabled) {
+    background-color: #0051d5;
+  }
+
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.walletNotConnected {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 3rem;
+  text-align: center;
+  color: #6b7280;
+  
+  svg {
+    color: #f59e0b;
+  }
+  
+  p {
+    font-size: 1.125rem;
+    margin: 0;
+  }
+}
+
+.statusCell {
+  padding: 0.75rem;
+}
+
+.statusBadge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.025em;
+}
+
+// Status badge variants
+.availableStatus {
+  background-color: #10b981;
+  color: white;
+}
+
+.soldStatus {
+  background-color: #ef4444;
+  color: white;
+}
+
+.yoursStatus {
+  background-color: #3b82f6;
+  color: white;
+}
+
+.burnedStatus {
+  background-color: #6b7280;
+  color: white;
+}
+
+// Card styles for status badge in mobile view
+.card {
+  .statusBadge {
+    margin-top: 0.5rem;
+  }
+}
+
+// Error container with refresh button
+.errorContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  
+  .refreshButton {
+    margin-top: 1rem;
+  }
+}
+
+.emptyContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  padding: 2rem;
+  text-align: center;
+  
+  .refreshButton {
+    margin-top: 1rem;
+  }
+}
+
+// Action buttons styling
+.actionButton {
+  padding: 0.375rem 0.75rem;
+  border-radius: 0.375rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.15s ease;
+  cursor: pointer;
+  border: none;
+  
+  &:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+}
+
+.buyButton {
+  background-color: #10b981;
+  color: white;
+  
+  &:hover:not(:disabled) {
+    background-color: #059669;
+  }
+  
+  &:disabled {
+    background-color: #9ca3af;
+  }
+}
+
+.buyingButton {
+  background-color: #059669 !important;
+  opacity: 0.9;
+}
+
+.sellButton {
+  background-color: #ef4444;
+  color: white;
+  
+  &:hover:not(:disabled) {
+    background-color: #dc2626;
+  }
+  
+  &:disabled {
+    background-color: #9ca3af;
+  }
+}
+
+.disabledButton {
+  background-color: #9ca3af !important;
+}
+
+.soldButton {
+  background-color: #059669 !important;
+}
+
+.spinnerIcon {
+  animation: spin 1s linear infinite;
+  margin-right: 0.25rem;
+}
+
+.checkIcon {
+  margin-right: 0.25rem;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+// Error message styling
+.errorMessage {
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  padding: 0.75rem 1rem;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  
+  svg {
+    flex-shrink: 0;
+  }
+}
+
+.sellErrorMessage {
+  margin-top: 1rem;
+}
+
+.buyErrorMessage {
+  margin-top: 1rem;
+}

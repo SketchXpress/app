@@ -6,8 +6,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
 import { ChevronLeft, ChevronRight, TrendingUp, ExternalLink } from "lucide-react";
-import { useNFTCollections } from "@/hooks/useNFTCollections"; // Assuming this hook handles pagination/efficient loading as per recommendations
-import { NFTSkeleton } from "./Utils"; // Assuming Utils.tsx contains NFTSkeleton
+import { useNFTCollections } from "@/hooks/useNFTCollections";
+import { NFTSkeleton } from "./Utils";
 import styles from "./NFTCarousel.module.scss";
 
 /**
@@ -30,21 +30,22 @@ import styles from "./NFTCarousel.module.scss";
  * @returns {React.ReactElement} The rendered NFT carousel section.
  */
 const NFTCarousel = () => {
-  // Fetch NFT collections. Recommendation: useNFTCollections should ideally support pagination or efficient loading.
+  // Fetch NFT collections
   const { collections, loading, error } = useNFTCollections(6);
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
-      loop: false, // Changed to true for a continuous loop, common for carousels
+      loop: true, // Enable continuous loop
       dragFree: true,
-      duration: 30, // Speed of the transition
+      duration: 30,
       align: "center",
     },
-    [Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })] // Autoplay plugin
+    [Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })]
   );
 
   const [activeIndex, setActiveIndex] = useState(0);
   const [, setHoveredIndex] = useState<number | null>(null);
+
   const scrollPrev = useCallback(() => {
     if (emblaApi) emblaApi.scrollPrev();
   }, [emblaApi]);
@@ -70,16 +71,62 @@ const NFTCarousel = () => {
   }, [emblaApi]);
 
   /**
+   * Formats image URLs to handle different protocols (IPFS, Arweave, etc.)
+   * @param {string} imageUrl - The original image URL
+   * @returns {string} - The formatted image URL
+   */
+  const formatImageUrl = useCallback((imageUrl: string): string => {
+    if (!imageUrl) return '/defaultNFT.png';
+
+    // Handle IPFS URLs
+    if (imageUrl.startsWith('ipfs://')) {
+      // Use a reliable IPFS gateway
+      return `https://ipfs.io/ipfs/${imageUrl.substring(7)}`;
+    }
+
+    // Handle Arweave URLs
+    if (imageUrl.startsWith('ar://')) {
+      return `https://arweave.net/${imageUrl.substring(5)}`;
+    }
+
+    // Handle relative URLs or non-http URLs
+    if (!imageUrl.startsWith('http')) {
+      // If it starts with //, add https:
+      if (imageUrl.startsWith('//')) {
+        return `https:${imageUrl}`;
+      }
+      // Otherwise, treat as invalid
+      return '/defaultNFT.png';
+    }
+
+    return imageUrl;
+  }, []);
+
+  /**
    * Handles image loading errors by setting a fallback image.
    * @param {React.SyntheticEvent<HTMLImageElement, Event>} e - The event object.
    */
   const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.currentTarget as HTMLImageElement;
-    target.src = "/defaultNFT.png"; // Ensure this fallback image exists in /public
+    target.src = "/defaultNFT.png";
     target.onerror = null; // Prevent infinite loop if fallback also fails
   }, []);
 
-  // Memoized skeleton items for loading state to prevent re-creation on each render
+  // Debug logging to see what data we're getting
+  useEffect(() => {
+    if (collections && collections.length > 0) {
+      console.log('Collections data:', collections);
+      collections.forEach((nft, index) => {
+        console.log(`NFT ${index}:`, {
+          title: nft.title,
+          image: nft.image,
+          formattedImage: formatImageUrl(nft.image)
+        });
+      });
+    }
+  }, [collections, formatImageUrl]);
+
+  // Memoized skeleton items for loading state
   const skeletonItems = useMemo(() =>
     Array.from({ length: 6 }).map((_, index) => ({ id: `skeleton-${index}` })),
     []
@@ -88,14 +135,13 @@ const NFTCarousel = () => {
   // Determine the number of slides for progress dots
   const slideCount = useMemo(() => loading ? 6 : collections.length || 0, [loading, collections.length]);
 
-  const priceLabel = "Last Mint"; // Or derive dynamically if needed
+  const priceLabel = "Last Mint";
 
   if (error) {
     return (
       <section className={styles.heroContainer}>
         <div className={styles.errorContainer}>
           <p className={styles.errorText}>Failed to load collections. Please try refreshing the page.</p>
-          {/* Optionally, add a refresh button here */}
         </div>
       </section>
     );
@@ -128,7 +174,7 @@ const NFTCarousel = () => {
               collections.map((nft, index) => (
                 <div
                   className={styles.emblaSlide}
-                  key={nft.id || `nft-${index}`} // Ensure unique key
+                  key={nft.id || `nft-${index}`}
                   onMouseEnter={() => setHoveredIndex(index)}
                   onMouseLeave={() => setHoveredIndex(null)}
                   role="group"
@@ -139,15 +185,15 @@ const NFTCarousel = () => {
                     <div className={styles.card}>
                       <div className={styles.imageWrapper}>
                         <Image
-                          src={nft.image || "/defaultNFT.png"}
-                          alt={nft.title || "NFT Collection Image"} // Provide a default alt text
+                          src={formatImageUrl(nft.image)}
+                          alt={nft.title || "NFT Collection Image"}
                           fill
                           sizes="(min-width: 1536px) 25vw, (min-width: 1280px) 33vw, (min-width: 768px) 50vw, 90vw"
-                          priority={index < 2} // Prioritize loading for the first two images
-                          placeholder="blur" // Added placeholder for better perceived performance
-                          blurDataURL={nft.image || "/defaultNFT.png"} // Provide a blurDataURL, can be a small base64 image or same image for simplicity if small
+                          priority={index < 2}
                           className={styles.nftImage}
                           onError={handleImageError}
+                          // Remove placeholder="blur" as it requires a valid base64 image
+                          unoptimized={true} // Add this if images still don't load
                         />
                         {nft.trending && (
                           <div className={styles.trendingBadge}>
@@ -217,4 +263,4 @@ const NFTCarousel = () => {
   );
 };
 
-export default React.memo(NFTCarousel); 
+export default React.memo(NFTCarousel);
