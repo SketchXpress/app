@@ -148,7 +148,7 @@ const TrendingCollections: React.FC = () => {
 
   const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.target as HTMLImageElement;
-    target.src = "/defaultNFT.png"; // Ensure this fallback image exists in /public
+    target.src = "/assets/images/defaultNFT.png"; // Ensure this fallback image exists in /public
     target.onerror = null; // Prevent infinite loop
   }, []);
 

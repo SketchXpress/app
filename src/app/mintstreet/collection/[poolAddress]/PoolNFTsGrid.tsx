@@ -278,7 +278,7 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
   }, [nfts]);
 
   const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    e.currentTarget.src = '/defaultNFT.png';
+    e.currentTarget.src = '/assets/images/defaultNFT.png';
     e.currentTarget.onerror = null;
   }, []);
 
@@ -304,9 +304,9 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
       if (imageUrl.startsWith('ar://')) {
         return `https://arweave.net/${imageUrl.substring(5)}`;
       }
-      return imageUrl.startsWith('http') ? imageUrl : '/defaultNFT.png';
+      return imageUrl.startsWith('http') ? imageUrl : '/assets/images/defaultNFT.png';
     }
-    return '/defaultNFT.png';
+    return '/assets/images/defaultNFT.png';
   }, [nftMetadata]);
 
   const handleSellNft = useCallback(async (nft: NFT) => {
@@ -622,7 +622,7 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
                         className={styles.nftImage}
                         onError={handleImageError}
                         placeholder="blur"
-                        blurDataURL="/defaultNFT.png"
+                        blurDataURL="/assets/images/defaultNFT.png"
                       />
                     </div>
                   </td>
@@ -664,7 +664,7 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
                     className={styles.cardImage}
                     onError={handleImageError}
                     placeholder="blur"
-                    blurDataURL="/defaultNFT.png"
+                    blurDataURL="/assets/images/defaultNFT.png"
                   />
                 </div>
                 <div className={styles.cardInfo}>

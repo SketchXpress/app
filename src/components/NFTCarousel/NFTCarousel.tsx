@@ -76,7 +76,7 @@ const NFTCarousel = () => {
    * @returns {string} - The formatted image URL
    */
   const formatImageUrl = useCallback((imageUrl: string): string => {
-    if (!imageUrl) return '/defaultNFT.png';
+    if (!imageUrl) return '/assets/images/defaultNFT.png';
 
     // Handle IPFS URLs
     if (imageUrl.startsWith('ipfs://')) {
@@ -108,7 +108,7 @@ const NFTCarousel = () => {
    */
   const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
     const target = e.currentTarget as HTMLImageElement;
-    target.src = "/defaultNFT.png";
+    target.src = "/assets/images/defaultNFT.png";
     target.onerror = null; // Prevent infinite loop if fallback also fails
   }, []);
 
