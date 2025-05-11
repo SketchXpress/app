@@ -1,8 +1,8 @@
 "use client";
 
-import LeftSidebar from "@/components/LeftSidebar/LeftSidebar";
 import styles from "./page.module.scss"
 import RightPanel from "@/components/RightPanel/RightPanel";
+import LeftSidebar from "@/components/LeftSidebar/LeftSidebar";
 import CanvasWrapper from "@/components/CanvasWrapper/CanvasWrapper";
 
 const SketchPage = () => {
