@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://sketchxpress.tech/manifests/sitemap.xml

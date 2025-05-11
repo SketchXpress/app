@@ -96,7 +96,7 @@ const NFTCarousel = () => {
         return `https:${imageUrl}`;
       }
       // Otherwise, treat as invalid
-      return '/defaultNFT.png';
+      return '/assets/images/defaultNFT.png';
     }
 
     return imageUrl;

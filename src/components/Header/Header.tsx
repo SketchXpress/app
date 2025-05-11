@@ -16,7 +16,7 @@ import {
 import { getSnapshot } from "tldraw";
 
 import styles from "./Header.module.scss";
-import logo from "../../../public/logo.png";
+import logo from "../../../public/assets/images/logo.png";
 import responsive from "./HeaderResponsive.module.scss";
 import MobileMenu from "../MobileMenu/MobileMenu";
 import ModeToggle from "../ModeToggle/ModeToggle";
