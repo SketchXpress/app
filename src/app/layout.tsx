@@ -19,128 +19,99 @@ export const viewport: Viewport = {
   userScalable: true,
 }
 
-// Enhanced SEO metadata for sketchxpress.tech
 export const metadata: Metadata = {
-  title: "SketchXpress - Draw to NFT | AI Sketch Enhancement | Blockchain Art Creator",
-  description: "Transform sketches into blockchain NFTs instantly. Draw anything and mint AI-enhanced digital art on Solana. Free online drawing tool - sketch to NFT in seconds!",
-  keywords: "sketchxpress, sketch express, draw NFT, sketch to NFT, AI art generator, blockchain drawing, Solana NFT creator, online sketch app, digital art NFT, draw to earn, NFT minting platform, AI sketch enhancer, crypto art maker, web3 drawing tool, sketch anything NFT, express drawing app, blockchain artist tool, instant NFT creator, drawing marketplace, sketch NFT mint",
-  applicationName: "SketchXpress",
+  title: "SketchXpress | AI-Powered Sketch to NFT Platform with Bonding Curves",
+  description: "Transform sketches into AI-enhanced NFTs using advanced bonding curve economics. Mint, trade, and optimize digital assets with SketchXpress - your gateway to AI image generation and NFT innovation.",
+  keywords: [
+    // Primary keywords
+    "sketch to image AI",
+    "image enhance AI",
+    "NFT bonding curves",
+    "Mint street NFT collection",
+    "SketchXpress",
+    "AI NFT generator",
+    "dynamic NFT pricing",
+    "decentralized NFT minting",
+    "AI image enhancement",
+    "NFT collection analytics",
+    
+    // Brand name variations and common misspellings
+    "Sketch Xpress", 
+    "Sketch Express",
+    "SketchExpress",
+    "Sketch X Press",
+    "SkethXpress",
+    "SketcXpress",
+    "SketchXpres",
+    "Sketsh Express",
+    "Sketch Expres",
+    "SkechXpress",
+    "SketchXprez",
+    "Skech Express",
+    
+    // URL variations
+    "sketchxpress.com",
+    "sketch-xpress.com",
+    "sketchexpress.com",
+    "www.sketchxpress.com",
+    "sketch xpress com"
+  ],
   authors: [{ name: "SketchXpress Team" }],
-  generator: "Next.js",
-  referrer: "origin-when-cross-origin",
   creator: "SketchXpress",
-  publisher: "SketchXpress",
-  formatDetection: {
-    email: false,
-    address: false,
-    telephone: false,
-  },
-  metadataBase: new URL('https://sketchxpress.tech'),
-  alternates: {
-    canonical: '/',
-    languages: {
-      'en-US': '/en-US',
-      'en': '/',
-    },
-  },
+  publisher: "SketchXpress Technologies",
+  robots: "index, follow,max-image-preview:large",
+  
   openGraph: {
-    title: 'SketchXpress - Draw to NFT in Seconds | AI-Powered Blockchain Art',
-    description: 'Sketch anything and transform it into NFT art instantly. AI enhancement meets blockchain technology.',
-    url: 'https://sketchxpress.tech',
-    siteName: 'SketchXpress',
+    type: "website",
+    locale: "en_US",
+    url: "https://sketchxpress.com",
+    title: "SketchXpress | Next-Gen AI NFT Creation Platform",
+    description: "From sketch to market-ready NFT: Leverage AI image enhancement and bonding curve economics for optimal digital asset creation and distribution.",
+    siteName: "SketchXpress",
     images: [
       {
-        url: 'https://sketchxpress.tech/assets/images/og-image.png',
+        url: "https://sketchxpress.tech/assets/images/og-image.png",
         width: 1200,
         height: 630,
-        alt: 'SketchXpress - Transform Sketches to NFTs',
-      },
-      {
-        url: 'https://sketchxpress.tech/assets/images/og-image-square.png',
-        width: 1200,
-        height: 1200,
-        alt: 'SketchXpress Logo',
-      },
-    ],
-    locale: 'en_US',
-    type: 'website',
+        alt: "SketchXpress AI NFT Creation Workflow: Sketch → AI Enhancement → NFT Minting"
+      }
+    ]
   },
+  
   twitter: {
-    card: 'summary_large_image',
-    title: 'SketchXpress - Draw to NFT | AI Blockchain Art',
-    description: '🎨 Sketch → 🤖 AI Enhancement → 💎 NFT. Create blockchain art in seconds!',
-    site: '@sketchxpress',
-    creator: '@sketchxpress',
-    images: ['https://sketchxpress.tech/assets/images/twitter-card.png'],
+    card: "summary_large_image",
+    title: "SketchXpress - AI-Driven NFT Ecosystem",
+    description: "Revolutionizing NFT creation with AI image enhancement and bonding curve market dynamics. #Web3 #NFTs #AI",
+    creator: "@SketchXpress",
+    images: {
+      url: "https://sketchxpress.tech/assets/images/og-image.png",
+      alt: "Visualization of SketchXpress AI to NFT pipeline"
+    }
   },
-  robots: {
-    index: true,
-    follow: true,
-    nocache: false,
-    googleBot: {
-      index: true,
-      follow: true,
-      noimageindex: false,
-      'max-video-preview': -1,
-      'max-image-preview': 'large',
-      'max-snippet': -1,
-    },
-  },
+
+  // Existing PWA configuration
   icons: {
-    icon: [
-      { url: '/favicon.ico' },
-      { url: '/assets/icons/icon-16x16.png', sizes: '16x16', type: 'image/png' },
-      { url: '/assets/icons/icon-32x32.png', sizes: '32x32', type: 'image/png' },
-      { url: '/assets/icons/icon-192x192.png', sizes: '192x192', type: 'image/png' },
-      { url: '/assets/icons/icon-512x512.png', sizes: '512x512', type: 'image/png' },
-    ],
-    apple: [
-      { url: '/apple-touch-icon.png' },
-      { url: '/assets/icons/icon-120x120.png', sizes: '120x120' },
-      { url: '/assets/icons/icon-152x152.png', sizes: '152x152' },
-      { url: '/assets/icons/icon-180x180.png', sizes: '180x180' },
-    ],
-    other: [
-      {
-        rel: 'mask-icon',
-        url: '/assets/icons/safari-pinned-tab.svg',
-        color: '#00B7E1',
-      },
-    ],
+    icon: "/favicon.ico",
+    apple: "/apple-touch-icon.png"
   },
-  manifest: '/manifest.json',
+  manifest: "/manifest.webmanifest",
   appleWebApp: {
     capable: true,
-    statusBarStyle: 'black-translucent',
-    title: 'SketchXpress',
-    startupImage: [
-      {
-        url: '/assets/icons/apple-splash-2048-2732.png',
-        media: '(device-width: 1024px) and (device-height: 1366px) and (-webkit-device-pixel-ratio: 2)',
-      },
-      {
-        url: '/assets/icons/apple-splash-1668-2388.png',
-        media: '(device-width: 834px) and (device-height: 1194px) and (-webkit-device-pixel-ratio: 2)',
-      },
-      {
-        url: '/assets/icons/apple-splash-1536-2048.png',
-        media: '(device-width: 768px) and (device-height: 1024px) and (-webkit-device-pixel-ratio: 2)',
-      },
-      {
-        url: '/assets/icons/apple-splash-1125-2436.png',
-        media: '(device-width: 375px) and (device-height: 812px) and (-webkit-device-pixel-ratio: 3)',
-      },
-    ],
+    statusBarStyle: "default",
+    title: "SketchXpress",
   },
-  verification: {
-    google: 'google-site-verification=crmxfyyS7T84MHobtEc-g1rAPET1k84JaZ__A-Ur6yY',
-    yandex: 'a583f14d6af70938',
+  
+  alternates: {
+    canonical: "https://sketchxpress.com"
   },
-  category: 'technology',
+  
+  // Enhanced metadata for AI/NFT features
   other: {
-    'msapplication-TileColor': '#00B7E1',
-    'msapplication-TileImage': '/assets/icons/ms-icon-144x144.png',
-  },
+    "ai-tool": "sketch-to-image, image-enhancement, nft-generator",
+    "nft-features": "bonding-curves, dynamic-pricing, collection-analytics",
+    "marketplace-integration": "mint-street, decentralized-exchange",
+    "common-misspellings": "sketch express, sketch xpress, sketchexpress, sketch-xpress"
+  }
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -168,6 +139,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Additional SEO meta tags */}
         <meta name="theme-color" content="#00B7E1" />
         <meta name="color-scheme" content="normal" />
+        
+        {/* Common misspellings meta tag to capture typo traffic */}
+        <meta name="also-known-as" content="Sketch Express, SketchExpress, Sketch Xpress, Sketch X Press" />
 
         {/* Enhanced Schema.org structured data */}
         <script
@@ -181,6 +155,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   "@id": "https://sketchxpress.tech/#webapp",
                   "name": "SketchXpress",
                   "url": "https://sketchxpress.tech",
+                  "alternateName": [
+                    "Sketch Xpress",
+                    "Sketch Express",
+                    "SketchExpress"
+                  ],
                   "logo": {
                     "@type": "ImageObject",
                     "url": "https://sketchxpress.tech/assets/images/logo.png",
@@ -209,6 +188,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   "@type": "Organization",
                   "@id": "https://sketchxpress.tech/#organization",
                   "name": "SketchXpress",
+                  "alternateName": [
+                    "Sketch Xpress",
+                    "Sketch Express",
+                    "SketchExpress"
+                  ],
                   "url": "https://sketchxpress.tech",
                   "logo": {
                     "@type": "ImageObject",
@@ -226,6 +210,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                   "@id": "https://sketchxpress.tech/#website",
                   "url": "https://sketchxpress.tech",
                   "name": "SketchXpress",
+                  "alternateName": [
+                    "Sketch Xpress",
+                    "Sketch Express",
+                    "SketchExpress"
+                  ],
                   "description": "Draw and create NFT art on blockchain",
                   "publisher": {
                     "@id": "https://sketchxpress.tech/#organization"
@@ -238,6 +227,28 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                     },
                     "query-input": "required name=search_term_string"
                   }
+                },
+                {
+                  "@type": "FAQPage",
+                  "@id": "https://sketchxpress.tech/#faq",
+                  "mainEntity": [
+                    {
+                      "@type": "Question",
+                      "name": "What is Sketch Express?",
+                      "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Sketch Express (SketchXpress) is an AI-powered platform that transforms your sketches into enhanced NFTs using bonding curve economics on the Solana blockchain."
+                      }
+                    },
+                    {
+                      "@type": "Question",
+                      "name": "How do I use SketchXpress?",
+                      "acceptedAnswer": {
+                        "@type": "Answer",
+                        "text": "Simply create a sketch, use our AI tools to enhance your image, and mint it as an NFT with our easy-to-use interface."
+                      }
+                    }
+                  ]
                 }
               ]
             }),
@@ -317,7 +328,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <WalletConnectionProvider>
             <AnchorContextProvider>
               <HeaderWrapper />
-              <main className={styles.main}>{children}</main>
+              <main className={styles.main}>
+                {children}
+              </main>
+              {/* Hidden content for SEO - common misspellings */}
+              <div style={{ display: 'none' }} aria-hidden="true">
+                <p>Also known as Sketch Express, SketchExpress, Sketch Xpress - commonly misspelled variations of SketchXpress</p>
+              </div>
             </AnchorContextProvider>
           </WalletConnectionProvider>
           <ToastContainer
