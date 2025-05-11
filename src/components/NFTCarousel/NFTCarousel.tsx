@@ -35,12 +35,12 @@ const NFTCarousel = () => {
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
-      loop: true, // Enable continuous loop
+      loop: false,
       dragFree: true,
       duration: 30,
       align: "center",
     },
-    [Autoplay({ delay: 5000, stopOnInteraction: false, stopOnMouseEnter: true })]
+    [Autoplay()]
   );
 
   const [activeIndex, setActiveIndex] = useState(0);
