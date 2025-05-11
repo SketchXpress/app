@@ -154,6 +154,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Essential meta tags */}
         <meta charSet="utf-8" />
         <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
+        <meta name="yandex-verification" content="a583f14d6af70938" />
 
         {/* PWA meta tags */}
         <meta name="application-name" content="SketchXpress" />
