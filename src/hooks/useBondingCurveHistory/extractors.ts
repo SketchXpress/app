@@ -234,7 +234,7 @@ export const processTransactionFast = (
     error: tx.transactionError,
     poolAddress: poolAddress,
     price: price,
-    isPriceLoading: isSellOperation, // Mark sell operations as loading prices
-    priceLoadAttempted: !isSellOperation, // Mark non-sell operations as having attempted price load
+    isPriceLoading: isSellOperation,
+    priceLoadAttempted: !isSellOperation,
   };
 };
