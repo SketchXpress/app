@@ -1,0 +1,6 @@
+@use '../shared/mixins' as *;
+
+.loading {
+  @include flex-center;
+  min-height: 100vh;
+}

@@ -1,0 +1,79 @@
+@use 'sass:map';
+
+// Color System
+$colors: (
+  // Core colors
+  background: #FFFFFF,
+  foreground: #171717,
+  border: #E0E0E0,
+  card-bg: #F9F9F9,
+  
+  // Brand colors
+  accent-cyan: #00B7E1,
+  accent-magenta: #D63384,
+  accent-yellow: #F9C80E,
+  
+  // Extended palette
+  cyan-light: #E1F8FF,
+  cyan-dark: #0090B3,
+  magenta-light: #FFE6F2,
+  magenta-dark: #A62667,
+  yellow-light: #FFF8E1,
+  yellow-dark: #D1A60B,
+  
+  // Status colors
+  success: #22C55E,
+  warning: #F97316,
+  error: #EF4444,
+  info: #3B82F6,
+);
+
+// Layout
+$layout: (
+  header-height: 60px,
+  sidebar-width: 240px,
+  sidebar-collapsed: 70px,
+);
+
+// Border Radius
+$border-radius: (
+  sm: 6px,
+  md: 10px,
+  lg: 16px,
+);
+
+// Shadows
+$shadows: (
+  sm: 0 1px 2px rgba(0, 0, 0, 0.05),
+  md: 0 4px 6px rgba(0, 0, 0, 0.05),
+  lg: 0 10px 15px rgba(0, 0, 0, 0.05),
+  xl: 0 10px 25px rgba(0, 0, 0, 0.1),
+);
+
+// Transitions
+$transitions: (
+  fast: 0.15s ease,
+  base: 0.25s ease,
+  slow: 0.4s ease,
+);
+
+// Helper functions using sass:map
+@function color($key) {
+  @return map.get($colors, $key);
+}
+
+@function layout($key) {
+  @return map.get($layout, $key);  // This line was causing the issue
+}
+
+@function shadow($key) {
+  @return map.get($shadows, $key);
+}
+
+@function transition($key) {
+  @return map.get($transitions, $key);
+}
+
+@function radius($key) {
+  @return map.get($border-radius, $key);
+}

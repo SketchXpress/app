@@ -1,0 +1,86 @@
+@use 'shared/variables' as *;
+@use 'shared/mixins' as *;
+@use 'shared/reset';
+@use 'shared/animations';
+
+// CSS Custom Properties
+:root {
+  // Core colors
+  --background: #{color(background)};
+  --foreground: #{color(foreground)};
+  --border: #{color(border)};
+  --card-bg: #{color(card-bg)};
+  
+  // Brand colors
+  --accent-cyan: #{color(accent-cyan)};
+  --accent-magenta: #{color(accent-magenta)};
+  --accent-yellow: #{color(accent-yellow)};
+  
+  // Extended palette
+  --cyan-light: #{color(cyan-light)};
+  --cyan-dark: #{color(cyan-dark)};
+  --magenta-light: #{color(magenta-light)};
+  --magenta-dark: #{color(magenta-dark)};
+  --yellow-light: #{color(yellow-light)};
+  --yellow-dark: #{color(yellow-dark)};
+  
+  // Status colors
+  --success: #{color(success)};
+  --warning: #{color(warning)};
+  --error: #{color(error)};
+  --info: #{color(info)};
+  
+  // UI elements
+  --shadow-sm: #{shadow(sm)};
+  --shadow-md: #{shadow(md)};
+  --shadow-lg: #{shadow(lg)};
+  
+  // Animation
+  --transition-fast: #{transition(fast)};
+  --transition-base: #{transition(base)};
+  --transition-slow: #{transition(slow)};
+  
+  // Layout
+  --header-height: #{layout(header-height)};
+  --sidebar-width: #{layout(sidebar-width)};
+  --sidebar-collapsed: #{layout(sidebar-collapsed)};
+  --border-radius-sm: #{radius(sm)};
+  --border-radius-md: #{radius(md)};
+  --border-radius-lg: #{radius(lg)};
+}
+
+// Global styles
+body {
+  color: var(--foreground);
+  background: var(--background);
+}
+
+// Utility classes
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
+
+.gradient-text {
+  @include gradient-text;
+}
+
+.glass-effect {
+  @include glass-effect;
+}
+
+.hide-scrollbar {
+  @include hide-scrollbar;
+}
+
+// Hide tldraw watermark
+.tl-watermark_SEE-LICENSE {
+  display: none !important;
+}

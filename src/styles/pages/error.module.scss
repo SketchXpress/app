@@ -1,0 +1,71 @@
+@use '../shared/variables' as *;
+@use '../shared/mixins' as *;
+
+.container {
+  @include flex-center;
+  min-height: 100vh;
+  padding: 2rem;
+  background-color: #f9fafb;
+}
+
+.card {
+  @include card;
+  @include flex-column-center;
+  max-width: 550px;
+  width: 100%;
+  text-align: center;
+}
+
+.iconContainer {
+  @include icon-container(80px, #fee2e2);
+  margin-bottom: 1.5rem;
+}
+
+.icon {
+  color: #ef4444e7;
+  width: 40px;
+  height: 40px;
+}
+
+.title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  color: color(foreground);
+  margin: 0 0 1rem 0;
+}
+
+.message {
+  color: #4b5563;
+  font-size: 1.125rem;
+  margin: 0 0 1rem 0;
+}
+
+.digest {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin: 0 0 2rem 0;
+
+  code {
+    background-color: #f3f4f6;
+    padding: 0.25rem 0.5rem;
+    border-radius: radius(sm);
+    font-family: monospace;
+  }
+}
+
+.button {
+  @include button-base;
+  background-color: #ef4444e7;
+  color: white;
+  padding: 0.75rem 1.5rem;
+  border-radius: radius(sm);
+
+  &:hover {
+    background-color: #dc2626;
+  }
+}
+
+.buttonIcon {
+  width: 18px;
+  height: 18px;
+}

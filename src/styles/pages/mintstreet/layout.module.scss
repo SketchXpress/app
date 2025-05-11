@@ -1,0 +1,6 @@
+@use '../../shared/variables' as *;
+
+.main {
+  height: calc(100vh - #{layout(header-height)});
+  background-color: var(--background);
+}

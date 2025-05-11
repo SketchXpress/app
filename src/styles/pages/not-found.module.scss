@@ -1,0 +1,78 @@
+@use '../shared/variables' as *;
+@use '../shared/mixins' as *;
+
+.container {
+  @include flex-center;
+  min-height: 100vh;
+  padding: 2rem;
+  background-color: #f9fafb;
+}
+
+.card {
+  @include card;
+  @include flex-column-center;
+  max-width: 550px;
+  width: 100%;
+  text-align: center;
+}
+
+.iconContainer {
+  @include icon-container(80px, #dbeafe);
+  margin-bottom: 1.5rem;
+}
+
+.icon {
+  color: color(info);
+  width: 40px;
+  height: 40px;
+}
+
+.title {
+  font-size: 3.75rem;
+  font-weight: 800;
+  line-height: 1;
+  @include gradient-text;
+  letter-spacing: -0.01em;
+}
+
+.subtitle {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: #4b5563;
+  margin: 0.5rem 0 1.5rem 0;
+}
+
+.message {
+  color: #6b7280;
+  font-size: 1.125rem;
+  margin: 0 0 2rem 0;
+}
+
+.actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+.button {
+  @include button-base;
+  color: #fff;
+  background: linear-gradient(45deg, #06b6d4, #d946ef);
+  border-radius: radius(sm);
+  padding: 7px 14px;
+  min-width: 84px;
+  height: 36px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  box-shadow: 0 3px 12px #00000026;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
+  }
+}
+
+.buttonIcon {
+  width: 18px;
+  height: 18px;
+}
