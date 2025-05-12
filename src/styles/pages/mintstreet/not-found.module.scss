@@ -1,0 +1,399 @@
+@use '@/styles/shared/variables' as *;
+@use '@/styles/shared/mixins' as *;
+
+.container {
+  @include flex-center;
+  min-height: calc(100vh - var(--header-height));
+  padding: 1rem;
+  background: linear-gradient(135deg, 
+    rgba(6, 182, 212, 0.02) 0%, 
+    rgba(217, 70, 239, 0.02) 100%
+  ), var(--background);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.content {
+  @include card(lg, xl);
+  @include flex-column-center;
+  max-width: 550px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 6px;
+    background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
+  }
+}
+
+.iconContainer {
+  margin-bottom: 1.5rem;
+  position: relative;
+}
+
+.nftIcon {
+  position: relative;
+  width: 120px;
+  height: 120px;
+  margin: 0 auto;
+  background: linear-gradient(135deg, 
+    rgba(6, 182, 212, 0.1) 0%, 
+    rgba(217, 70, 239, 0.1) 100%
+  );
+  border: 3px solid var(--border);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  animation: cardShimmer 3s infinite;
+  
+  .bagIcon {
+    width: 48px;
+    height: 48px;
+    color: var(--accent-cyan);
+    animation: float 3s ease-in-out infinite;
+  }
+  
+  .questionMark {
+    position: absolute;
+    top: -10px;
+    right: -10px;
+    width: 40px;
+    height: 40px;
+    background: linear-gradient(45deg, var(--accent-magenta), var(--accent-cyan));
+    border-radius: 50%;
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(217, 70, 239, 0.3);
+  }
+}
+
+.title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--foreground);
+  margin: 0 0 1rem 0;
+  line-height: 1.2;
+  
+  @media (max-width: 480px) {
+    font-size: 1.75rem;
+  }
+}
+
+.message {
+  color: #6b7280;
+  font-size: 1.125rem;
+  line-height: 1.6;
+  margin: 0 0 2rem 0;
+  max-width: 440px;
+  
+  @media (max-width: 480px) {
+    font-size: 1rem;
+  }
+}
+
+.redirect {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  background: linear-gradient(45deg, 
+    rgba(6, 182, 212, 0.1) 0%, 
+    rgba(217, 70, 239, 0.1) 100%
+  );
+  border-radius: 12px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 2rem;
+  font-size: 0.875rem;
+  color: var(--foreground);
+  border: 1px solid rgba(6, 182, 212, 0.2);
+}
+
+.clockIcon {
+  color: var(--accent-cyan);
+  animation: pulse 2s infinite;
+}
+
+.actions {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+  margin-bottom: 2rem;
+  
+  @media (min-width: 640px) {
+    flex-direction: row;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
+.button {
+  @include button-base;
+  @include flex-center;
+  width: 100%;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.2s ease;
+  position: relative;
+  overflow: hidden;
+  
+  @media (min-width: 640px) {
+    width: auto;
+    min-width: 160px;
+  }
+  
+  // Primary button (gradient) - Fixed with & {}
+  & {
+    background: linear-gradient(45deg, var(--accent-cyan), var(--accent-magenta));
+    color: white;
+    border: none;
+  }
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: left 0.5s;
+  }
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 15px rgba(6, 182, 212, 0.3);
+    
+    &::before {
+      left: 100%;
+    }
+  }
+  
+  &:active {
+    transform: translateY(0);
+  }
+}
+
+.secondaryButton {
+  & {
+    background: transparent;
+    color: var(--foreground);
+    border: 2px solid var(--border);
+  }
+  
+  &::before {
+    display: none;
+  }
+  
+  &:hover {
+    background-color: var(--card-bg);
+    border-color: var(--accent-cyan);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.ghostButton {
+  & {
+    background: transparent;
+    color: var(--accent-magenta);
+    border: 2px solid var(--accent-magenta);
+  }
+  
+  &::before {
+    display: none;
+  }
+  
+  &:hover {
+    background-color: rgba(217, 70, 239, 0.1);
+    transform: translateY(-2px);
+  }
+}
+
+.buttonIcon {
+  margin-right: 0.5rem;
+  width: 16px;
+  height: 16px;
+}
+
+.suggestions {
+  border-top: 1px solid var(--border);
+  padding-top: 1.5rem;
+  margin-top: 1rem;
+  width: 100%;
+}
+
+.suggestionsTitle {
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-bottom: 0.75rem;
+  font-weight: 500;
+}
+
+.suggestionsList {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.suggestionLink {
+  padding: 0.5rem 1rem;
+  background: var(--card-bg);
+  border-radius: 6px;
+  color: var(--accent-cyan);
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  
+  &:hover {
+    background: rgba(6, 182, 212, 0.1);
+    border-color: var(--accent-cyan);
+    transform: translateY(-1px);
+  }
+}
+
+// Animations
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.6; }
+}
+
+@keyframes cardShimmer {
+  0%, 100% { 
+    background: linear-gradient(135deg, 
+      rgba(6, 182, 212, 0.1) 0%, 
+      rgba(217, 70, 239, 0.1) 100%
+    );
+  }
+  50% { 
+    background: linear-gradient(135deg, 
+      rgba(6, 182, 212, 0.05) 0%, 
+      rgba(217, 70, 239, 0.05) 100%
+    );
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 640px) {
+  .container {
+    padding: 1rem 0.75rem;
+  }
+  
+  .content {
+    padding: 2rem 1.5rem;
+  }
+  
+  .nftIcon {
+    width: 100px;
+    height: 100px;
+    
+    .bagIcon {
+      width: 40px;
+      height: 40px;
+    }
+    
+    .questionMark {
+      width: 32px;
+      height: 32px;
+      font-size: 1.2rem;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 1.5rem 1rem;
+  }
+  
+  .suggestions {
+    padding-top: 1rem;
+  }
+  
+  .suggestionsList {
+    flex-direction: column;
+  }
+}
+
+// Dark mode support
+@media (prefers-color-scheme: dark) {
+  .container {
+    background: linear-gradient(135deg, 
+      rgba(6, 182, 212, 0.05) 0%, 
+      rgba(217, 70, 239, 0.05) 100%
+    ), #0a0a0a;
+  }
+  
+  .content {
+    background-color: rgba(31, 41, 55, 0.9);
+    border-color: #374151;
+  }
+  
+  .nftIcon {
+    background: linear-gradient(135deg, 
+      rgba(6, 182, 212, 0.2) 0%, 
+      rgba(217, 70, 239, 0.2) 100%
+    );
+    border-color: #4b5563;
+  }
+  
+  .redirect {
+    background: rgba(31, 41, 55, 0.5);
+    border-color: rgba(6, 182, 212, 0.3);
+  }
+  
+  .suggestionLink {
+    background-color: #374151;
+  }
+}
+
+// High contrast mode
+@media (prefers-contrast: high) {
+  .content {
+    border: 3px solid var(--accent-cyan);
+  }
+  
+  .button:focus {
+    outline: 3px solid var(--accent-yellow);
+    outline-offset: 2px;
+  }
+}
+
+// Reduced motion
+@media (prefers-reduced-motion: reduce) {
+  .bagIcon,
+  .clockIcon,
+  .nftIcon {
+    animation: none;
+  }
+  
+  .button {
+    transition: none;
+    
+    &:hover {
+      transform: none;
+    }
+  }
+  
+  .suggestionLink:hover {
+    transform: none;
+  }
+}
