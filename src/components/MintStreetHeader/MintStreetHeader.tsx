@@ -77,7 +77,7 @@ const MintStreetHeader = () => {
                 <span>Return to Studio</span>
               </Link>
             )}
-            <div className={styles.connectWalletDesktop}>
+            <div className={`${styles.connectWalletDesktop} header`}>
               <ConnectWalletButton />
             </div>
           </div>

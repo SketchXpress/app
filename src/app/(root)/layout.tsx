@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { ToastContainer } from 'react-toastify';
+import Header from "@/components/Header/Header";
 import WalletConnectionProvider from "@/wallet/WalletProvider";
-import HeaderWrapper from "@/components/HeaderWrapper/HeaderWrapper";
 import AnchorContextProvider from "@/contexts/AnchorContextProvider";
 import TanStackQueryProvider from "@/providers/TanStackQueryProvider";
 
@@ -131,7 +131,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <TanStackQueryProvider>
           <WalletConnectionProvider>
             <AnchorContextProvider>
-              <HeaderWrapper />
+              <Header />
               <main className={styles.main}>
                 {children}
               </main>

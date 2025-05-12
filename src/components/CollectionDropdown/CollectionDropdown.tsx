@@ -27,7 +27,6 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = ({ mode }) => {
 
   // Fetch transaction history data
   const { data: history, isLoading: historyLoading, error: historyError } = useTransactionHistory(100);
-  console.log("Transaction history:", history);
 
   // Current default pool based on mode
   const defaultPool = mode === 'kids' ? DEFAULT_POOLS.kids : DEFAULT_POOLS.pro;

@@ -32,7 +32,6 @@ import styles from "./NFTCarousel.module.scss";
 const NFTCarousel = () => {
   // Fetch NFT collections
   const { collections, loading, error } = useNFTCollections(6);
-  console.table(collections)
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
