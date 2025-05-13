@@ -4,7 +4,7 @@
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
 import { useSellNft } from "@/hooks/useSellNFT";
-import styles from "./PoolNFTsGrid.module.scss"; // Assuming SCSS will be updated too
+import styles from "./PoolNFTsGrid.module.scss";
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import NFTRowSkeleton from "./NFTRowSkeleton";
@@ -13,7 +13,6 @@ import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { useAnchorContext } from "@/contexts/AnchorContextProvider";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { PublicKey, Connection } from "@solana/web3.js";
-// import { useBuyNft } from '@/hooks/useBuyNft'; // Buy feature deferred
 
 interface NFT {
   mintAddress: string;
@@ -47,6 +46,113 @@ type OwnershipStatus = "pool" | "user" | "other" | "burned" | "loading";
 const SKELETON_COUNT = 5;
 const mintInfoCache = new Map<string, { supply: bigint } | "nonexistent">();
 
+// IPFS Gateway fallbacks configuration
+const IPFS_GATEWAYS = [
+  "https://gateway.pinata.cloud/ipfs/",
+  "https://ipfs.io/ipfs/",
+  "https://dweb.link/ipfs/",
+  "https://cf-ipfs.com/ipfs/",
+  "https://cloudflare-ipfs.com/ipfs/",
+];
+
+// Rate limiting configuration
+const MAX_CONCURRENT_REQUESTS = 3;
+const RETRY_DELAY = 1000; // 1 second
+const MAX_RETRIES = 3;
+
+// Helper function to delay execution
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+// Helper function to fetch with retry and fallback gateways
+async function fetchWithRetryAndFallback(
+  url: string,
+  retries = MAX_RETRIES
+): Promise<Response> {
+  let lastError: Error;
+
+  // Try each gateway
+  for (const gateway of IPFS_GATEWAYS) {
+    let currentUrl = url;
+
+    // Convert IPFS URLs to use the current gateway
+    if (url.startsWith("https://gateway.pinata.cloud/ipfs/")) {
+      const hash = url.split("/ipfs/")[1];
+      currentUrl = `${gateway}${hash}`;
+    } else if (url.startsWith("https://ipfs.io/ipfs/")) {
+      const hash = url.split("/ipfs/")[1];
+      currentUrl = `${gateway}${hash}`;
+    }
+
+    // Try with retries for this gateway
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        const response = await fetch(currentUrl, {
+          mode: "cors",
+          headers: {
+            Accept: "application/json, image/*",
+          },
+        });
+
+        if (response.ok) {
+          return response;
+        }
+
+        // If we get a 429, wait before retrying
+        if (response.status === 429) {
+          const retryAfter = response.headers.get("Retry-After");
+          const waitTime = retryAfter
+            ? parseInt(retryAfter) * 1000
+            : RETRY_DELAY * (attempt + 1);
+          console.log(`Rate limited, waiting ${waitTime}ms before retry...`);
+          await delay(waitTime);
+          continue;
+        }
+
+        // For other errors, throw to try next gateway
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      } catch (error) {
+        lastError = error as Error;
+        if (attempt < retries) {
+          await delay(RETRY_DELAY * (attempt + 1));
+        }
+      }
+    }
+  }
+
+  throw lastError!;
+}
+
+// Helper function to process requests in batches
+async function processBatched<T, R>(
+  items: T[],
+  processor: (item: T) => Promise<R>,
+  batchSize: number = MAX_CONCURRENT_REQUESTS
+): Promise<R[]> {
+  const results: R[] = [];
+
+  for (let i = 0; i < items.length; i += batchSize) {
+    const batch = items.slice(i, i + batchSize);
+    const batchPromises = batch.map(processor);
+    const batchResults = await Promise.allSettled(batchPromises);
+
+    batchResults.forEach((result, index) => {
+      if (result.status === "fulfilled") {
+        results.push(result.value);
+      } else {
+        console.error(`Failed to process item ${i + index}:`, result.reason);
+        // You might want to push a default value here depending on the use case
+      }
+    });
+
+    // Small delay between batches to respect rate limits
+    if (i + batchSize < items.length) {
+      await delay(200);
+    }
+  }
+
+  return results;
+}
+
 const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
   nfts,
   isLoading,
@@ -71,8 +177,7 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
     error: sellError,
     isSold,
   } = useSellNft();
-  // const { buyFromPool, loading: isBuying, error: buyError } = useBuyNft(); // Buy feature deferred
-  const isBuying = false; // Placeholder since useBuyNft is commented out
+  const isBuying = false;
 
   const connectionRef = useRef<Connection | null>(null);
   useEffect(() => {
@@ -202,10 +307,6 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
           let amount = BigInt(0);
           if (info) {
             try {
-              // Attempt to get amount; this is a simplified placeholder.
-              // In a real scenario, deserialize Account data properly.
-              // For batching, you'd typically parse info.data if available.
-              // Assuming if info exists, amount is > 0 for this example.
               amount = BigInt(1);
               // eslint-disable-next-line @typescript-eslint/no-unused-vars
             } catch (e) {
@@ -246,61 +347,92 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
     checkNftOwnershipOptimized();
   }, [nfts, program, wallet.publicKey]);
 
+  // Updated metadata fetching with rate limiting and retry logic
   useEffect(() => {
     if (!nfts || nfts.length === 0) {
       setMetadataLoading(false);
       return;
     }
     setMetadataLoading(true);
-    const fetchAllMetadata = async () => {
-      const metadataPromises = nfts.map(async (nft) => {
-        if (!nft.uri)
-          return {
-            mintAddress: nft.mintAddress,
-            metadata: { name: nft.name, image: nft.image, symbol: nft.symbol },
-          };
-        try {
-          let uri = nft.uri;
-          if (uri.startsWith("ar://"))
-            uri = `https://arweave.net/${uri.substring(5)}`;
-          else if (uri.startsWith("ipfs://"))
-            uri = `https://ipfs.io/ipfs/${uri.substring(7)}`;
-          else if (!uri.startsWith("http"))
-            uri = `https://${uri.replace(/^\/\//, "")}`;
 
-          const response = await fetch(uri, { mode: "cors" });
-          if (!response.ok)
-            throw new Error(`Failed to fetch metadata from ${uri}`);
-          const contentType = response.headers
-            .get("content-type")
-            ?.toLowerCase();
-          if (contentType?.startsWith("image/"))
-            return {
-              mintAddress: nft.mintAddress,
-              metadata: { image: uri, name: nft.name, symbol: nft.symbol },
-            };
-          const metadata = await response.json();
-          return { mintAddress: nft.mintAddress, metadata };
-        } catch (fetchError) {
-          console.error(
-            `Error fetching/processing metadata for ${nft.mintAddress} from ${nft.uri}:`,
-            fetchError
-          );
+    const fetchMetadataForNft = async (nft: NFT) => {
+      if (!nft.uri) {
+        return {
+          mintAddress: nft.mintAddress,
+          metadata: { name: nft.name, image: nft.image, symbol: nft.symbol },
+        };
+      }
+
+      try {
+        let uri = nft.uri;
+        if (uri.startsWith("ar://"))
+          uri = `https://arweave.net/${uri.substring(5)}`;
+        else if (uri.startsWith("ipfs://"))
+          uri = `https://ipfs.io/ipfs/${uri.substring(7)}`;
+        else if (!uri.startsWith("http"))
+          uri = `https://${uri.replace(/^\/\//, "")}`;
+
+        const response = await fetchWithRetryAndFallback(uri);
+
+        const contentType = response.headers.get("content-type")?.toLowerCase();
+        if (contentType?.startsWith("image/")) {
           return {
             mintAddress: nft.mintAddress,
-            metadata: { name: nft.name, image: nft.image, symbol: nft.symbol },
+            metadata: { image: uri, name: nft.name, symbol: nft.symbol },
           };
         }
-      });
-      const results = await Promise.allSettled(metadataPromises);
-      const newMetadata: Record<string, NFTMetadata> = {};
-      results.forEach((result) => {
-        if (result.status === "fulfilled" && result.value)
-          newMetadata[result.value.mintAddress] = result.value.metadata;
-      });
-      setNftMetadata((prev) => ({ ...prev, ...newMetadata }));
-      setMetadataLoading(false);
+
+        const metadata = await response.json();
+
+        // Convert IPFS URLs in metadata.image to use a working gateway
+        if (metadata.image) {
+          if (metadata.image.startsWith("ipfs://")) {
+            const hash = metadata.image.substring(7);
+            metadata.image = `https://ipfs.io/ipfs/${hash}`;
+          } else if (metadata.image.startsWith("ar://")) {
+            metadata.image = `https://arweave.net/${metadata.image.substring(
+              5
+            )}`;
+          }
+        }
+
+        return { mintAddress: nft.mintAddress, metadata };
+      } catch (fetchError) {
+        console.error(
+          `Error fetching/processing metadata for ${nft.mintAddress} from ${nft.uri}:`,
+          fetchError
+        );
+        return {
+          mintAddress: nft.mintAddress,
+          metadata: { name: nft.name, image: nft.image, symbol: nft.symbol },
+        };
+      }
     };
+
+    const fetchAllMetadata = async () => {
+      try {
+        // Process NFTs in batches to respect rate limits
+        const results = await processBatched(
+          nfts,
+          fetchMetadataForNft,
+          MAX_CONCURRENT_REQUESTS
+        );
+
+        const newMetadata: Record<string, NFTMetadata> = {};
+        results.forEach((result) => {
+          if (result && result.mintAddress) {
+            newMetadata[result.mintAddress] = result.metadata;
+          }
+        });
+
+        setNftMetadata((prev) => ({ ...prev, ...newMetadata }));
+      } catch (error) {
+        console.error("Error fetching all metadata:", error);
+      } finally {
+        setMetadataLoading(false);
+      }
+    };
+
     fetchAllMetadata();
   }, [nfts]);
 
@@ -345,14 +477,10 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
   const handleSellNftClick = useCallback(
     async (nft: NFT) => {
       const ownership = nftOwnership[nft.mintAddress];
-      // Ensure isSold from useSellNft hook is the primary determinant for already sold state by current user.
       if (isSelling || isSold(nft.mintAddress) || ownership !== "user") return;
       try {
         const result = await sellNft(nft.mintAddress, poolAddress);
         if (result.success) {
-          // After a successful sell, the `isSold` state from `useSellNft` should update.
-          // The `nftOwnership` will also update to 'pool' or 'burned' based on chain state upon refresh.
-          // For immediate UI feedback, we rely on `isSold` and the hook's loading/success states.
           if (onRefresh) {
             setTimeout(onRefresh, 2000);
           }
@@ -364,8 +492,7 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
     [isSelling, isSold, poolAddress, sellNft, nftOwnership, onRefresh]
   );
 
-  // Buy feature is deferred, so handleBuyNftClick can be simplified or removed for now.
-
+  // Rest of the component remains the same...
   const getActionButtonsDetails = useCallback(
     (nft: NFT) => {
       const ownership = nftOwnership[nft.mintAddress];
@@ -375,9 +502,6 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
         nft.mintAddress.slice(0, 6);
       const currentUserIsMinter =
         nft.minterAddress && nft.minterAddress === wallet.publicKey?.toBase58();
-
-      // The isSold() function from useSellNft hook is crucial here.
-      // It should correctly indicate if the CURRENT USER has sold THIS NFT in the current session or based on its persisted state.
       const hasBeenSoldByCurrentUserViaHook = isSold(nft.mintAddress);
 
       if (ownership === "loading" || ownershipLoading) {
@@ -401,10 +525,8 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
         };
       }
 
-      // Case 1: Current user is the minter of this NFT.
       if (currentUserIsMinter) {
         if (hasBeenSoldByCurrentUserViaHook) {
-          // Minter has sold this NFT (according to useSellNft hook).
           return {
             text: "Sold",
             disabled: true,
@@ -416,7 +538,6 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
           };
         }
         if (ownership === "user") {
-          // Minter still owns it on-chain and hook doesn't say it's sold by them yet.
           return {
             text: "Sell",
             disabled: isSelling,
@@ -426,14 +547,9 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
             ariaLabel: `Sell ${nftNameForAria}`,
           };
         }
-        // If minter, but ownership is 'pool' or 'other', and hook says not sold by current user.
-        // This means it's available. Buy button (disabled for now) would apply.
       }
 
-      // Case 2: Current user is NOT the minter, OR (is minter AND NFT is in pool AND hook doesn't say they sold it).
-      // Essentially, if the NFT is available for purchase by the current user.
       if (ownership === "pool" || ownership === "other") {
-        // Buy feature is deferred. Show a disabled Buy button.
         return {
           text: "Buy",
           disabled: true,
@@ -444,10 +560,7 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
         };
       }
 
-      // Case 3: Current user owns an NFT they didn't mint (they bought it).
       if (ownership === "user" && !currentUserIsMinter) {
-        // They own it, so they can sell it.
-        // We also check hasBeenSoldByCurrentUserViaHook here in case they buy and immediately re-sell via the same hook mechanism.
         if (hasBeenSoldByCurrentUserViaHook) {
           return {
             text: "Sold",
@@ -469,7 +582,6 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
         };
       }
 
-      // Fallback for any unhandled cases or if ownership is unclear but not loading/burned.
       return {
         text: "N/A",
         disabled: true,
@@ -486,7 +598,7 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
       isSold,
       isSelling,
       handleSellNftClick,
-      ownershipLoading /*isBuying, handleBuyNftClick removed as buy is deferred*/,
+      ownershipLoading,
     ]
   );
 
@@ -566,7 +678,6 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
           </span>
         </div>
       )}
-      {/* buyError display can be removed or kept if useBuyNft hook might set it even if button is disabled */}
       <div className={styles.tableContainer}>
         <table className={`${styles.table} ${styles.enhancedTableDesign}`}>
           <thead>

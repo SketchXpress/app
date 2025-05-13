@@ -157,6 +157,7 @@ const CollectionRow = ({
             height={40}
             className={styles.collectionImage}
             onError={handleImageError}
+            unoptimized
           />
         </div>
         <div className={styles.collectionName}>
