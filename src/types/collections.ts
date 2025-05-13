@@ -38,3 +38,21 @@ export interface FormattedCollection {
   floor: string;
   trending: boolean;
 }
+
+export interface TrendingCollectionsConfig {
+  maxCollections?: number;
+  enablePricing?: boolean;
+  sortBy?: "trending" | "top";
+  refreshInterval?: number;
+}
+
+export interface TrendingCollectionsResult {
+  collections: DynamicCollection[];
+  leftCollections: DynamicCollection[];
+  rightCollections: DynamicCollection[];
+  isLoading: boolean;
+  isLoadingPrices: boolean;
+  error: string | null;
+  refetch: () => void;
+  renderPoolPrice: (collection: DynamicCollection) => React.ReactNode;
+}

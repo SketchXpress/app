@@ -1,7 +1,6 @@
 const CACHE_NAME = "sketchxpress-v1";
 const urlsToCache = [
   "/",
-  "/offline", // Offline page
 
   // Root level icons and images
   "/assets/icons/favicon.ico",
@@ -26,10 +25,7 @@ const urlsToCache = [
   "/assets/images/og-image.png",
 
   // Demo images (only cache critical ones)
-  "/assets/images/demo/defaultNFT.png",
-
-  // Don't cache all NFT images - they should be loaded on demand
-  // Only cache critical UI assets
+  "/assets/images/defaultNFT.png",
 ];
 
 // Install event - pre-cache resources

@@ -1,4 +1,4 @@
-import processTrendingCollections from "@/utils/processTrendingCollections";
+import { processTrendingCollections } from "@/utils/processTrendingCollections";
 import { NextResponse } from "next/server";
 
 export async function GET() {

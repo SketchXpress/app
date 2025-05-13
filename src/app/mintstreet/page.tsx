@@ -1,8 +1,8 @@
 "use client";
 
-import MyNFT from '@/components/MyNFT/MyNFT';
-import NFTCarousel from '@/components/NFTCarousel/NFTCarousel';
-import TrendingCollections from '@/components/TrendingCollections/TrendingCollections';
+import MyNFT from "@/components/MyNFT/MyNFT";
+import NFTCarousel from "@/components/NFTCarousel/NFTCarousel";
+import TrendingCollections from "@/components/TrendingCollections/TrendingCollections";
 
 export default function MintStreetPage() {
   return (

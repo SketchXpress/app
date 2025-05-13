@@ -96,3 +96,69 @@ export interface HeliusTransaction {
   instructions: any[];
   events?: any;
 }
+
+export interface HeliusNFTFile {
+  uri: string;
+  cdn_uri?: string;
+  mime?: string;
+}
+
+export interface HeliusNFTMetadata {
+  name?: string;
+  symbol?: string;
+  description?: string;
+  image?: string;
+  attributes?: Array<{
+    trait_type?: string;
+    value?: string;
+  }>;
+  token_standard?: string;
+}
+
+export interface HeliusNFTContent {
+  $schema?: string;
+  json_uri?: string;
+  files?: HeliusNFTFile[];
+  metadata?: HeliusNFTMetadata;
+  links?: {
+    image?: string;
+  };
+}
+
+export interface HeliusNFTGrouping {
+  group_key?: string;
+  group_value?: string;
+}
+
+export interface HeliusNFT {
+  id: string;
+  interface: string;
+  content: HeliusNFTContent;
+  authorities?: unknown[];
+  compression?: unknown;
+  grouping?: HeliusNFTGrouping[];
+  royalty?: unknown;
+  creators?: unknown[];
+  ownership?: {
+    owner?: string;
+  };
+  supply?: unknown;
+  mutable?: boolean;
+  burnt?: boolean;
+  token_info?: unknown;
+}
+
+export interface HeliusRPCResponse {
+  jsonrpc: string;
+  id: string;
+  result: {
+    total: number;
+    limit: number;
+    page: number;
+    items: HeliusNFT[];
+  };
+  error?: {
+    code: number;
+    message: string;
+  };
+}

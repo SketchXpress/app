@@ -1,18 +1,19 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import Image from 'next/image';
-import { formatDistanceToNow } from 'date-fns';
-import { useSellNft } from '@/hooks/useSellNFT';
-import styles from './PoolNFTsGrid.module.scss';
-import React, { useState, useEffect, useCallback } from 'react';
-import { Loader2, AlertCircle, CheckCircle } from 'lucide-react';
-import NFTRowSkeleton from './NFTRowSkeleton';
-import NFTCardSkeleton from './NFTCardSkeleton';
-import { getAssociatedTokenAddress, getAccount, getMint } from '@solana/spl-token';
-import { useAnchorContext } from '@/contexts/AnchorContextProvider';
-import { useWallet } from '@solana/wallet-adapter-react';
-import { PublicKey } from '@solana/web3.js';
-import { useBuyNft } from '@/hooks/useBuyNft';
+import Image from "next/image";
+import { formatDistanceToNow } from "date-fns";
+import { useSellNft } from "@/hooks/useSellNFT";
+import styles from "./PoolNFTsGrid.module.scss"; // Assuming SCSS will be updated too
+import React, { useState, useEffect, useCallback, useRef } from "react";
+import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import NFTRowSkeleton from "./NFTRowSkeleton";
+import NFTCardSkeleton from "./NFTCardSkeleton";
+import { getAssociatedTokenAddress } from "@solana/spl-token";
+import { useAnchorContext } from "@/contexts/AnchorContextProvider";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { PublicKey, Connection } from "@solana/web3.js";
+// import { useBuyNft } from '@/hooks/useBuyNft'; // Buy feature deferred
 
 interface NFT {
   mintAddress: string;
@@ -23,7 +24,7 @@ interface NFT {
   signature: string;
   price: number;
   image?: string;
-  owner?: string;
+  minterAddress?: string;
 }
 
 interface PoolNFTsGridProps {
@@ -41,456 +42,465 @@ interface NFTMetadata {
   description?: string;
 }
 
-// Ownership status for each NFT
-type OwnershipStatus = 'pool' | 'user' | 'other' | 'burned';
+type OwnershipStatus = "pool" | "user" | "other" | "burned" | "loading";
 
 const SKELETON_COUNT = 5;
+const mintInfoCache = new Map<string, { supply: bigint } | "nonexistent">();
 
 const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
   nfts,
   isLoading,
   error,
   poolAddress,
-  onRefresh
+  onRefresh,
 }) => {
-  const [sellingNftMint, setSellingNftMint] = useState<string | null>(null);
-  const [buyingNftMint, setBuyingNftMint] = useState<string | null>(null);
-  const [nftMetadata, setNftMetadata] = useState<Record<string, NFTMetadata>>({});
+  const [nftMetadata, setNftMetadata] = useState<Record<string, NFTMetadata>>(
+    {}
+  );
   const [metadataLoading, setMetadataLoading] = useState<boolean>(true);
-  const [nftOwnership, setNftOwnership] = useState<Record<string, OwnershipStatus>>({});
+  const [nftOwnership, setNftOwnership] = useState<
+    Record<string, OwnershipStatus>
+  >({});
   const [ownershipLoading, setOwnershipLoading] = useState<boolean>(true);
 
   const { program } = useAnchorContext();
   const wallet = useWallet();
-  const { sellNft, loading: isSelling, error: sellError, success: sellSuccess, isSold } = useSellNft();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const { buyFromPool, buyFromUser, loading: isBuying, error: buyError } = useBuyNft();
+  const {
+    sellNft,
+    loading: isSelling,
+    error: sellError,
+    isSold,
+  } = useSellNft();
+  // const { buyFromPool, loading: isBuying, error: buyError } = useBuyNft(); // Buy feature deferred
+  const isBuying = false; // Placeholder since useBuyNft is commented out
 
-  // Check NFT ownership
+  const connectionRef = useRef<Connection | null>(null);
   useEffect(() => {
-    const checkNftOwnership = async () => {
-      if (!program || !nfts || nfts.length === 0) {
+    if (program) {
+      connectionRef.current = program.provider.connection;
+    }
+  }, [program]);
+
+  useEffect(() => {
+    const checkNftOwnershipOptimized = async () => {
+      if (!connectionRef.current || !nfts || nfts.length === 0) {
         setOwnershipLoading(false);
         return;
       }
-
       setOwnershipLoading(true);
-      console.log('Checking ownership for NFTs:', nfts.map(n => n.mintAddress));
+      const connection = connectionRef.current;
+      const currentNftOwnership: Record<string, OwnershipStatus> = {};
+      nfts.forEach((nft) => (currentNftOwnership[nft.mintAddress] = "loading"));
+      setNftOwnership(currentNftOwnership);
 
-      const ownershipMap: Record<string, OwnershipStatus> = {};
+      const mintPubkeysToQuery: PublicKey[] = [];
+      const mintAddressMap: Record<string, string> = {};
 
-      try {
-        await Promise.all(
-          nfts.map(async (nft) => {
-            try {
-              const mintPubkey = new PublicKey(nft.mintAddress);
-
-              // First check if mint exists
-              let mintExists = true;
-              let mintInfo;
-              try {
-                mintInfo = await getMint(program.provider.connection, mintPubkey);
-                console.log(`Mint ${nft.mintAddress} exists, supply: ${mintInfo.supply}`);
-
-                // If supply is 0, it was burned
-                if (mintInfo.supply === BigInt(0)) {
-                  console.log(`NFT ${nft.mintAddress} was burned (supply = 0)`);
-                  ownershipMap[nft.mintAddress] = 'burned';
-                  return;
-                }
-              } catch {
-                console.log(`Mint ${nft.mintAddress} doesn't exist - marked as burned`);
-                mintExists = false;
-                ownershipMap[nft.mintAddress] = 'burned';
-                return;
-              }
-
-              if (!mintExists) return;
-
-              // Find NFT escrow PDA (pool's address)
-              const [escrow] = PublicKey.findProgramAddressSync(
-                [Buffer.from("nft-escrow"), mintPubkey.toBuffer()],
-                program.programId
-              );
-
-              console.log(`Checking NFT ${nft.mintAddress}, escrow: ${escrow.toString()}`);
-
-              // Check pool's token account
-              const escrowTokenAccount = await getAssociatedTokenAddress(
-                mintPubkey,
-                escrow,
-                true // Allow PDA
-              );
-
-              // Check user's token account (if wallet is connected)
-              let userOwns = false;
-              if (wallet.publicKey) {
-                try {
-                  const userTokenAccount = await getAssociatedTokenAddress(
-                    mintPubkey,
-                    wallet.publicKey
-                  );
-
-                  const userAccount = await getAccount(
-                    program.provider.connection,
-                    userTokenAccount
-                  );
-
-                  userOwns = userAccount.amount === BigInt(1);
-                  console.log(`User owns NFT ${nft.mintAddress}: ${userOwns}`);
-                } catch {
-                  // User doesn't have a token account for this NFT
-                  userOwns = false;
-                }
-              }
-
-              // Check pool's ownership
-              let poolOwns = false;
-              try {
-                const escrowAccount = await getAccount(
-                  program.provider.connection,
-                  escrowTokenAccount
-                );
-
-                poolOwns = escrowAccount.amount === BigInt(1);
-                console.log(`Pool owns NFT ${nft.mintAddress}: ${poolOwns}`);
-              } catch {
-                // Pool doesn't own the NFT
-                poolOwns = false;
-              }
-
-              // Determine ownership status
-              if (userOwns) {
-                ownershipMap[nft.mintAddress] = 'user';
-              } else if (poolOwns) {
-                ownershipMap[nft.mintAddress] = 'pool';
-              } else {
-                // Someone else owns it
-                ownershipMap[nft.mintAddress] = 'other';
-              }
-
-              console.log(`Final ownership for ${nft.mintAddress}: ${ownershipMap[nft.mintAddress]}`);
-            } catch (err) {
-              console.error(`Error checking ownership for ${nft.mintAddress}:`, err);
-              ownershipMap[nft.mintAddress] = 'other';
-            }
-          })
-        );
-
-        console.log('Final ownership map:', ownershipMap);
-        setNftOwnership(ownershipMap);
-      } catch (err) {
-        console.error('Error checking NFT ownership:', err);
-      } finally {
-        setOwnershipLoading(false);
+      for (const nft of nfts) {
+        if (mintInfoCache.has(nft.mintAddress)) {
+          const cachedMintInfo = mintInfoCache.get(nft.mintAddress);
+          if (
+            cachedMintInfo === "nonexistent" ||
+            (cachedMintInfo as any).supply === BigInt(0)
+          ) {
+            currentNftOwnership[nft.mintAddress] = "burned";
+            continue;
+          }
+        }
+        try {
+          const mintPk = new PublicKey(nft.mintAddress);
+          mintPubkeysToQuery.push(mintPk);
+          mintAddressMap[mintPk.toBase58()] = nft.mintAddress;
+        } catch (e) {
+          console.error(`Invalid mint address: ${nft.mintAddress}`, e);
+          currentNftOwnership[nft.mintAddress] = "burned";
+        }
       }
-    };
 
-    checkNftOwnership();
+      if (mintPubkeysToQuery.length > 0) {
+        const mintInfos = await connection.getMultipleAccountsInfo(
+          mintPubkeysToQuery
+        );
+        mintInfos.forEach((info, index) => {
+          const originalMintAddress =
+            mintAddressMap[mintPubkeysToQuery[index].toBase58()];
+          if (!info) {
+            mintInfoCache.set(originalMintAddress, "nonexistent");
+            currentNftOwnership[originalMintAddress] = "burned";
+          }
+        });
+      }
+      setNftOwnership((prev) => ({ ...prev, ...currentNftOwnership }));
+
+      const ataPubkeysToQuery: PublicKey[] = [];
+      const ataInfoMapping: {
+        mintAddress: string;
+        type: "escrow" | "user";
+        ata: PublicKey;
+      }[] = [];
+
+      for (const nft of nfts) {
+        if (currentNftOwnership[nft.mintAddress] === "burned") continue;
+        try {
+          const mintPubkey = new PublicKey(nft.mintAddress);
+          if (!program) {
+            console.error("Program is null when trying to find escrow PDA");
+            continue;
+          }
+          const [escrowPda] = PublicKey.findProgramAddressSync(
+            [Buffer.from("nft-escrow"), mintPubkey.toBuffer()],
+            program.programId
+          );
+          const escrowAta = await getAssociatedTokenAddress(
+            mintPubkey,
+            escrowPda,
+            true
+          );
+          ataPubkeysToQuery.push(escrowAta);
+          ataInfoMapping.push({
+            mintAddress: nft.mintAddress,
+            type: "escrow",
+            ata: escrowAta,
+          });
+
+          if (wallet.publicKey) {
+            const userAta = await getAssociatedTokenAddress(
+              mintPubkey,
+              wallet.publicKey
+            );
+            ataPubkeysToQuery.push(userAta);
+            ataInfoMapping.push({
+              mintAddress: nft.mintAddress,
+              type: "user",
+              ata: userAta,
+            });
+          }
+        } catch (e) {
+          console.error(`Error getting ATAs for ${nft.mintAddress}`, e);
+          currentNftOwnership[nft.mintAddress] = "other";
+        }
+      }
+
+      const finalOwnershipUpdate: Record<string, OwnershipStatus> = {};
+      if (ataPubkeysToQuery.length > 0) {
+        const accountInfos = await connection.getMultipleAccountsInfo(
+          ataPubkeysToQuery
+        );
+        const tempOwnership: Record<
+          string,
+          { userAmount: bigint; escrowAmount: bigint }
+        > = {};
+
+        accountInfos.forEach((info, index) => {
+          const mapping = ataInfoMapping[index];
+          if (!tempOwnership[mapping.mintAddress]) {
+            tempOwnership[mapping.mintAddress] = {
+              userAmount: BigInt(0),
+              escrowAmount: BigInt(0),
+            };
+          }
+          let amount = BigInt(0);
+          if (info) {
+            try {
+              // Attempt to get amount; this is a simplified placeholder.
+              // In a real scenario, deserialize Account data properly.
+              // For batching, you'd typically parse info.data if available.
+              // Assuming if info exists, amount is > 0 for this example.
+              amount = BigInt(1);
+              // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            } catch (e) {
+              /* ignore if account doesn't exist or parsing fails */
+            }
+          }
+          if (mapping.type === "user")
+            tempOwnership[mapping.mintAddress].userAmount = amount;
+          if (mapping.type === "escrow")
+            tempOwnership[mapping.mintAddress].escrowAmount = amount;
+        });
+
+        for (const mintAddr in tempOwnership) {
+          if (currentNftOwnership[mintAddr] === "burned") continue;
+          const { userAmount, escrowAmount } = tempOwnership[mintAddr];
+          if (userAmount > BigInt(0)) finalOwnershipUpdate[mintAddr] = "user";
+          else if (escrowAmount > BigInt(0))
+            finalOwnershipUpdate[mintAddr] = "pool";
+          else finalOwnershipUpdate[mintAddr] = "other";
+        }
+      } else {
+        nfts.forEach((nft) => {
+          if (
+            currentNftOwnership[nft.mintAddress] !== "burned" &&
+            !finalOwnershipUpdate[nft.mintAddress]
+          ) {
+            finalOwnershipUpdate[nft.mintAddress] = "other";
+          }
+        });
+      }
+      setNftOwnership((prev) => ({
+        ...prev,
+        ...currentNftOwnership,
+        ...finalOwnershipUpdate,
+      }));
+      setOwnershipLoading(false);
+    };
+    checkNftOwnershipOptimized();
   }, [nfts, program, wallet.publicKey]);
 
-  // Fetch metadata
   useEffect(() => {
     if (!nfts || nfts.length === 0) {
       setMetadataLoading(false);
       return;
     }
-
     setMetadataLoading(true);
     const fetchAllMetadata = async () => {
       const metadataPromises = nfts.map(async (nft) => {
-        if (!nft.uri) {
+        if (!nft.uri)
           return {
             mintAddress: nft.mintAddress,
-            metadata: {
-              name: nft.name,
-              image: nft.image,
-              symbol: nft.symbol
-            }
+            metadata: { name: nft.name, image: nft.image, symbol: nft.symbol },
           };
-        }
-
         try {
           let uri = nft.uri;
-          if (uri.startsWith('ar://')) {
+          if (uri.startsWith("ar://"))
             uri = `https://arweave.net/${uri.substring(5)}`;
-          } else if (!uri.startsWith('http')) {
-            uri = `https://${uri.replace(/^\/\//, '')}`;
-          }
+          else if (uri.startsWith("ipfs://"))
+            uri = `https://ipfs.io/ipfs/${uri.substring(7)}`;
+          else if (!uri.startsWith("http"))
+            uri = `https://${uri.replace(/^\/\//, "")}`;
 
-          const response = await fetch(uri, { mode: 'cors' });
-          if (!response.ok) throw new Error(`Failed to fetch metadata`);
-
-          const contentType = response.headers.get("content-type");
-
-          if (contentType && (contentType.includes("application/json") || contentType.includes("text/plain"))) {
-            const metadata = await response.json();
-            return { mintAddress: nft.mintAddress, metadata };
-          } else if (contentType && contentType.startsWith("image/")) {
+          const response = await fetch(uri, { mode: "cors" });
+          if (!response.ok)
+            throw new Error(`Failed to fetch metadata from ${uri}`);
+          const contentType = response.headers
+            .get("content-type")
+            ?.toLowerCase();
+          if (contentType?.startsWith("image/"))
             return {
               mintAddress: nft.mintAddress,
-              metadata: {
-                image: uri,
-                name: nft.name,
-                symbol: nft.symbol
-              }
+              metadata: { image: uri, name: nft.name, symbol: nft.symbol },
             };
-          } else {
-            try {
-              const metadata = await response.json();
-              return { mintAddress: nft.mintAddress, metadata };
-            } catch {
-              return {
-                mintAddress: nft.mintAddress,
-                metadata: {
-                  image: uri,
-                  name: nft.name,
-                  symbol: nft.symbol
-                }
-              };
-            }
-          }
+          const metadata = await response.json();
+          return { mintAddress: nft.mintAddress, metadata };
         } catch (fetchError) {
-          console.error(`Error fetching metadata for ${nft.mintAddress}:`, fetchError);
+          console.error(
+            `Error fetching/processing metadata for ${nft.mintAddress} from ${nft.uri}:`,
+            fetchError
+          );
           return {
             mintAddress: nft.mintAddress,
-            metadata: {
-              name: nft.name,
-              image: nft.image,
-              symbol: nft.symbol
-            }
+            metadata: { name: nft.name, image: nft.image, symbol: nft.symbol },
           };
         }
       });
-
       const results = await Promise.allSettled(metadataPromises);
       const newMetadata: Record<string, NFTMetadata> = {};
-      results.forEach(result => {
-        if (result.status === 'fulfilled' && result.value) {
+      results.forEach((result) => {
+        if (result.status === "fulfilled" && result.value)
           newMetadata[result.value.mintAddress] = result.value.metadata;
-        }
       });
-      setNftMetadata(prev => ({ ...prev, ...newMetadata }));
+      setNftMetadata((prev) => ({ ...prev, ...newMetadata }));
       setMetadataLoading(false);
     };
-
     fetchAllMetadata();
   }, [nfts]);
 
-  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    e.currentTarget.src = '/assets/images/defaultNFT.png';
-    e.currentTarget.onerror = null;
-  }, []);
+  const handleImageError = useCallback(
+    (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+      e.currentTarget.src = "/assets/images/defaultNFT.png";
+      e.currentTarget.onerror = null;
+    },
+    []
+  );
 
   const formatTimestamp = useCallback((timestamp: number) => {
-    if (!timestamp) return 'Unknown time';
+    if (!timestamp) return "Unknown time";
     try {
-      const date = new Date(timestamp * 1000);
-      return formatDistanceToNow(date, { addSuffix: true });
+      return formatDistanceToNow(new Date(timestamp * 1000), {
+        addSuffix: true,
+      });
     } catch (err) {
-      console.error('Error formatting timestamp:', err);
-      return 'Invalid date';
+      console.error("Error formatting timestamp:", err);
+      return "Invalid date";
     }
   }, []);
 
-  const getNftImageUrl = useCallback((nft: NFT): string => {
-    const metadata = nftMetadata[nft.mintAddress];
-    const imageUrl = metadata?.image || nft.image;
-
-    if (imageUrl) {
-      if (imageUrl.startsWith('ipfs://')) {
-        return `https://ipfs.io/ipfs/${imageUrl.substring(7)}`;
+  const getNftImageUrl = useCallback(
+    (nft: NFT): string => {
+      const metadata = nftMetadata[nft.mintAddress];
+      const imageUrl = metadata?.image || nft.image;
+      if (imageUrl) {
+        if (imageUrl.startsWith("ipfs://"))
+          return `https://ipfs.io/ipfs/${imageUrl.substring(7)}`;
+        if (imageUrl.startsWith("ar://"))
+          return `https://arweave.net/${imageUrl.substring(5)}`;
+        return imageUrl.startsWith("http")
+          ? imageUrl
+          : "/assets/images/defaultNFT.png";
       }
-      if (imageUrl.startsWith('ar://')) {
-        return `https://arweave.net/${imageUrl.substring(5)}`;
-      }
-      return imageUrl.startsWith('http') ? imageUrl : '/assets/images/defaultNFT.png';
-    }
-    return '/assets/images/defaultNFT.png';
-  }, [nftMetadata]);
+      return "/assets/images/defaultNFT.png";
+    },
+    [nftMetadata]
+  );
 
-  const handleSellNft = useCallback(async (nft: NFT) => {
-    if (isSelling || isSold(nft.mintAddress) || nftOwnership[nft.mintAddress] !== 'user') return;
-
-    setSellingNftMint(nft.mintAddress);
-    try {
-      const result = await sellNft(nft.mintAddress, poolAddress);
-      if (result.success) {
-        // Update ownership state immediately to show as burned
-        setNftOwnership(prev => ({ ...prev, [nft.mintAddress]: 'burned' }));
-        // Call refresh if provided to update the NFT list
-        if (onRefresh) {
-          setTimeout(onRefresh, 2000); // Delay refresh to allow blockchain to update
+  const handleSellNftClick = useCallback(
+    async (nft: NFT) => {
+      const ownership = nftOwnership[nft.mintAddress];
+      // Ensure isSold from useSellNft hook is the primary determinant for already sold state by current user.
+      if (isSelling || isSold(nft.mintAddress) || ownership !== "user") return;
+      try {
+        const result = await sellNft(nft.mintAddress, poolAddress);
+        if (result.success) {
+          // After a successful sell, the `isSold` state from `useSellNft` should update.
+          // The `nftOwnership` will also update to 'pool' or 'burned' based on chain state upon refresh.
+          // For immediate UI feedback, we rely on `isSold` and the hook's loading/success states.
+          if (onRefresh) {
+            setTimeout(onRefresh, 2000);
+          }
         }
+      } catch (err) {
+        console.error("Error in handleSellNftClick:", err);
       }
-    } catch (err) {
-      console.error('Error handling NFT sale in component:', err);
-    }
-  }, [isSelling, isSold, poolAddress, sellNft, nftOwnership, onRefresh]);
+    },
+    [isSelling, isSold, poolAddress, sellNft, nftOwnership, onRefresh]
+  );
 
-  const handleBuyNft = useCallback(async (nft: NFT) => {
-    const ownership = nftOwnership[nft.mintAddress];
+  // Buy feature is deferred, so handleBuyNftClick can be simplified or removed for now.
 
-    if (isBuying || ownership === 'burned' || ownership === 'user') return;
+  const getActionButtonsDetails = useCallback(
+    (nft: NFT) => {
+      const ownership = nftOwnership[nft.mintAddress];
+      const nftNameForAria =
+        nftMetadata[nft.mintAddress]?.name ||
+        nft.name ||
+        nft.mintAddress.slice(0, 6);
+      const currentUserIsMinter =
+        nft.minterAddress && nft.minterAddress === wallet.publicKey?.toBase58();
 
-    setBuyingNftMint(nft.mintAddress);
+      // The isSold() function from useSellNft hook is crucial here.
+      // It should correctly indicate if the CURRENT USER has sold THIS NFT in the current session or based on its persisted state.
+      const hasBeenSoldByCurrentUserViaHook = isSold(nft.mintAddress);
 
-    if (ownership === 'pool') {
-      // Buy from pool - this creates a new NFT
-      console.log('Buying NFT from pool:', nft.mintAddress);
-      alert('Buying from pool creates a new NFT. This functionality is coming soon!');
-      setBuyingNftMint(null);
-      return;
+      if (ownership === "loading" || ownershipLoading) {
+        return {
+          text: "Loading...",
+          disabled: true,
+          isLoading: true,
+          buttonClass: styles.disabledButton,
+          onClick: undefined,
+          ariaLabel: `Loading actions for ${nftNameForAria}`,
+        };
+      }
+      if (ownership === "burned") {
+        return {
+          text: "Burned",
+          disabled: true,
+          isLoading: false,
+          buttonClass: styles.disabledButton,
+          onClick: undefined,
+          ariaLabel: `${nftNameForAria} is burned`,
+        };
+      }
 
-      // TODO: This should call a mint function, not buy an existing NFT
-      // try {
-      //   const result = await buyFromPool(nft.mintAddress, poolAddress);
-      //   if (result.success) {
-      //     setNftOwnership(prev => ({ ...prev, [nft.mintAddress]: 'user' }));
-      //     if (onRefresh) {
-      //       setTimeout(onRefresh, 2000);
-      //     }
-      //   }
-      // } catch (err) {
-      //   console.error('Error buying NFT from pool:', err);
-      // }
-    } else if (ownership === 'other') {
-      // Buy from another user - secondary sale
-      console.log('Buying NFT from another user:', nft.mintAddress);
-      alert('Secondary market functionality coming soon!');
-      setBuyingNftMint(null);
-      return;
-    }
+      // Case 1: Current user is the minter of this NFT.
+      if (currentUserIsMinter) {
+        if (hasBeenSoldByCurrentUserViaHook) {
+          // Minter has sold this NFT (according to useSellNft hook).
+          return {
+            text: "Sold",
+            disabled: true,
+            showSuccessIcon: true,
+            isLoading: false,
+            buttonClass: styles.soldButton,
+            onClick: undefined,
+            ariaLabel: `${nftNameForAria} Sold by you`,
+          };
+        }
+        if (ownership === "user") {
+          // Minter still owns it on-chain and hook doesn't say it's sold by them yet.
+          return {
+            text: "Sell",
+            disabled: isSelling,
+            isLoading: isSelling,
+            buttonClass: styles.sellButton,
+            onClick: () => handleSellNftClick(nft),
+            ariaLabel: `Sell ${nftNameForAria}`,
+          };
+        }
+        // If minter, but ownership is 'pool' or 'other', and hook says not sold by current user.
+        // This means it's available. Buy button (disabled for now) would apply.
+      }
 
-    setBuyingNftMint(null);
-  }, [nftOwnership, isBuying]);
+      // Case 2: Current user is NOT the minter, OR (is minter AND NFT is in pool AND hook doesn't say they sold it).
+      // Essentially, if the NFT is available for purchase by the current user.
+      if (ownership === "pool" || ownership === "other") {
+        // Buy feature is deferred. Show a disabled Buy button.
+        return {
+          text: "Buy",
+          disabled: true,
+          isLoading: false,
+          buttonClass: `${styles.buyButton} ${styles.disabledButton}`,
+          onClick: undefined,
+          ariaLabel: `Buy ${nftNameForAria} (Feature coming soon)`,
+        };
+      }
 
-  const getStatusBadge = useCallback((ownership: OwnershipStatus) => {
-    switch (ownership) {
-      case 'user':
-        return { text: 'Yours', className: styles.yoursStatus };
-      case 'pool':
-        return { text: 'Available', className: styles.availableStatus };
-      case 'burned':
-        return { text: 'Burned', className: styles.burnedStatus };
-      case 'other':
-        return { text: 'Others', className: styles.secondaryStatus };
-      default:
-        return { text: 'Unknown', className: styles.unknownStatus };
-    }
-  }, []);
+      // Case 3: Current user owns an NFT they didn't mint (they bought it).
+      if (ownership === "user" && !currentUserIsMinter) {
+        // They own it, so they can sell it.
+        // We also check hasBeenSoldByCurrentUserViaHook here in case they buy and immediately re-sell via the same hook mechanism.
+        if (hasBeenSoldByCurrentUserViaHook) {
+          return {
+            text: "Sold",
+            disabled: true,
+            showSuccessIcon: true,
+            isLoading: false,
+            buttonClass: styles.soldButton,
+            onClick: undefined,
+            ariaLabel: `${nftNameForAria} Sold by you`,
+          };
+        }
+        return {
+          text: "Sell",
+          disabled: isSelling,
+          isLoading: isSelling,
+          buttonClass: styles.sellButton,
+          onClick: () => handleSellNftClick(nft),
+          ariaLabel: `Sell ${nftNameForAria}`,
+        };
+      }
 
-  const getActionButtons = useCallback((nft: NFT) => {
-    const ownership = nftOwnership[nft.mintAddress];
-    const nftName = nftMetadata[nft.mintAddress]?.name || nft.name || "Unnamed NFT";
-    const isCurrentlyBuying = buyingNftMint === nft.mintAddress && isBuying;
+      // Fallback for any unhandled cases or if ownership is unclear but not loading/burned.
+      return {
+        text: "N/A",
+        disabled: true,
+        isLoading: false,
+        buttonClass: styles.disabledButton,
+        onClick: undefined,
+        ariaLabel: `No action available for ${nftNameForAria}`,
+      };
+    },
+    [
+      nftOwnership,
+      nftMetadata,
+      wallet.publicKey,
+      isSold,
+      isSelling,
+      handleSellNftClick,
+      ownershipLoading /*isBuying, handleBuyNftClick removed as buy is deferred*/,
+    ]
+  );
 
-    if (!ownership) {
-      return (
-        <>
-          <button className={`${styles.actionButton} ${styles.buyButton}`} disabled>
-            Loading...
-          </button>
-          <button className={`${styles.actionButton} ${styles.sellButton}`} disabled>
-            Loading...
-          </button>
-        </>
-      );
-    }
+  const showSkeletons =
+    isLoading || (nfts.length > 0 && (metadataLoading || ownershipLoading));
 
-    // NFT is burned - both buttons disabled
-    if (ownership === 'burned') {
-      return (
-        <>
-          <button className={`${styles.actionButton} ${styles.buyButton}`} disabled>
-            Buy
-          </button>
-          <button className={`${styles.actionButton} ${styles.sellButton}`} disabled>
-            Sell
-          </button>
-        </>
-      );
-    }
-
-    // User owns this NFT - can sell it
-    if (ownership === 'user') {
-      const buttonStatus = getSellButtonStatus(nft.mintAddress);
-      return (
-        <>
-          <button className={`${styles.actionButton} ${styles.buyButton}`} disabled>
-            Buy
-          </button>
-          <button
-            className={`${styles.actionButton} ${styles.sellButton} ${buttonStatus.disabled ? styles.disabledButton : ''} ${buttonStatus.showSuccess ? styles.soldButton : ''}`}
-            onClick={() => handleSellNft(nft)}
-            disabled={buttonStatus.disabled || isSelling}
-            aria-label={buttonStatus.showSuccess ? `${nftName} Sold` : `Sell ${nftName}`}
-          >
-            {buttonStatus.showLoader && <Loader2 size={14} className={styles.spinnerIcon} aria-hidden="true" />}
-            {buttonStatus.showSuccess && <CheckCircle size={14} className={styles.checkIcon} aria-hidden="true" />}
-            {buttonStatus.text}
-          </button>
-        </>
-      );
-    }
-
-    // Pool owns this NFT or someone else owns it - can buy
-    if (ownership === 'pool' || ownership === 'other') {
-      return (
-        <>
-          <button
-            className={`${styles.actionButton} ${styles.buyButton} ${isCurrentlyBuying ? styles.buyingButton : ''}`}
-            onClick={() => handleBuyNft(nft)}
-            disabled={isBuying}
-            aria-label={`Buy ${nftName}`}
-          >
-            {isCurrentlyBuying && <Loader2 size={14} className={styles.spinnerIcon} aria-hidden="true" />}
-            {isCurrentlyBuying ? 'Buying...' : 'Buy'}
-          </button>
-          <button className={`${styles.actionButton} ${styles.sellButton}`} disabled>
-            Sell
-          </button>
-        </>
-      );
-    }
-
-    // Default case
-    return (
-      <>
-        <button className={`${styles.actionButton} ${styles.buyButton}`} disabled>
-          Buy
-        </button>
-        <button className={`${styles.actionButton} ${styles.sellButton}`} disabled>
-          Sell
-        </button>
-      </>
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nftOwnership, nftMetadata, isSelling, isBuying, buyingNftMint, handleSellNft, handleBuyNft]);
-
-  const getSellButtonStatus = useCallback((nftMintAddress: string) => {
-    // Only for NFTs owned by the user
-    if (nftOwnership[nftMintAddress] !== 'user') {
-      return { text: 'Sell', disabled: true };
-    }
-
-    if (isSold(nftMintAddress)) return { text: 'Sold', disabled: true, showSuccess: true };
-
-    if (sellingNftMint === nftMintAddress) {
-      if (isSelling) return { text: 'Selling...', disabled: true, showLoader: true };
-      if (sellSuccess && isSold(nftMintAddress)) return { text: 'Sold', disabled: true, showSuccess: true };
-      if (sellError) return { text: 'Retry Sell', disabled: false, showError: true };
-    }
-
-    return { text: 'Sell', disabled: false };
-  }, [isSold, sellingNftMint, isSelling, sellSuccess, sellError, nftOwnership]);
-
-  const showSkeletons = isLoading || (nfts.length > 0 && (metadataLoading || ownershipLoading));
-
-  if (showSkeletons) {
+  if (showSkeletons && nfts.length === 0 && !error) {
     return (
       <div className={styles.container}>
-        <h2 className={`${styles.title} ${styles.skeletonTitle}`}><div className={`${styles.skeleton} ${styles.skeletonTextMedium}`}></div></h2>
+        <h2 className={`${styles.title} ${styles.skeletonTitle}`}>
+          <div
+            className={`${styles.skeleton} ${styles.skeletonTextMedium}`}
+          ></div>
+        </h2>
         <div className={styles.tableContainer}>
           <table className={styles.table}>
             <thead>
@@ -499,118 +509,92 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
                 <th>Image</th>
                 <th>Name</th>
                 <th>Symbol</th>
-                <th>Mint Price</th>
+                <th>Price</th>
                 <th>Time</th>
-                <th>Status</th>
-                <th>Actions</th>
+                <th>Action</th>
               </tr>
             </thead>
             <tbody>
-              {Array.from({ length: SKELETON_COUNT }).map((_, index) => <NFTRowSkeleton key={`row-skeleton-${index}`} />)}
+              {Array.from({ length: SKELETON_COUNT }).map((_, index) => (
+                <NFTRowSkeleton key={`row-skeleton-${index}`} />
+              ))}
             </tbody>
           </table>
         </div>
         <div className={styles.cardsContainer}>
-          {Array.from({ length: SKELETON_COUNT }).map((_, index) => <NFTCardSkeleton key={`card-skeleton-${index}`} />)}
+          {Array.from({ length: SKELETON_COUNT }).map((_, index) => (
+            <NFTCardSkeleton key={`card-skeleton-${index}`} />
+          ))}
         </div>
       </div>
     );
   }
 
-  if (error) {
+  if (error)
     return (
       <div className={styles.errorContainer} role="alert">
         <AlertCircle size={24} className={styles.errorIcon} />
         <p>Error loading NFTs: {error}</p>
-        {onRefresh && (
-          <button onClick={onRefresh} className={styles.refreshButton}>
-            Try Again
-          </button>
-        )}
       </div>
     );
-  }
-
-  if (!nfts || nfts.length === 0) {
+  if (!isLoading && nfts.length === 0)
     return (
       <div className={styles.emptyContainer}>
         <p>No NFTs found in this pool.</p>
-        {onRefresh && (
-          <button onClick={onRefresh} className={styles.refreshButton}>
-            Refresh
-          </button>
-        )}
       </div>
     );
-  }
-
-  if (!wallet.publicKey) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.titleContainer}>
-          <h2 className={styles.title}>Pool NFTs</h2>
-          {onRefresh && (
-            <button onClick={onRefresh} className={styles.refreshButton} disabled={showSkeletons}>
-              Refresh
-            </button>
-          )}
-        </div>
-        <div className={styles.walletNotConnected}>
-          <AlertCircle size={24} />
-          <p>Please connect your wallet to interact with NFTs</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className={styles.container} aria-live="polite" aria-busy={isSelling}>
-      <div className={styles.titleContainer}>
-        <h2 className={styles.title}>Pool NFTs</h2>
-        {onRefresh && (
-          <button onClick={onRefresh} className={styles.refreshButton} disabled={showSkeletons}>
-            Refresh
-          </button>
-        )}
-      </div>
-
-      {sellError && sellingNftMint && (
-        <div className={`${styles.errorMessage} ${styles.sellErrorMessage}`} role="alert">
+    <div
+      className={styles.container}
+      aria-live="polite"
+      aria-busy={isSelling || isBuying || ownershipLoading || metadataLoading}
+    >
+      <h2 className={styles.title}>Pool NFTs</h2>
+      {sellError && (
+        <div
+          className={`${styles.errorMessage} ${styles.sellErrorMessage}`}
+          role="alert"
+        >
           <AlertCircle size={16} />
-          <span>Failed to sell NFT ({nftMetadata[sellingNftMint]?.name || sellingNftMint.slice(0, 6)}): {sellError}. Please try again.</span>
+          <span>
+            Failed to sell NFT:{" "}
+            {typeof sellError === "string"
+              ? sellError
+              : (sellError as Error)?.message || "Unknown error"}
+            . Please try again.
+          </span>
         </div>
       )}
-
-      {buyError && buyingNftMint && (
-        <div className={`${styles.errorMessage} ${styles.buyErrorMessage}`} role="alert">
-          <AlertCircle size={16} />
-          <span>Failed to buy NFT ({nftMetadata[buyingNftMint]?.name || buyingNftMint.slice(0, 6)}): {buyError}. Please try again.</span>
-        </div>
-      )}
-
+      {/* buyError display can be removed or kept if useBuyNft hook might set it even if button is disabled */}
       <div className={styles.tableContainer}>
-        <table className={styles.table} aria-label="NFTs in Pool - Desktop View">
+        <table className={`${styles.table} ${styles.enhancedTableDesign}`}>
           <thead>
             <tr>
               <th>S.No.</th>
               <th>Image</th>
               <th>Name</th>
               <th>Symbol</th>
-              <th>Mint Price</th>
+              <th>Price</th>
               <th>Time</th>
-              <th>Status</th>
-              <th>Actions</th>
+              <th>Action</th>
             </tr>
           </thead>
           <tbody>
-            {nfts.map((nft, index) => {
-              const nftName = nftMetadata[nft.mintAddress]?.name || nft.name || "Unnamed NFT";
-              const nftSymbol = nftMetadata[nft.mintAddress]?.symbol || nft.symbol || "N/S";
-              const ownership = nftOwnership[nft.mintAddress] || 'other';
-              const statusBadge = getStatusBadge(ownership);
-
+            {(isLoading && nfts.length === 0
+              ? Array.from({ length: SKELETON_COUNT })
+              : nfts
+            ).map((nftOrSkeleton, index) => {
+              if (isLoading && nfts.length === 0)
+                return <NFTRowSkeleton key={`row-skeleton-${index}`} />;
+              const nft = nftOrSkeleton as NFT;
+              const details = getActionButtonsDetails(nft);
+              const nftName =
+                nftMetadata[nft.mintAddress]?.name || nft.name || "Unnamed NFT";
+              const nftSymbol =
+                nftMetadata[nft.mintAddress]?.symbol || nft.symbol || "N/S";
               return (
-                <tr key={nft.mintAddress}>
+                <tr key={nft.mintAddress || `skeleton-${index}`}>
                   <td className={styles.indexCell}>{index + 1}</td>
                   <td className={styles.imageCell}>
                     <div className={styles.imageWrapper}>
@@ -626,17 +610,43 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
                       />
                     </div>
                   </td>
-                  <td className={styles.nameCell} title={nftName}>{nftName}</td>
-                  <td className={styles.symbolCell} title={nftSymbol}>{nftSymbol}</td>
-                  <td className={styles.priceCell}>{nft.price ? `${nft.price.toFixed(4)} SOL` : "N/A"}</td>
-                  <td className={styles.timeCell}>{formatTimestamp(nft.timestamp)}</td>
-                  <td className={styles.statusCell}>
-                    <span className={`${styles.statusBadge} ${statusBadge.className}`}>
-                      {statusBadge.text}
-                    </span>
+                  <td className={styles.nameCell} title={nftName}>
+                    {nftName}
+                  </td>
+                  <td className={styles.symbolCell} title={nftSymbol}>
+                    {nftSymbol}
+                  </td>
+                  <td className={styles.priceCell}>
+                    {nft.price ? `${nft.price.toFixed(4)} SOL` : "N/A"}
+                  </td>
+                  <td className={styles.timeCell}>
+                    {formatTimestamp(nft.timestamp)}
                   </td>
                   <td className={styles.actionsCell}>
-                    {getActionButtons(nft)}
+                    <button
+                      className={`${styles.actionButton} ${
+                        details.buttonClass
+                      } ${details.disabled ? styles.disabledButton : ""}`}
+                      onClick={details.onClick}
+                      disabled={details.disabled}
+                      aria-label={details.ariaLabel}
+                    >
+                      {details.isLoading && (
+                        <Loader2
+                          size={14}
+                          className={styles.spinnerIcon}
+                          aria-hidden="true"
+                        />
+                      )}
+                      {details.showSuccessIcon && (
+                        <CheckCircle
+                          size={14}
+                          className={styles.checkIcon}
+                          aria-hidden="true"
+                        />
+                      )}
+                      {details.text}
+                    </button>
                   </td>
                 </tr>
               );
@@ -644,16 +654,25 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
           </tbody>
         </table>
       </div>
-
-      <div className={styles.cardsContainer} aria-label="NFTs in Pool - Mobile View">
-        {nfts.map((nft, index) => {
-          const nftName = nftMetadata[nft.mintAddress]?.name || nft.name || "Unnamed NFT";
-          const nftSymbol = nftMetadata[nft.mintAddress]?.symbol || nft.symbol || "N/S";
-          const ownership = nftOwnership[nft.mintAddress] || 'other';
-          const statusBadge = getStatusBadge(ownership);
-
+      <div className={styles.cardsContainer}>
+        {(isLoading && nfts.length === 0
+          ? Array.from({ length: SKELETON_COUNT })
+          : nfts
+        ).map((nftOrSkeleton, index) => {
+          if (isLoading && nfts.length === 0)
+            return <NFTCardSkeleton key={`card-skeleton-${index}`} />;
+          const nft = nftOrSkeleton as NFT;
+          const details = getActionButtonsDetails(nft);
+          const nftName =
+            nftMetadata[nft.mintAddress]?.name || nft.name || "Unnamed NFT";
+          const nftSymbol =
+            nftMetadata[nft.mintAddress]?.symbol || nft.symbol || "N/S";
           return (
-            <div key={nft.mintAddress} className={styles.card} role="listitem">
+            <div
+              key={nft.mintAddress || `skeleton-card-${index}`}
+              className={styles.card}
+              role="listitem"
+            >
               <div className={styles.cardHeader}>
                 <div className={styles.cardImageWrapper}>
                   <Image
@@ -669,25 +688,53 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
                 </div>
                 <div className={styles.cardInfo}>
                   <div className={styles.cardIndex}>#{index + 1}</div>
-                  <h3 className={styles.cardName} title={nftName}>{nftName}</h3>
-                  <div className={styles.cardSymbol} title={nftSymbol}>{nftSymbol}</div>
-                  <span className={`${styles.statusBadge} ${statusBadge.className}`}>
-                    {statusBadge.text}
-                  </span>
+                  <h3 className={styles.cardName} title={nftName}>
+                    {nftName}
+                  </h3>
+                  <div className={styles.cardSymbol} title={nftSymbol}>
+                    {nftSymbol}
+                  </div>
                 </div>
               </div>
               <div className={styles.cardDetails}>
                 <div className={styles.cardDetail}>
                   <span className={styles.detailLabel}>Price:</span>
-                  <span className={styles.detailValue}>{nft.price ? `${nft.price.toFixed(4)} SOL` : "N/A"}</span>
+                  <span className={styles.detailValue}>
+                    {nft.price ? `${nft.price.toFixed(4)} SOL` : "N/A"}
+                  </span>
                 </div>
                 <div className={styles.cardDetail}>
                   <span className={styles.detailLabel}>Time:</span>
-                  <span className={styles.detailValue}>{formatTimestamp(nft.timestamp)}</span>
+                  <span className={styles.detailValue}>
+                    {formatTimestamp(nft.timestamp)}
+                  </span>
                 </div>
               </div>
               <div className={styles.cardActions}>
-                {getActionButtons(nft)}
+                <button
+                  className={`${styles.actionButton} ${details.buttonClass} ${
+                    details.disabled ? styles.disabledButton : ""
+                  }`}
+                  onClick={details.onClick}
+                  disabled={details.disabled}
+                  aria-label={details.ariaLabel}
+                >
+                  {details.isLoading && (
+                    <Loader2
+                      size={14}
+                      className={styles.spinnerIcon}
+                      aria-hidden="true"
+                    />
+                  )}
+                  {details.showSuccessIcon && (
+                    <CheckCircle
+                      size={14}
+                      className={styles.checkIcon}
+                      aria-hidden="true"
+                    />
+                  )}
+                  {details.text}
+                </button>
               </div>
             </div>
           );

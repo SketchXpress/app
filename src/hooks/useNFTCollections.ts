@@ -16,33 +16,70 @@ const VALID_NFT_IMAGES = [
   "/assets/images/nft6.webp",
 ];
 
-// Add this function to fetch metadata from URI
-const fetchMetadataFromUri = async (
-  uri: string
-): Promise<{ name?: string; image?: string } | null> => {
-  try {
-    // Convert IPFS URI if necessary
-    let metadataUrl = uri;
-    if (uri.startsWith("ipfs://")) {
-      metadataUrl = `https://ipfs.io/ipfs/${uri.substring(7)}`;
-    } else if (uri.startsWith("ar://")) {
-      metadataUrl = `https://arweave.net/${uri.substring(5)}`;
-    }
+// Global cache for metadata to prevent re-fetching
+const metadataCache = new Map<string, { name?: string; image?: string }>();
 
-    const response = await fetch(metadataUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch metadata: ${response.status}`);
-    }
+// Batch metadata fetching with caching
+const fetchMetadataBatch = async (
+  uris: string[]
+): Promise<Map<string, { name?: string; image?: string }>> => {
+  const results = new Map<string, { name?: string; image?: string }>();
+  const uncachedUris = uris.filter((uri) => !metadataCache.has(uri));
 
-    const metadata = await response.json();
-    return {
-      name: metadata.name,
-      image: metadata.image,
-    };
-  } catch (error) {
-    console.error("Error fetching metadata from URI:", error);
-    return null;
+  if (uncachedUris.length === 0) {
+    uris.forEach((uri) => results.set(uri, metadataCache.get(uri)!));
+    return results;
   }
+
+  const batchSize = 5;
+  for (let i = 0; i < uncachedUris.length; i += batchSize) {
+    const batch = uncachedUris.slice(i, i + batchSize);
+
+    await Promise.all(
+      batch.map(async (uri) => {
+        try {
+          let metadataUrl = uri;
+
+          if (uri.startsWith("ipfs://")) {
+            metadataUrl = `https://ipfs.io/ipfs/${uri.substring(7)}`;
+          } else if (uri.startsWith("ar://")) {
+            metadataUrl = `https://arweave.net/${uri.substring(5)}`;
+          } else if (
+            !uri.startsWith("http://") &&
+            !uri.startsWith("https://")
+          ) {
+            // missing protocol → force HTTPS
+            metadataUrl = `https://${uri}`;
+          }
+
+          const response = await fetch(
+            `/api/metadata?uri=${encodeURIComponent(metadataUrl)}`
+          );
+          if (!response.ok) return;
+
+          const metadata = await response.json();
+          const result = { name: metadata.name, image: metadata.image };
+
+          metadataCache.set(uri, result);
+          results.set(uri, result);
+        } catch (error) {
+          console.error(`Error fetching metadata for ${uri}:`, error);
+          metadataCache.set(uri, {});
+        }
+      })
+    );
+
+    if (i + batchSize < uncachedUris.length) {
+      await new Promise((r) => setTimeout(r, 100));
+    }
+  }
+
+  // fill in any cached-only URIs
+  uris.forEach((uri) => {
+    if (!results.has(uri)) results.set(uri, metadataCache.get(uri)!);
+  });
+
+  return results;
 };
 
 // Processing transaction history to find collections and their stats
@@ -57,10 +94,11 @@ const processPoolDataFromHistory = async (transactions: HistoryItem[]) => {
       lastMintPrice: number;
       lastMintTime: number;
       name: string;
-      image?: string; // Add image field
+      image?: string;
       nftCount: number;
       collectionMint: string | undefined;
       collectionFound: boolean;
+      uri?: string; // Store URI for batch fetching
     }
   >();
 
@@ -69,47 +107,28 @@ const processPoolDataFromHistory = async (transactions: HistoryItem[]) => {
     { name: string; symbol: string; uri?: string; image?: string }
   >();
 
-  // First pass: Process collection creations and fetch metadata
+  // First pass: Collect all collection creations (no fetching yet)
   for (const tx of transactions) {
     if (tx.instructionName === "createCollectionNft" && tx.args) {
       const name = tx.args.name as string;
       const symbol = tx.args.symbol as string;
       const uri = tx.args.uri as string | undefined;
 
-      console.log("--------------");
-      console.log("Collection Name:", name);
-      console.log("Symbol:", symbol);
-      console.log("URI:", uri);
-
-      // Fetch metadata from URI if available
-      let metadata = null;
-      if (uri) {
-        metadata = await fetchMetadataFromUri(uri);
-        if (metadata) {
-          console.log("Fetched Name from metadata:", metadata.name);
-          console.log("Fetched Image from metadata:", metadata.image);
-        }
-      }
-
-      console.log("--------------");
-
-      // Get the collection mint address from the accounts array in the transaction
       if (tx.accounts && tx.accounts.length > 1) {
         const collectionMintAddress = tx.accounts[1].toString();
         collectionCreations.set(collectionMintAddress, {
-          name: metadata?.name || name, // Use metadata name if available
+          name,
           symbol,
           uri,
-          image: metadata?.image,
         });
       }
     }
   }
 
-  // Map pool addresses to their collection mints using pool creation transactions
+  // Map pool addresses to their collection info
   const poolToCollectionMap = new Map<
     string,
-    { name: string; collectionMint: string; image?: string }
+    { name: string; collectionMint: string; uri?: string }
   >();
 
   transactions.forEach((tx) => {
@@ -127,7 +146,7 @@ const processPoolDataFromHistory = async (transactions: HistoryItem[]) => {
           poolToCollectionMap.set(poolAddress, {
             name: collection.name,
             collectionMint: collectionMintAddress,
-            image: collection.image,
+            uri: collection.uri,
           });
         }
       }
@@ -138,9 +157,7 @@ const processPoolDataFromHistory = async (transactions: HistoryItem[]) => {
   transactions.forEach((tx) => {
     if (!tx.poolAddress) return;
 
-    // Get or create pool entry
     if (!poolMap.has(tx.poolAddress)) {
-      // Try to find collection info from our dynamic map
       const collectionInfo = poolToCollectionMap.get(tx.poolAddress);
 
       poolMap.set(tx.poolAddress, {
@@ -153,33 +170,27 @@ const processPoolDataFromHistory = async (transactions: HistoryItem[]) => {
         name:
           collectionInfo?.name ||
           `Collection ${tx.poolAddress.substring(0, 6)}...`,
-        image: collectionInfo?.image, // Include the image
         collectionMint: collectionInfo?.collectionMint,
         nftCount: 0,
         collectionFound: !!collectionInfo,
+        uri: collectionInfo?.uri, // Store URI for later batch fetching
       });
     }
 
     const pool = poolMap.get(tx.poolAddress)!;
-
-    // Count all transactions related to the pool
     pool.transactions += 1;
 
-    // Update timestamp if more recent
     if (tx.blockTime && tx.blockTime > pool.timestamp) {
       pool.timestamp = tx.blockTime;
     }
 
-    // Add volume for buy/sell transactions (assuming tx.price exists for these)
     if (tx.price) {
       pool.totalVolume += tx.price;
     }
 
-    // Count NFTs minted *into* this collection/pool
     if (tx.instructionName === "mintNft") {
       pool.nftCount += 1;
 
-      // If this mint transaction has a price and is more recent than our last recorded mint
       if (tx.price && tx.blockTime && tx.blockTime >= pool.lastMintTime) {
         pool.lastMintPrice = tx.price;
         pool.lastMintTime = tx.blockTime;
@@ -187,15 +198,38 @@ const processPoolDataFromHistory = async (transactions: HistoryItem[]) => {
     }
   });
 
-  return Array.from(poolMap.values());
+  const poolsArray = Array.from(poolMap.values());
+
+  // Collect all URIs that need fetching
+  const urisToFetch = poolsArray
+    .filter((pool) => pool.uri && !pool.image)
+    .map((pool) => pool.uri!)
+    .filter((uri, index, self) => self.indexOf(uri) === index); // Remove duplicates
+
+  // Batch fetch metadata
+  if (urisToFetch.length > 0) {
+    const metadataResults = await fetchMetadataBatch(urisToFetch);
+
+    // Update pools with fetched metadata
+    poolsArray.forEach((pool) => {
+      if (pool.uri && metadataResults.has(pool.uri)) {
+        const metadata = metadataResults.get(pool.uri);
+        if (metadata) {
+          pool.name = metadata.name || pool.name;
+          pool.image = metadata.image;
+        }
+      }
+    });
+  }
+
+  return poolsArray;
 };
 
 export const useNFTCollections = (limit: number = 6) => {
   const [collections, setCollections] = useState<NFTCollection[]>([]);
-  const [loading, setLoading] = useState(true); // Start loading
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Get transaction history
   const {
     history,
     isLoading: historyLoading,
@@ -203,14 +237,12 @@ export const useNFTCollections = (limit: number = 6) => {
   } = useBondingCurveHistory(50);
 
   useEffect(() => {
-    // Start loading when history loading starts or history changes
     if (historyLoading) {
       setLoading(true);
       setError(null);
       return;
     }
 
-    // If history loading finished and there's an error
     if (historyError) {
       setError(historyError);
       setLoading(false);
@@ -218,13 +250,14 @@ export const useNFTCollections = (limit: number = 6) => {
       return;
     }
 
-    // If history loading finished successfully (historyLoading is false and no historyError)
     const processData = async () => {
       try {
-        // Process transaction history to find all pool data (now async)
+        setLoading(true);
+
+        // Process transaction history with batch metadata fetching
         const allPoolsData = await processPoolDataFromHistory(history);
 
-        // Determine trending status based on ALL processed pools by transaction count
+        // Determine trending status
         const sortedByActivityForTrending = [...allPoolsData].sort(
           (a, b) => b.transactions - a.transactions
         );
@@ -234,41 +267,37 @@ export const useNFTCollections = (limit: number = 6) => {
             .map((pool) => pool.poolAddress)
         );
 
-        // Sort all pools by most recent activity timestamp for display
+        // Sort by recency for display
         const sortedPoolsByRecency = [...allPoolsData].sort(
           (a, b) => b.timestamp - a.timestamp
         );
 
-        // Take the top 'limit' most recent pools for display
         const topPoolsForDisplay = sortedPoolsByRecency.slice(0, limit);
 
-        // Format collections for display
+        // Format collections with stable image selection
         const formattedCollections: NFTCollection[] = topPoolsForDisplay.map(
           (pool, index) => {
-            // Use the dynamic image from metadata if available, otherwise fallback to placeholder
             let imagePath = pool.image;
             if (!imagePath) {
-              // Fallback to placeholder images
-              const imageIndex = index % VALID_NFT_IMAGES.length;
+              // Use deterministic image selection based on pool address
+              const hash = pool.poolAddress
+                .split("")
+                .reduce((acc, char) => acc + char.charCodeAt(0), 0);
+              const imageIndex = hash % VALID_NFT_IMAGES.length;
               imagePath = VALID_NFT_IMAGES[imageIndex];
             }
 
             return {
-              id: index + 1, // Simple index as ID
+              id: index + 1,
               poolAddress: pool.poolAddress,
               title: pool.name,
-              // Use last mint price as the floor price
               floor:
                 pool.lastMintPrice > 0
                   ? `${pool.lastMintPrice.toFixed(2)} SOL`
                   : pool.nftCount > 0
-                  ? // Fallback to average price if we have nfts but no last mint price
-                    `${(pool.totalVolume / pool.nftCount).toFixed(2)} SOL`
-                  : // Final fallback if no data is available
-                    "N/A",
-              // Use dynamic image from metadata or fallback
+                  ? `${(pool.totalVolume / pool.nftCount).toFixed(2)} SOL`
+                  : "N/A",
               image: imagePath,
-              // Check if the pool's address is in the set of trending addresses
               trending: trendingPoolAddresses.has(pool.poolAddress),
               supply: pool.nftCount,
               collectionMint: pool.collectionMint,
@@ -290,7 +319,6 @@ export const useNFTCollections = (limit: number = 6) => {
       }
     };
 
-    // Only process data if history is loaded and no error
     if (!historyLoading && !historyError) {
       processData();
     }

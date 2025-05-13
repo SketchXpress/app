@@ -1,6 +1,7 @@
-import styles from './NFTCarousel.module.scss';
+import React from "react";
+import styles from "./NFTCarousel.module.scss";
 
-export const NFTSkeleton = () => (
+export const NFTSkeleton: React.FC = () => (
   <div className={styles.card}>
     <div className={styles.imageWrapper}>
       <div className={styles.skeletonImage}></div>
@@ -14,5 +15,30 @@ export const NFTSkeleton = () => (
         <div className={styles.skeletonButton}></div>
       </div>
     </div>
+  </div>
+);
+
+/**
+ * LoadingDots component for indicating loading states
+ */
+export const LoadingDots: React.FC<{ className?: string }> = ({
+  className = "",
+}) => (
+  <div className={`${styles.loadingDots} ${className}`}>
+    <span></span>
+    <span></span>
+    <span></span>
+  </div>
+);
+
+/**
+ * ErrorBadge component for displaying error states
+ */
+export const ErrorBadge: React.FC<{ message?: string }> = ({
+  message = "Failed to load",
+}) => (
+  <div className={styles.errorBadge}>
+    <span>⚠️</span>
+    <span>{message}</span>
   </div>
 );

@@ -1,0 +1,377 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+"use client";
+
+import { toast } from "@/utils/toast";
+import { useState, useCallback } from "react";
+import { TOKEN_METADATA_PROGRAM_ID } from "@/constants";
+import { useWallet } from "@solana/wallet-adapter-react";
+import { SellNFTResult, UseSellNFTConfig } from "@/types/nft";
+import { useAnchorContext } from "@/contexts/AnchorContextProvider";
+import { safePublicKey, isValidPublicKeyFormat } from "@/utils/bn-polyfill";
+import {
+  PublicKey,
+  SystemProgram,
+  ComputeBudgetProgram,
+} from "@solana/web3.js";
+import {
+  TOKEN_PROGRAM_ID,
+  getAssociatedTokenAddress,
+  getAccount,
+} from "@solana/spl-token";
+
+// Helper Functions
+const safeStringifyError = (error: unknown): string => {
+  if (error instanceof Error) {
+    return error.message;
+  }
+
+  if (typeof error === "string") {
+    return error;
+  }
+
+  if (error && typeof error === "object") {
+    try {
+      const errorObj = error as any;
+
+      // Check for Anchor Error with custom error codes
+      if (errorObj.error && errorObj.error.errorCode) {
+        const code = errorObj.error.errorCode.number;
+        // Check for math overflow error code
+        if (code === 6000) {
+          return "Cannot sell this NFT due to a math overflow error. This may happen if the pool doesn't have enough SOL to buy back the NFT.";
+        }
+      }
+
+      if (errorObj.message) {
+        return String(errorObj.message);
+      }
+
+      if (errorObj.error && errorObj.error.message) {
+        return String(errorObj.error.message);
+      }
+
+      if (errorObj.logs && Array.isArray(errorObj.logs)) {
+        // Check for specific error in logs
+        for (const log of errorObj.logs) {
+          if (typeof log === "string" && log.includes("MathOverflow")) {
+            return "Cannot sell this NFT due to a math overflow error. This may happen if the pool doesn't have enough SOL to buy back the NFT.";
+          }
+        }
+        return errorObj.logs.join("\n");
+      }
+
+      return JSON.stringify(error, null, 2);
+    } catch {
+      return `[Complex Error Object: ${typeof error}]`;
+    }
+  }
+
+  return `[Unknown Error: ${typeof error}]`;
+};
+
+// Pool balance check
+const checkPoolSolBalance = async (
+  poolAddress: PublicKey,
+  connection: any
+): Promise<{ balance: number; sufficient: boolean }> => {
+  const balance = await connection.getBalance(poolAddress);
+  const balanceSOL = balance / 1e9;
+
+  // Consider pool balance sufficient if it has more than 0.00001 SOL
+  const sufficient = balance > 10000;
+
+  return { balance: balanceSOL, sufficient };
+};
+
+// Main Hook
+export function useSellNFT(config: UseSellNFTConfig = {}) {
+  const {
+    enableToast = true,
+    computeUnits = 600000,
+    priorityFee = 50000,
+    checkPoolBalance = true,
+  } = config;
+
+  const { program } = useAnchorContext();
+  const wallet = useWallet();
+
+  // State
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [txSignature, setTxSignature] = useState<string | null>(null);
+  const [success, setSuccess] = useState(false);
+  const [soldNfts, setSoldNfts] = useState<Set<string>>(new Set());
+
+  // Reset state
+  const resetState = useCallback(() => {
+    setError(null);
+    setTxSignature(null);
+    setSuccess(false);
+  }, []);
+
+  // Main sell function
+  const sellNft = useCallback(
+    async (
+      nftMintAddress: string,
+      poolAddress: string
+    ): Promise<SellNFTResult> => {
+      if (!program || !wallet.publicKey) {
+        const errorMsg = "Program not initialized or wallet not connected";
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+
+      if (!wallet.signTransaction) {
+        const errorMsg = "Wallet does not support transaction signing";
+        setError(errorMsg);
+        return { success: false, error: errorMsg };
+      }
+
+      setLoading(true);
+      resetState();
+
+      try {
+        // Validate NFT mint address
+        if (!isValidPublicKeyFormat(nftMintAddress)) {
+          throw new Error("Invalid NFT mint address format");
+        }
+        const nftMint = safePublicKey(nftMintAddress);
+        if (!nftMint) {
+          throw new Error("Invalid NFT mint address");
+        }
+
+        // Validate pool address
+        if (!isValidPublicKeyFormat(poolAddress)) {
+          throw new Error("Invalid pool address format");
+        }
+        const pool = safePublicKey(poolAddress);
+        if (!pool) {
+          throw new Error("Invalid pool address");
+        }
+
+        console.log("Selling NFT with mint:", nftMintAddress);
+        console.log("Pool address:", poolAddress);
+
+        // Get pool data to retrieve collection mint and creator
+        const poolData = await program.account.bondingCurvePool.fetch(pool);
+        const collectionMint = poolData.collection as PublicKey;
+        const creator = poolData.creator as PublicKey;
+
+        // Check pool balance if enabled
+        if (checkPoolBalance) {
+          const { balance, sufficient } = await checkPoolSolBalance(
+            pool,
+            program.provider.connection
+          );
+
+          console.log("Pool balance:", balance, "SOL");
+
+          if (!sufficient) {
+            console.warn("Pool balance is very low, transaction might fail");
+            if (enableToast) {
+              toast.warning("Pool balance is low. Transaction may fail.");
+            }
+          }
+        }
+
+        console.log("Collection mint:", collectionMint.toString());
+        console.log("Creator:", creator.toString());
+
+        // Derive collection metadata PDA
+        const [collectionMetadata] = PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("metadata"),
+            TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+            collectionMint.toBuffer(),
+          ],
+          TOKEN_METADATA_PROGRAM_ID
+        );
+
+        // Find NFT escrow PDA
+        const [escrow] = PublicKey.findProgramAddressSync(
+          [Buffer.from("nft-escrow"), nftMint.toBuffer()],
+          program.programId
+        );
+
+        // Get the associated token address for the NFT
+        const sellerNftTokenAccount = await getAssociatedTokenAddress(
+          nftMint,
+          wallet.publicKey
+        );
+
+        // Verify the seller owns the NFT
+        try {
+          const tokenAccountInfo = await getAccount(
+            program.provider.connection,
+            sellerNftTokenAccount
+          );
+          if (tokenAccountInfo.amount !== BigInt(1)) {
+            throw new Error(
+              "You do not own this NFT or the token account is incorrect."
+            );
+          }
+        } catch (err) {
+          console.error("Verification Error:", err);
+          throw new Error(
+            "Failed to verify NFT ownership. Ensure the token account exists."
+          );
+        }
+
+        // Find Metaplex metadata account PDA
+        const [metadataAccount] = PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("metadata"),
+            TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+            nftMint.toBuffer(),
+          ],
+          TOKEN_METADATA_PROGRAM_ID
+        );
+
+        // Find Metaplex master edition account PDA
+        const [masterEditionAccount] = PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("metadata"),
+            TOKEN_METADATA_PROGRAM_ID.toBuffer(),
+            nftMint.toBuffer(),
+            Buffer.from("edition"),
+          ],
+          TOKEN_METADATA_PROGRAM_ID
+        );
+
+        // Create instructions
+        const instructions = [];
+
+        // Increase compute unit limit to handle more complex transactions
+        instructions.push(
+          ComputeBudgetProgram.setComputeUnitLimit({
+            units: computeUnits,
+          })
+        );
+
+        // Execute the transaction with higher priority fee to improve chances of success
+        instructions.push(
+          ComputeBudgetProgram.setComputeUnitPrice({
+            microLamports: priorityFee,
+          })
+        );
+
+        // Execute the transaction to sell (burn) the NFT and retrieve SOL from escrow
+        const tx = await program.methods
+          .sellNft()
+          .accounts({
+            seller: wallet.publicKey,
+            pool: pool,
+            escrow: escrow,
+            creator: creator,
+            nftMint: nftMint,
+            sellerNftTokenAccount: sellerNftTokenAccount,
+            tokenMetadataProgram: TOKEN_METADATA_PROGRAM_ID,
+            metadataAccount: metadataAccount,
+            masterEditionAccount: masterEditionAccount,
+            collectionMint: collectionMint,
+            collectionMetadata: collectionMetadata,
+            tokenProgram: TOKEN_PROGRAM_ID,
+            systemProgram: SystemProgram.programId,
+          })
+          .preInstructions(instructions)
+          .rpc({
+            skipPreflight: true, // Skip preflight to allow more complex transactions through
+            commitment: "confirmed",
+          });
+
+        console.log("NFT sold successfully with signature:", tx);
+
+        setTxSignature(tx);
+        setSuccess(true);
+
+        // Add the NFT mint address to the set of sold NFTs
+        setSoldNfts((prev) => new Set([...prev, nftMintAddress]));
+
+        if (enableToast) {
+          toast.success(
+            `Successfully sold NFT! Transaction: ${tx.slice(0, 8)}...`
+          );
+        }
+
+        return { success: true, signature: tx };
+      } catch (err) {
+        const errorMessage = safeStringifyError(err);
+        console.error("Error selling NFT:", errorMessage);
+
+        // Check if the error is a math overflow error
+        const isOverflowError =
+          (typeof err === "object" &&
+            err !== null &&
+            "message" in err &&
+            typeof err.message === "string" &&
+            err.message.includes("MathOverflow")) ||
+          (typeof err === "object" &&
+            err !== null &&
+            "logs" in err &&
+            Array.isArray(err.logs) &&
+            err.logs.some(
+              (log: any) =>
+                typeof log === "string" && log.includes("MathOverflow")
+            ));
+
+        if (isOverflowError) {
+          const friendlyError =
+            "This NFT cannot be sold back to the pool at this time. The pool may not have enough SOL to complete this transaction.";
+          setError(friendlyError);
+
+          if (enableToast) {
+            toast.error(friendlyError);
+          }
+
+          return { success: false, error: friendlyError };
+        }
+
+        setError(errorMessage);
+
+        if (enableToast) {
+          toast.error(`Failed to sell NFT: ${errorMessage}`);
+        }
+
+        return { success: false, error: errorMessage };
+      } finally {
+        setLoading(false);
+      }
+    },
+    [
+      program,
+      wallet.publicKey,
+      wallet.signTransaction,
+      resetState,
+      enableToast,
+      computeUnits,
+      priorityFee,
+      checkPoolBalance,
+    ]
+  );
+
+  // Helper method to check if an NFT has been sold
+  const isSold = useCallback(
+    (nftMintAddress: string) => {
+      return soldNfts.has(nftMintAddress);
+    },
+    [soldNfts]
+  );
+
+  // Clear sold NFTs list
+  const clearSoldList = useCallback(() => {
+    setSoldNfts(new Set());
+  }, []);
+
+  return {
+    sellNft,
+    loading,
+    error,
+    txSignature,
+    success,
+    isSold,
+    clearSoldList,
+    resetState,
+  };
+}
+
+export { safeStringifyError, checkPoolSolBalance, TOKEN_METADATA_PROGRAM_ID };

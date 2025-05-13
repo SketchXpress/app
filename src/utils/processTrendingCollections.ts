@@ -1,117 +1,64 @@
-import { HistoryItem } from "@/types/bondingCurve";
-import { FormattedCollection } from "@/types/collections";
+// utils/processTrendingCollections.ts
+import { HistoryItem } from "@/hook/api/helius/"; // Adjust import path as needed
 
-/**
- * Fetch metadata from URI (IPFS or Arweave)
- * @param uri The URI to fetch metadata from
- * @returns Metadata object with name and image, or null if fetch fails
- */
-async function fetchMetadataFromUri(
-  uri: string
-): Promise<{ name?: string; image?: string } | null> {
-  try {
-    // Convert IPFS URI if necessary
-    let metadataUrl = uri;
-    if (uri.startsWith("ipfs://")) {
-      metadataUrl = `https://ipfs.io/ipfs/${uri.substring(7)}`;
-    } else if (uri.startsWith("ar://")) {
-      metadataUrl = `https://arweave.net/${uri.substring(5)}`;
-    }
-
-    const response = await fetch(metadataUrl);
-    if (!response.ok) {
-      throw new Error(`Failed to fetch metadata: ${response.status}`);
-    }
-
-    const metadata = await response.json();
-    return {
-      name: metadata.name,
-      image: metadata.image,
-    };
-  } catch (error) {
-    console.error("Error fetching metadata from URI:", error);
-    return null;
-  }
+export interface PoolData {
+  poolAddress: string;
+  transactions: number;
+  timestamp: number;
+  totalVolume: number;
+  lastMintPrice: number;
+  lastMintTime: number;
+  name: string;
+  image?: string;
+  uri?: string;
+  nftCount: number;
+  collectionMint?: string;
+  collectionFound: boolean;
 }
 
-/**
- * Process transaction history items into collection objects
- *
- * @param history Array of transaction history items
- * @returns Array of processed collections with statistics
- */
-export async function processTrendingCollections(
+export const processTrendingCollections = async (
   history: HistoryItem[]
-): Promise<
-  Array<
-    FormattedCollection & {
-      poolAddress: string;
-      timestamp: number;
-      transactions: number;
-    }
-  >
-> {
-  if (!Array.isArray(history) || history.length === 0) {
-    return [];
-  }
-
-  // Group transactions by pool address
-  const poolMap = new Map<
-    string,
-    {
-      poolAddress: string;
-      transactions: number;
-      timestamp: number;
-      totalVolume: number;
-      name: string;
-      image?: string;
-      nftCount: number;
-      collectionFound: boolean;
-    }
-  >();
-
-  // Step 1: Find all collection creation transactions and fetch metadata
+): Promise<PoolData[]> => {
+  const poolsData = new Map<string, PoolData>();
   const collectionCreations = new Map<
     string,
-    { name: string; symbol: string; image?: string }
+    { name: string; symbol: string; uri?: string }
+  >();
+  const poolToCollectionMap = new Map<
+    string,
+    { name: string; uri?: string; image?: string }
   >();
 
-  // Process collection creations and fetch metadata
-  for (const tx of history) {
-    if (
-      tx.instructionName === "createCollectionNft" &&
-      tx.args &&
-      typeof tx.args === "object" &&
-      "name" in tx.args &&
-      "symbol" in tx.args
-    ) {
+  // First pass: Collect all collection creations
+  console.log("Processing collection creations...");
+  history.forEach((tx) => {
+    if (tx.instructionName === "createCollectionNft" && tx.args) {
       const name = tx.args.name as string;
       const symbol = tx.args.symbol as string;
-      const uri = "uri" in tx.args ? (tx.args.uri as string) : undefined;
+      const uri = tx.args.uri as string | undefined;
 
-      // Fetch metadata if URI is available
-      let metadata = null;
-      if (uri) {
-        metadata = await fetchMetadataFromUri(uri);
-      }
-
-      // Get the collection mint address from the accounts
       if (tx.accounts && tx.accounts.length > 1) {
         const collectionMintAddress = tx.accounts[1].toString();
+        console.log(
+          `Found collection creation: ${name} (${collectionMintAddress}) with URI: ${uri}`
+        );
+
         collectionCreations.set(collectionMintAddress, {
-          name: metadata?.name || name, // Use metadata name if available
+          name,
           symbol,
-          image: metadata?.image,
+          uri,
         });
       }
     }
-  }
+  });
 
-  const poolToCollectionMap = new Map<
-    string,
-    { name: string; image?: string }
-  >();
+  // You mentioned you have metadataResults - this seems to be from another process
+  // If you have this data, include it here, otherwise we'll rely on URIs for fetching
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const metadataResults: any[] = []; // Replace with your actual metadataResults if available
 
+  // Second pass: Map pools to their collections
+  console.log("Mapping pools to collections...");
   history.forEach((tx) => {
     if (
       tx.instructionName === "createPool" &&
@@ -124,89 +71,90 @@ export async function processTrendingCollections(
       if (collectionCreations.has(collectionMintAddress)) {
         const collection = collectionCreations.get(collectionMintAddress);
         if (collection) {
+          // Check if you have pre-fetched metadata
+          const correspondingMetadata = metadataResults.find(
+            (result) =>
+              result.status === "fulfilled" &&
+              result.value.mintAddress === collectionMintAddress
+          );
+
           poolToCollectionMap.set(tx.poolAddress, {
             name: collection.name,
-            image: collection.image,
+            uri: collection.uri, // ← IMPORTANT: Include URI
+            image:
+              correspondingMetadata?.status === "fulfilled"
+                ? correspondingMetadata.value.metadata?.image
+                : undefined,
           });
+
+          console.log(
+            `Mapped pool ${tx.poolAddress} to collection ${collection.name} with URI: ${collection.uri}`
+          );
         }
       }
     }
   });
 
-  // Now process all transactions to build the pool data
+  // Third pass: Process all transactions to build pool statistics
+  console.log("Processing pool transactions...");
   history.forEach((tx) => {
     if (!tx.poolAddress) return;
 
-    // Get or create pool entry
-    if (!poolMap.has(tx.poolAddress)) {
-      // Try to find collection info from our dynamic map
+    // Initialize pool data if not exists
+    if (!poolsData.has(tx.poolAddress)) {
       const collectionInfo = poolToCollectionMap.get(tx.poolAddress);
 
-      poolMap.set(tx.poolAddress, {
+      poolsData.set(tx.poolAddress, {
         poolAddress: tx.poolAddress,
         transactions: 0,
         timestamp: tx.blockTime || 0,
         totalVolume: 0,
+        lastMintPrice: 0,
+        lastMintTime: 0,
         name:
           collectionInfo?.name ||
-          `Collection ${tx.poolAddress.substring(0, 6)}`,
+          `Collection ${tx.poolAddress.substring(0, 6)}...`,
         image: collectionInfo?.image,
+        uri: collectionInfo?.uri, // ← IMPORTANT: Include URI
         nftCount: 0,
+        collectionMint: collectionCreations.has(
+          tx.accounts?.[1]?.toString() || ""
+        )
+          ? tx.accounts![1].toString()
+          : undefined,
         collectionFound: !!collectionInfo,
       });
     }
 
-    const pool = poolMap.get(tx.poolAddress)!;
+    const pool = poolsData.get(tx.poolAddress)!;
 
-    // Update pool stats
+    // Update pool statistics
     pool.transactions += 1;
 
-    // Update timestamp if more recent
+    // Update timestamp to latest
     if (tx.blockTime && tx.blockTime > pool.timestamp) {
       pool.timestamp = tx.blockTime;
     }
 
-    // Update volume if available
+    // Add to total volume
     if (tx.price) {
       pool.totalVolume += tx.price;
     }
 
-    // Count NFTs minted for this collection
+    // Track NFT mints
     if (tx.instructionName === "mintNft") {
       pool.nftCount += 1;
+
+      // Update last mint price
+      if (tx.price && tx.blockTime && tx.blockTime >= pool.lastMintTime) {
+        pool.lastMintPrice = tx.price;
+        pool.lastMintTime = tx.blockTime;
+      }
     }
   });
 
-  // Return array of pool data
-  return Array.from(poolMap.values()).map((pool, index) => {
-    // Use dynamic image if available, otherwise fallback to deterministic image path
-    let imagePath = pool.image;
-    if (!imagePath) {
-      // Generate deterministic image path as fallback
-      const imageIndex = (index % 6) + 1;
-      const imageExt = [".jpeg", ".avif", ".jpg", ".jpg", ".png", ".webp"][
-        index % 6
-      ];
-      imagePath = `/assets/images/nft${imageIndex}${imageExt}`;
-    }
+  const result = Array.from(poolsData.values());
+  console.log(`Processed ${result.length} pools:`, result);
 
-    return {
-      id: pool.poolAddress,
-      poolAddress: pool.poolAddress,
-      rank: index + 1,
-      name: pool.name,
-      image: imagePath,
-      verified: pool.collectionFound,
-      nftCount: pool.nftCount,
-      totalVolume: pool.totalVolume,
-      floor: `${(pool.totalVolume / Math.max(pool.nftCount, 1)).toFixed(
-        2
-      )} SOL`,
-      trending: index < 3,
-      timestamp: pool.timestamp,
-      transactions: pool.transactions,
-    };
-  });
-}
-
-export default processTrendingCollections;
+  return result;
+};

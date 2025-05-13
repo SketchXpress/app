@@ -336,11 +336,10 @@ export function useBondingCurveHistory(
         }
 
         // 6. Fast initial processing (synchronous, no RPC calls)
-        console.log(`Processing ${newTxs.length} new transactions`);
-
         const processTimer = createTimer("Fast transaction processing");
         const processedItems = newTxs.map((tx) => {
           const info = { timestamp: tx.timestamp };
+
           return processTransactionFast(
             tx,
             info,
@@ -482,8 +481,6 @@ export function useBondingCurveHistory(
           cacheMap.set(item.signature, item);
         });
         setTransactionCache(cacheMap);
-
-        console.log(`Loaded ${historyItems.length} items from cache`);
       }
     } catch (err) {
       console.error("Error loading cache from localStorage:", err);
@@ -544,7 +541,6 @@ export function useBondingCurveHistory(
   // Initial data load
   useEffect(() => {
     if (history.length === 0 && !isLoading) {
-      console.log("Initial data load");
       fetchHeliusHistory();
     }
   }, [history.length, isLoading, fetchHeliusHistory]);

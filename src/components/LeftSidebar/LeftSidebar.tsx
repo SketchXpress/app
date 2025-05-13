@@ -26,6 +26,7 @@ import {
   ScrollText,
   Copyright,
 } from "lucide-react";
+import Link from "next/link";
 
 const LeftSidebar = () => {
   const mode = useModeStore((s) => s.mode);
@@ -139,8 +140,9 @@ const LeftSidebar = () => {
       {/* Desktop collapse toggle - only visible on desktop/tablet */}
       {!isMobile && (
         <button
-          className={`${styles.collapseToggle} ${!sidebarOpen ? styles.collapsed : ""
-            }`}
+          className={`${styles.collapseToggle} ${
+            !sidebarOpen ? styles.collapsed : ""
+          }`}
           onClick={toggleSidebar}
           aria-label={sidebarOpen ? "Collapse sidebar" : "Expand sidebar"}
         >
@@ -155,8 +157,9 @@ const LeftSidebar = () => {
       {/* Sidebar content */}
       <aside
         ref={sidebarRef}
-        className={`${styles.sidebar} ${!sidebarOpen ? styles.collapsed : ""} ${isMobile ? styles.mobile : ""
-          }`}
+        className={`${styles.sidebar} ${!sidebarOpen ? styles.collapsed : ""} ${
+          isMobile ? styles.mobile : ""
+        }`}
       >
         <div className={styles.sidebarContent}>
           {/* Main drawing tools */}
@@ -165,8 +168,9 @@ const LeftSidebar = () => {
 
             <div className={styles.toolsGrid}>
               <button
-                className={`${styles.toolButton} ${activeTool === "draw" ? styles.active : ""
-                  }`}
+                className={`${styles.toolButton} ${
+                  activeTool === "draw" ? styles.active : ""
+                }`}
                 onClick={() => setActiveTool("draw")}
               >
                 <PenTool size={20} />
@@ -174,8 +178,9 @@ const LeftSidebar = () => {
               </button>
 
               <button
-                className={`${styles.toolButton} ${activeTool === "eraser" ? styles.active : ""
-                  }`}
+                className={`${styles.toolButton} ${
+                  activeTool === "eraser" ? styles.active : ""
+                }`}
                 onClick={() => setActiveTool("eraser")}
               >
                 <Eraser size={20} />
@@ -225,8 +230,9 @@ const LeftSidebar = () => {
           {/* Example Gallery Section */}
           <div className={styles.section}>
             <button
-              className={`${styles.sectionHeader} ${showGallery ? styles.active : ""
-                }`}
+              className={`${styles.sectionHeader} ${
+                showGallery ? styles.active : ""
+              }`}
               onClick={() => {
                 if (!sidebarOpen) setSidebarOpen(true);
                 setShowGallery(!showGallery);
@@ -274,8 +280,9 @@ const LeftSidebar = () => {
           {/* Drawing Tips Section */}
           <div className={styles.section}>
             <button
-              className={`${styles.sectionHeader} ${showTips ? styles.active : ""
-                }`}
+              className={`${styles.sectionHeader} ${
+                showTips ? styles.active : ""
+              }`}
               onClick={() => {
                 if (!sidebarOpen) setSidebarOpen(true);
                 setShowTips(!showTips);
@@ -328,25 +335,23 @@ const LeftSidebar = () => {
                 <Github size={16} />
               </a>
 
-              <a
-                href="/whitepaper.pdf"
+              <Link
+                href="https://sketchxpress.gitbook.io/sketchxpress"
                 target="_blank"
                 rel="noopener noreferrer"
                 className={styles.footerIcon}
                 title="Whitepaper"
               >
                 <FileText size={16} />
-              </a>
+              </Link>
 
-              <a
+              <Link
                 href="/terms"
-                target="_blank"
-                rel="noopener noreferrer"
                 className={styles.footerIcon}
                 title="Terms & Conditions"
               >
                 <ScrollText size={16} />
-              </a>
+              </Link>
             </div>
 
             <div className={styles.copyright}>

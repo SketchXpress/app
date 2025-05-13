@@ -5,33 +5,35 @@ import Image from "next/image";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
-import { ChevronLeft, ChevronRight, TrendingUp, ExternalLink } from "lucide-react";
+import {
+  ChevronLeft,
+  ChevronRight,
+  TrendingUp,
+  ExternalLink,
+} from "lucide-react";
 import { useNFTCollections } from "@/hooks/useNFTCollections";
 import { NFTSkeleton } from "./Utils";
 import styles from "./NFTCarousel.module.scss";
 
-/**
- * @typedef {object} NFTCollection
- * @property {string} id - Unique identifier for the NFT collection.
- * @property {string} poolAddress - The address of the pool for this collection.
- * @property {string} image - URL of the collection's image.
- * @property {string} title - Title of the collection.
- * @property {boolean} [trending] - Optional flag indicating if the collection is trending.
- * @property {number} [supply] - Optional total supply of NFTs in the collection.
- * @property {string} floor - Floor price or last mint price of the collection.
- */
+interface NFTCarouselProps {
+  autoplayDelay?: number;
+  maxVisibleSlides?: number;
+  showIndicators?: boolean;
+  showNavButtons?: boolean;
+  enableAutoplay?: boolean; // Added toggle for autoplay
+}
 
 /**
  * NFTCarousel component displays a rotating carousel of NFT collections.
- * It fetches collection data using the `useNFTCollections` hook and handles loading, error, and empty states.
- * Features autoplay, manual navigation, and optimized image loading with Next.js Image component.
- *
- * @component
- * @returns {React.ReactElement} The rendered NFT carousel section.
+ * Features optional autoplay, manual navigation, responsive design, and optimized image loading.
  */
-const NFTCarousel = () => {
+const NFTCarousel: React.FC<NFTCarouselProps> = ({
+  maxVisibleSlides = 6,
+  showIndicators = true,
+  showNavButtons = true, // Disabled by default
+}) => {
   // Fetch NFT collections
-  const { collections, loading, error } = useNFTCollections(6);
+  const { collections, loading, error } = useNFTCollections(maxVisibleSlides);
 
   const [emblaRef, emblaApi] = useEmblaCarousel(
     {
@@ -43,60 +45,93 @@ const NFTCarousel = () => {
     [Autoplay()]
   );
 
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [, setHoveredIndex] = useState<number | null>(null);
+  // State for carousel controls
+  const [selectedIndex, setSelectedIndex] = useState(0);
+  const [canScrollPrev, setCanScrollPrev] = useState(false);
+  const [canScrollNext, setCanScrollNext] = useState(false);
 
+  // Navigation handlers
   const scrollPrev = useCallback(() => {
-    if (emblaApi) emblaApi.scrollPrev();
+    if (emblaApi) {
+      emblaApi.scrollPrev();
+    }
   }, [emblaApi]);
 
   const scrollNext = useCallback(() => {
-    if (emblaApi) emblaApi.scrollNext();
+    if (emblaApi) {
+      emblaApi.scrollNext();
+    }
   }, [emblaApi]);
 
-  // Effect to update the active index for pagination dots
+  const scrollTo = useCallback(
+    (index: number) => {
+      if (emblaApi) {
+        emblaApi.scrollTo(index);
+      }
+    },
+    [emblaApi]
+  );
+
+  // Update carousel configuration when collections change
+  useEffect(() => {
+    if (!emblaApi || collections.length === 0) return;
+
+    // Reinitialize carousel with updated loop setting
+    emblaApi.reInit({
+      loop: false,
+      dragFree: false,
+      duration: 30,
+      align: "center",
+      slidesToScroll: 1,
+      skipSnaps: false,
+    });
+  }, [collections.length, emblaApi]);
+
+  // Update carousel state when Embla API is ready
+  const onSelect = useCallback(() => {
+    if (!emblaApi) return;
+
+    setSelectedIndex(emblaApi.selectedScrollSnap());
+    setCanScrollPrev(emblaApi.canScrollPrev());
+    setCanScrollNext(emblaApi.canScrollNext());
+  }, [emblaApi]);
+
+  // Set up event listeners
   useEffect(() => {
     if (!emblaApi) return;
 
-    const onSelect = () => {
-      setActiveIndex(emblaApi.selectedScrollSnap());
-    };
-
+    onSelect();
     emblaApi.on("select", onSelect);
-    onSelect(); // Initialize activeIndex
+    emblaApi.on("reInit", onSelect);
 
     return () => {
       emblaApi.off("select", onSelect);
+      emblaApi.off("reInit", onSelect);
     };
-  }, [emblaApi]);
+  }, [emblaApi, onSelect]);
 
   /**
    * Formats image URLs to handle different protocols (IPFS, Arweave, etc.)
-   * @param {string} imageUrl - The original image URL
-   * @returns {string} - The formatted image URL
    */
   const formatImageUrl = useCallback((imageUrl: string): string => {
-    if (!imageUrl) return '/assets/images/defaultNFT.png';
+    if (!imageUrl) return "/assets/images/defaultNFT.png";
 
     // Handle IPFS URLs
-    if (imageUrl.startsWith('ipfs://')) {
-      // Use a reliable IPFS gateway
+    if (imageUrl.startsWith("ipfs://")) {
       return `https://ipfs.io/ipfs/${imageUrl.substring(7)}`;
     }
 
     // Handle Arweave URLs
-    if (imageUrl.startsWith('ar://')) {
+    if (imageUrl.startsWith("ar://")) {
       return `https://arweave.net/${imageUrl.substring(5)}`;
     }
 
     // Handle relative URLs or non-http URLs
-    if (!imageUrl.startsWith('http')) {
-      // If it starts with //, add https:
-      if (imageUrl.startsWith('//')) {
+    if (!imageUrl.startsWith("http")) {
+      if (imageUrl.startsWith("//")) {
         return `https:${imageUrl}`;
       }
-      // Otherwise, treat as invalid
-      return '/assets/images/defaultNFT.png';
+      return "/assets/images/defaultNFT.png";
     }
 
     return imageUrl;
@@ -104,154 +139,169 @@ const NFTCarousel = () => {
 
   /**
    * Handles image loading errors by setting a fallback image.
-   * @param {React.SyntheticEvent<HTMLImageElement, Event>} e - The event object.
    */
-  const handleImageError = useCallback((e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-    const target = e.currentTarget as HTMLImageElement;
-    target.src = "/assets/images/defaultNFT.png";
-    target.onerror = null; // Prevent infinite loop if fallback also fails
-  }, []);
-
-  // Debug logging to see what data we're getting
-  useEffect(() => {
-    if (collections && collections.length > 0) {
-      console.log('Collections data:', collections);
-      collections.forEach((nft, index) => {
-        console.log(`NFT ${index}:`, {
-          title: nft.title,
-          image: nft.uri,
-          formattedImage: formatImageUrl(nft.image)
-        });
-      });
-    }
-  }, [collections, formatImageUrl]);
-
-  // Memoized skeleton items for loading state
-  const skeletonItems = useMemo(() =>
-    Array.from({ length: 6 }).map((_, index) => ({ id: `skeleton-${index}` })),
+  const handleImageError = useCallback(
+    (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+      const target = e.currentTarget as HTMLImageElement;
+      if (target.src !== "/assets/images/defaultNFT.png") {
+        target.src = "/assets/images/defaultNFT.png";
+        target.onerror = null;
+      }
+    },
     []
   );
 
-  // Determine the number of slides for progress dots
-  const slideCount = useMemo(() => loading ? 6 : collections.length || 0, [loading, collections.length]);
+  // Memoized skeleton items for loading state
+  const skeletonItems = useMemo(
+    () =>
+      Array.from({ length: Math.min(6, maxVisibleSlides) }).map((_, index) => ({
+        id: `skeleton-${index}`,
+      })),
+    [maxVisibleSlides]
+  );
 
-  const priceLabel = "Last Mint";
-
-  if (error) {
+  // Error state with retry option
+  if (error && !loading && collections.length === 0) {
     return (
       <section className={styles.heroContainer}>
         <div className={styles.errorContainer}>
-          <p className={styles.errorText}>Failed to load collections. Please try refreshing the page.</p>
+          <p className={styles.errorText}>Failed to load collections.</p>
         </div>
       </section>
     );
   }
 
   return (
-    <section className={styles.heroContainer} aria-labelledby="carousel-heading">
-      <h2 id="carousel-heading" className="sr-only">Featured NFT Collections</h2>
+    <section
+      className={styles.heroContainer}
+      aria-labelledby="carousel-heading"
+    >
+      <h2 id="carousel-heading" className="sr-only">
+        Featured NFT Collections
+      </h2>
       <div className={styles.glowEffect}></div>
 
       <div className={styles.carouselContainer}>
-        <button
-          className={`${styles.arrowButton} ${styles.arrowLeft}`}
-          onClick={scrollPrev}
-          aria-label="Previous slide"
-          disabled={loading || collections.length === 0}
-        >
-          <ChevronLeft />
-        </button>
+        {/* Navigation Buttons */}
+        {showNavButtons && collections.length > 0 && (
+          <>
+            <button
+              className={`${styles.arrowButton} ${styles.arrowLeft}`}
+              onClick={scrollPrev}
+              disabled={!canScrollPrev || loading}
+              aria-label="Previous collection"
+            >
+              <ChevronLeft />
+            </button>
 
+            <button
+              className={`${styles.arrowButton} ${styles.arrowRight}`}
+              onClick={scrollNext}
+              disabled={!canScrollNext || loading}
+              aria-label="Next collection"
+            >
+              <ChevronRight />
+            </button>
+          </>
+        )}
+
+        {/* Carousel Container */}
         <div className={styles.embla} ref={emblaRef}>
           <div className={styles.emblaContainer}>
-            {loading ? (
-              skeletonItems.map((item) => (
-                <div className={styles.emblaSlide} key={item.id}>
-                  <NFTSkeleton />
-                </div>
-              ))
-            ) : collections.length > 0 ? (
-              collections.map((nft, index) => (
-                <div
-                  className={styles.emblaSlide}
-                  key={nft.id || `nft-${index}`}
-                  onMouseEnter={() => setHoveredIndex(index)}
-                  onMouseLeave={() => setHoveredIndex(null)}
-                  role="group"
-                  aria-roledescription="slide"
-                  aria-label={`${index + 1} of ${collections.length}: ${nft.title}`}
-                >
-                  <Link href={`/mintstreet/collection/${nft.poolAddress}`} className={styles.cardLink}>
-                    <div className={styles.card}>
-                      <div className={styles.imageWrapper}>
-                        <Image
-                          src={formatImageUrl(nft.image)}
-                          alt={nft.title || "NFT Collection Image"}
-                          fill
-                          sizes="(min-width: 1536px) 25vw, (min-width: 1280px) 33vw, (min-width: 768px) 50vw, 90vw"
-                          priority={index < 2}
-                          className={styles.nftImage}
-                          onError={handleImageError}
-                          // Remove placeholder="blur" as it requires a valid base64 image
-                          unoptimized={true} // Add this if images still don't load
-                        />
-                        {nft.trending && (
-                          <div className={styles.trendingBadge}>
-                            <TrendingUp size={12} />
-                            <span>Trending</span>
-                          </div>
-                        )}
-                        {typeof nft.supply === "number" && nft.supply > 0 && (
-                          <div className={styles.supplyBadge}>
-                            <span>{nft.supply} NFTs</span>
-                          </div>
-                        )}
-                        <div className={styles.infoOverlay}>
-                          <div className={styles.infoContent}>
-                            <h3 className={styles.nftTitle}>{nft.title}</h3>
-                            <div className={styles.floorPriceWrapper}>
-                              <span className={styles.floorLabel}>{priceLabel}</span>
-                              <span className={styles.floorPrice}>{nft.floor}</span>
+            {loading || collections.length === 0
+              ? // Show skeleton when loading OR when no collections available
+                skeletonItems.map((item) => (
+                  <div className={styles.emblaSlide} key={item.id}>
+                    <NFTSkeleton />
+                  </div>
+                ))
+              : // Collection cards - only show when we have actual data
+                collections.map((nft, index) => (
+                  <div
+                    className={styles.emblaSlide}
+                    key={nft.id || `nft-${index}`}
+                    role="group"
+                    aria-roledescription="slide"
+                    aria-label={`${index + 1} of ${collections.length}: ${
+                      nft.title
+                    }`}
+                  >
+                    <Link
+                      href={`/mintstreet/collection/${nft.poolAddress}`}
+                      className={styles.cardLink}
+                    >
+                      <div className={styles.card}>
+                        <div className={styles.imageWrapper}>
+                          <Image
+                            src={formatImageUrl(nft.image)}
+                            alt={nft.title || "NFT Collection Image"}
+                            fill
+                            sizes="(min-width: 1536px) 25vw, (min-width: 1280px) 33vw, (min-width: 768px) 50vw, 90vw"
+                            priority={index < 3}
+                            className={styles.nftImage}
+                            onError={handleImageError}
+                            placeholder="blur"
+                            blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+                          />
+
+                          {/* Trending Badge */}
+                          {nft.trending && (
+                            <div className={styles.trendingBadge}>
+                              <TrendingUp size={12} />
+                              <span>Trending</span>
                             </div>
-                          </div>
-                          <div className={styles.viewButton}>
-                            <span>View</span>
-                            <ExternalLink size={14} />
+                          )}
+
+                          {/* Supply Badge */}
+                          {typeof nft.supply === "number" && nft.supply > 0 && (
+                            <div className={styles.supplyBadge}>
+                              <span>{nft.supply} NFTs</span>
+                            </div>
+                          )}
+
+                          {/* Info Overlay */}
+                          <div className={styles.infoOverlay}>
+                            <div className={styles.infoContent}>
+                              <h3 className={styles.nftTitle}>{nft.title}</h3>
+                              <div className={styles.floorPriceWrapper}>
+                                <span className={styles.floorLabel}>
+                                  Floor Price
+                                </span>
+                                <span className={styles.floorPrice}>
+                                  {nft.floor}
+                                </span>
+                              </div>
+                            </div>
+                            <div className={styles.viewButton}>
+                              <span>View</span>
+                              <ExternalLink size={14} />
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </Link>
-                </div>
-              ))
-            ) : (
-              <div className={styles.emptyContainer}>
-                <p className={styles.emptyText}>No collections found at the moment.</p>
-              </div>
-            )}
+                    </Link>
+                  </div>
+                ))}
           </div>
         </div>
-
-        <button
-          className={`${styles.arrowButton} ${styles.arrowRight}`}
-          onClick={scrollNext}
-          aria-label="Next slide"
-          disabled={loading || collections.length === 0}
-        >
-          <ChevronRight />
-        </button>
       </div>
 
-      {collections.length > 0 && (
-        <div className={styles.progressIndicator} aria-label="Carousel progress">
+      {/* Progress Indicators */}
+      {showIndicators && collections.length > 0 && !loading && (
+        <div
+          className={styles.progressIndicator}
+          aria-label="Carousel progress"
+        >
           <div className={styles.progressWrapper}>
-            {Array.from({ length: slideCount }).map((_, index) => (
+            {collections.map((_, index) => (
               <button
                 key={`dot-${index}`}
-                onClick={() => emblaApi?.scrollTo(index)}
-                className={`${styles.progressDot} ${activeIndex === index ? styles.activeDot : ""}`}
+                onClick={() => scrollTo(index)}
+                className={`${styles.progressDot} ${
+                  selectedIndex === index ? styles.activeDot : ""
+                }`}
                 aria-label={`Go to slide ${index + 1}`}
-                aria-current={activeIndex === index ? "true" : "false"}
+                aria-current={selectedIndex === index ? "true" : "false"}
               >
                 <span className={styles.dotInner} aria-hidden="true"></span>
               </button>

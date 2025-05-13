@@ -1,39 +1,71 @@
 "use client";
 
-import React, { useMemo } from 'react';
-import { useParams } from 'next/navigation';
-import styles from './page.module.scss';
-import { usePoolInfo } from '@/hooks/usePoolInfo';
-import { useBondingCurveForPool } from '@/hooks/useBondingCurveForPool';
-import { usePoolNfts } from '@/hooks/usePoolNFTs'; // Import the new hook
-import CollectionChart from './CollectionChart';
-import PoolNFTsGrid from './PoolNFTsGrid'; // Import the NFT grid component
-import { Loader2 } from 'lucide-react';
+import React, { ReactNode, useMemo } from "react";
+import { useParams } from "next/navigation";
+import styles from "./page.module.scss";
+import { usePoolInfo } from "@/hooks/usePoolInfo";
+import { useBondingCurveForPool } from "@/hooks/useBondingCurveForPool";
+import { usePoolNfts } from "@/hooks/usePoolNFTs";
+import CollectionChart from "./CollectionChart";
+import PoolNFTsGrid from "./PoolNFTsGrid";
+import { Loader2 } from "lucide-react";
 
 export default function CollectionDetailPage() {
   const params = useParams();
   // Extract the pool address (handle array case by taking first element)
   const poolAddress = Array.isArray(params.poolAddress)
     ? params.poolAddress[0]
-    : params.poolAddress || '';
+    : params.poolAddress || "";
 
   // Always call hooks unconditionally at the top level
-  const { info, loading: infoLoading, error: infoError } = usePoolInfo(poolAddress);
-  const { history, isLoading: historyLoading } = useBondingCurveForPool(poolAddress);
-  const { nfts, isLoading: nftsLoading, error: nftsError } = usePoolNfts(poolAddress);
+  // Using the correct property names from React Query
+  interface PoolInfo {
+    collectionName: ReactNode;
+    totalEscrowed: number;
+    basePrice: number;
+    growthFactor: number;
+    currentSupply: number;
+    protocolFeePercent: number;
+    isActive: boolean;
+    migrationStatus: string;
+    creator: string;
+    collection: string;
+  }
+
+  const {
+    data: info,
+    isLoading: infoLoading,
+    error: infoError,
+  } = usePoolInfo(poolAddress) as {
+    data: PoolInfo | undefined;
+    isLoading: boolean;
+    error: Error | null;
+  };
+  console.table(info);
+
+  const { history, isLoading: historyLoading } =
+    useBondingCurveForPool(poolAddress);
+  const {
+    nfts,
+    isLoading: nftsLoading,
+    error: nftsError,
+  } = usePoolNfts(poolAddress);
 
   // Calculate last mint price from history
   const lastMintPrice = useMemo(() => {
     if (history.length === 0) return "N/A";
 
     // Sort by blockTime descending to get the most recent
-    const sortedHistory = [...history].sort((a, b) =>
-      (b.blockTime ?? 0) - (a.blockTime ?? 0)
+    const sortedHistory = [...history].sort(
+      (a, b) => (b.blockTime ?? 0) - (a.blockTime ?? 0)
     );
 
     // Find the most recent mint or sell transaction with a price
-    const lastPricedTx = sortedHistory.find(tx =>
-      (tx.instructionName === "mintNft" || tx.instructionName === "sellNft") && tx.price
+    const lastPricedTx = sortedHistory.find(
+      (tx) =>
+        (tx.instructionName === "mintNft" ||
+          tx.instructionName === "sellNft") &&
+        tx.price
     );
 
     if (lastPricedTx && lastPricedTx.price) {
@@ -54,7 +86,9 @@ export default function CollectionDetailPage() {
   // Helper to format addresses for display
   const formatAddress = (address: string) => {
     if (!address || address.length <= 12) return address;
-    return `${address.substring(0, 6)}...${address.substring(address.length - 6)}`;
+    return `${address.substring(0, 6)}...${address.substring(
+      address.length - 6
+    )}`;
   };
 
   // Check for invalid pool address - do this AFTER calling hooks
@@ -62,7 +96,10 @@ export default function CollectionDetailPage() {
     return (
       <div className={styles.errorContainer}>
         <h2>Invalid Pool Address</h2>
-        <p>The provided pool address is invalid. Please check the URL and try again.</p>
+        <p>
+          The provided pool address is invalid. Please check the URL and try
+          again.
+        </p>
       </div>
     );
   }
@@ -77,12 +114,14 @@ export default function CollectionDetailPage() {
     );
   }
 
-  // Error state
+  // Error state - properly handle the error type
   if (infoError || !info) {
     return (
       <div className={styles.errorContainer}>
         <h2>Error Loading Pool</h2>
-        <p>{infoError || "Could not load pool information."}</p>
+        <p>
+          {infoError ? infoError.message : "Could not load pool information."}
+        </p>
       </div>
     );
   }
@@ -91,7 +130,7 @@ export default function CollectionDetailPage() {
     <div className={styles.container}>
       <header className={styles.header}>
         <h1 className={styles.title}>
-          Collection: {formatAddress(info.collection)}
+          Collection: {formatAddress(info.collection)}({info.collectionName})
         </h1>
         <div className={styles.poolAddress}>
           Pool: <span>{formatAddress(poolAddress)}</span>
@@ -105,17 +144,17 @@ export default function CollectionDetailPage() {
 
           {/* NFTs Grid - Below the chart */}
           <PoolNFTsGrid
-            nfts={nfts.map(nft => ({
+            nfts={nfts.map((nft) => ({
               ...nft,
-              name: nft.name || 'Unnamed NFT',
-              symbol: nft.symbol || '',
-              uri: nft.uri || '',
+              name: nft.name || "Unnamed NFT",
+              symbol: nft.symbol || "",
+              uri: nft.uri || "",
               timestamp: nft.timestamp || 0,
-              price: nft.price || 0
+              price: nft.price || 0,
             }))}
             isLoading={nftsLoading}
             error={nftsError}
-            poolAddress={poolAddress} // Pass the pool address to the component
+            poolAddress={poolAddress}
           />
         </section>
 
@@ -133,7 +172,9 @@ export default function CollectionDetailPage() {
               <div className={styles.infoGrid}>
                 <div className={styles.infoItem}>
                   <span className={styles.infoLabel}>Base Price</span>
-                  <span className={styles.infoValue}>{info.basePrice.toFixed(4)} SOL</span>
+                  <span className={styles.infoValue}>
+                    {info.basePrice.toFixed(4)} SOL
+                  </span>
                 </div>
 
                 <div className={styles.infoItem}>
@@ -148,7 +189,9 @@ export default function CollectionDetailPage() {
 
                 <div className={styles.infoItem}>
                   <span className={styles.infoLabel}>Protocol Fee</span>
-                  <span className={styles.infoValue}>{info.protocolFeePercent / 100}%</span>
+                  <span className={styles.infoValue}>
+                    {(info.protocolFeePercent / 100).toFixed(2)}%
+                  </span>
                 </div>
               </div>
             </div>
@@ -160,7 +203,9 @@ export default function CollectionDetailPage() {
             <div className={styles.cardContent}>
               <div className={styles.totalSol}>
                 <span className={styles.totalSolLabel}>Total SOL</span>
-                <span className={styles.totalSolValue}>{info.totalEscrowed.toFixed(4)} SOL</span>
+                <span className={styles.totalSolValue}>
+                  {info.totalEscrowed.toFixed(4)} SOL
+                </span>
               </div>
 
               <div className={styles.progressContainer}>
@@ -182,7 +227,11 @@ export default function CollectionDetailPage() {
               </div>
 
               <div className={styles.migrationStatus}>
-                <span className={info.isActive ? styles.statusActive : styles.statusInactive}>
+                <span
+                  className={
+                    info.isActive ? styles.statusActive : styles.statusInactive
+                  }
+                >
                   {info.migrationStatus}
                 </span>
               </div>
@@ -195,8 +244,12 @@ export default function CollectionDetailPage() {
             <div className={styles.cardContent}>
               <div className={styles.detailItem}>
                 <span className={styles.detailLabel}>Status</span>
-                <span className={info.isActive ? styles.statusActive : styles.statusInactive}>
-                  {info.isActive ? 'Active' : 'Inactive'}
+                <span
+                  className={
+                    info.isActive ? styles.statusActive : styles.statusInactive
+                  }
+                >
+                  {info.isActive ? "Active" : "Inactive"}
                 </span>
               </div>
 

@@ -1,0 +1,1 @@
+export { useGlobalCache } from "./useGlobalCache";

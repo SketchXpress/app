@@ -13,15 +13,17 @@ export const TabSelector = ({
 }) => (
   <div className={styles.tabs}>
     <button
-      className={`${styles.tabButton} ${activeTab === "trending" ? styles.activeTab : ""
-        }`}
+      className={`${styles.tabButton} ${
+        activeTab === "trending" ? styles.activeTab : ""
+      }`}
       onClick={() => onTabChange("trending")}
     >
       Trending
     </button>
     <button
-      className={`${styles.tabButton} ${activeTab === "top" ? styles.activeTab : ""
-        }`}
+      className={`${styles.tabButton} ${
+        activeTab === "top" ? styles.activeTab : ""
+      }`}
       onClick={() => onTabChange("top")}
     >
       Top
@@ -51,7 +53,7 @@ export const EmptyState = () => (
 );
 
 // Skeleton Components
-const CollectionRowSkeleton = ({ }: { index: number }) => (
+const CollectionRowSkeleton = ({}: { index: number }) => (
   <div className={styles.collectionRow}>
     <div className={styles.rankCell}>
       <div className={styles.skeletonRank}></div>
@@ -88,14 +90,14 @@ const DesktopSkeletonTable = () => (
 
       {/* Left Column Skeleton */}
       <div className={styles.columnContent}>
-        {[1, 2, 3, 4].map((item) => (
+        {[1, 2, 3, 4, 5].map((item) => (
           <CollectionRowSkeleton key={`skeleton-left-${item}`} index={item} />
         ))}
       </div>
 
       {/* Right Column Skeleton */}
       <div className={styles.columnContent}>
-        {[1, 2, 3, 4].map((item) => (
+        {[1, 2, 3, 4, 5].map((item) => (
           <CollectionRowSkeleton key={`skeleton-right-${item}`} index={item} />
         ))}
       </div>

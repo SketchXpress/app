@@ -6,6 +6,7 @@ export interface NFT {
   price: string;
   collectionId: string;
   collectionName: string;
+  uri?: string;
 }
 
 export interface NFTCollection {
@@ -18,4 +19,45 @@ export interface NFTCollection {
   trending: boolean;
   supply?: number;
   collectionMint?: string;
+}
+
+export interface NFTMetadata {
+  name?: string;
+  image?: string;
+  description?: string;
+  attributes?: Array<{
+    trait_type?: string;
+    value?: string;
+  }>;
+  external_url?: string;
+  background_color?: string;
+  animation_url?: string;
+}
+
+export interface NFTWithMetadata {
+  mintAddress: string;
+  uri?: string;
+  metadata?: NFTMetadata;
+  error?: string;
+}
+
+export interface UseNFTMetadataConfig {
+  enabled?: boolean;
+  staleTime?: number;
+  gcTime?: number;
+  batchSize?: number;
+  batchDelay?: number;
+}
+
+export interface SellNFTResult {
+  success: boolean;
+  signature?: string;
+  error?: string;
+}
+
+export interface UseSellNFTConfig {
+  enableToast?: boolean;
+  computeUnits?: number;
+  priorityFee?: number;
+  checkPoolBalance?: boolean;
 }
