@@ -1,12 +1,8 @@
 "use client";
 
+import Link from "next/link";
 import Image from "next/image";
-import { examples, drawingTips } from "./data";
-import styles from "./LeftSidebar.module.scss";
-import { useModeStore } from "@/stores/modeStore";
 import { useState, useEffect, useRef } from "react";
-import { useCanvasStore } from "@/stores/canvasStore";
-import { handleUploadArt, handleUseExample } from "./utils";
 import {
   Upload,
   Lightbulb,
@@ -26,19 +22,27 @@ import {
   ScrollText,
   Copyright,
 } from "lucide-react";
-import Link from "next/link";
+
+import { useModeStore } from "@/stores/modeStore";
+import { useCanvasStore } from "@/stores/canvasStore";
+
+import { examples, drawingTips } from "./data";
+import { handleUploadArt, handleUseExample } from "./utils";
+
+import styles from "./LeftSidebar.module.scss";
 
 const LeftSidebar = () => {
   const mode = useModeStore((s) => s.mode);
-  const [showTips, setShowTips] = useState(false);
-  const [showGallery, setShowGallery] = useState(false);
+  const sidebarRef = useRef<HTMLElement | null>(null);
+
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
+  const [showTips, setShowTips] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const sidebarRef = useRef<HTMLElement | null>(null);
+  const [showGallery, setShowGallery] = useState(false);
+
   const activeTool = useCanvasStore((state) => state.activeTool);
   const lastAction = useCanvasStore((state) => state.lastAction);
-
   const clearCanvas = useCanvasStore((state) => state.clearCanvas);
   const undoAction = useCanvasStore((state) => state.undoAction);
   const redoAction = useCanvasStore((state) => state.redoAction);
@@ -107,7 +111,7 @@ const LeftSidebar = () => {
 
   // Detect when sidebar should be automatically expanded
   useEffect(() => {
-    // Auto expand tips on first visit (could be stored in localStorage)
+    // Auto expand tips on first visit (information stored in local storage)
     const hasSeenTips = sessionStorage.getItem("hasSeenTips");
     if (!hasSeenTips) {
       setShowTips(true);
@@ -119,10 +123,8 @@ const LeftSidebar = () => {
     setSidebarOpen(!sidebarOpen);
   };
 
-  // Determining which tips to show based on mode
-  const tipsToShow = mode === "kids" ? drawingTips.kids : drawingTips.pro;
-
   const year = new Date().getFullYear();
+  const tipsToShow = mode === "kids" ? drawingTips.kids : drawingTips.pro;
 
   return (
     <>
