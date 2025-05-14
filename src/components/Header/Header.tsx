@@ -1,10 +1,10 @@
 "use client";
 
-import Image from "next/image";
 import Link from "next/link";
+import Image from "next/image";
+import { getSnapshot } from "tldraw";
 import { toast } from "react-toastify";
 import { useState, useEffect } from "react";
-import { useCanvasStore } from "@/stores/canvasStore";
 import {
   Menu,
   X,
@@ -13,16 +13,18 @@ import {
   Save,
   Coins,
 } from "lucide-react";
-import { getSnapshot } from "tldraw";
 
-import styles from "./Header.module.scss";
-import logo from "../../../public/assets/images/logo.png";
-import responsive from "./HeaderResponsive.module.scss";
+import canvasStorage from "@/lib/canvasStorage";
+import { useCanvasStore } from "@/stores/canvasStore";
+import ConnectWalletButton from "@/wallet/ConnectWalletButton";
+
 import MobileMenu from "../MobileMenu/MobileMenu";
 import ModeToggle from "../ModeToggle/ModeToggle";
-import canvasStorage from '@/lib/canvasStorage';
 
-import ConnectWalletButton from "@/wallet/ConnectWalletButton";
+import styles from "./Header.module.scss";
+import responsive from "./HeaderResponsive.module.scss";
+
+import logo from "../../../public/assets/images/logo.png";
 
 const Header = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -38,7 +40,6 @@ const Header = () => {
     return () => window.removeEventListener("resize", checkMobile);
   }, []);
 
-  // Change handleSave to be async
   const handleSave = async () => {
     const editor = useCanvasStore.getState().editor;
 
@@ -62,19 +63,22 @@ const Header = () => {
       });
 
       // Generate a small preview thumbnail
-      let previewBase64 = '';
+      let previewBase64 = "";
       try {
         // Get a small SVG preview if possible
-        const svgResult = await editor.getSvgString(editor.getSelectedShapeIds(), {
-          scale: 0.2,
-          background: true,
-        });
+        const svgResult = await editor.getSvgString(
+          editor.getSelectedShapeIds(),
+          {
+            scale: 0.2,
+            background: true,
+          }
+        );
 
         if (svgResult && svgResult.svg) {
           previewBase64 = `data:image/svg+xml;base64,${btoa(svgResult.svg)}`;
         }
       } catch (previewErr) {
-        console.warn('Failed to generate preview:', previewErr);
+        console.warn("Failed to generate preview:", previewErr);
       }
 
       // Save canvas with the preview
@@ -103,7 +107,7 @@ const Header = () => {
         });
       }
     } catch (err) {
-      console.error('Error in handleSave:', err);
+      console.error("Error in handleSave:", err);
       toast.error("Failed to save project. Please try again.", {
         position: "bottom-left",
         autoClose: 3000,
@@ -172,12 +176,8 @@ const Header = () => {
         </div>
       </Link>
 
-      {/* Mode Toggle in the middle for desktop */}
-      {!isMobile && (
-        // <div className={`${styles.centerControls} ${responsive.centerControls}`}>
-        <ModeToggle />
-        // </div>
-      )}
+      {/* Mode Toggle */}
+      {!isMobile && <ModeToggle />}
 
       {/* Desktop Controls */}
       {!isMobile && (
@@ -218,16 +218,14 @@ const Header = () => {
       {/* Mobile Controls */}
       {isMobile && (
         <>
-          {/* Empty div for flex layout balance on the left */}
           <div className={styles.mobileSpacerLeft}></div>
 
-          {/* MintStreet Button in the middle for mobile */}
           <Link href="/mintstreet" className={styles.mobileMintStreetButton}>
             <Coins size={18} />
             <span>MintStreet</span>
           </Link>
 
-          {/* Hamburger Menu Button on the right */}
+          {/* Hamburger Menu Button */}
           <button
             className={`${styles.menuIconButton} ${responsive.menuIconButton}`}
             onClick={() => setIsMenuOpen(!isMenuOpen)}
