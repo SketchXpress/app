@@ -1,6 +1,9 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
+import { toast } from "react-toastify";
+import { useRouter } from "next/navigation";
 import {
   Download,
   Coins,
@@ -16,16 +19,14 @@ import {
   Sliders,
   ExternalLink,
 } from "lucide-react";
-import { toast } from "react-toastify";
 
+import { useMintNFT } from "@/lib/mintNFT";
 import { usePoolStore } from "@/stores/poolStore";
 import { useModeStore } from "@/stores/modeStore";
 import { useEnhanceStore } from "@/stores/enhanceStore";
 import { useWallet } from "@solana/wallet-adapter-react";
-import { useMintNFT } from "@/lib/mintNFT";
 import { useWalletModal } from "@solana/wallet-adapter-react-ui";
-
-import ParentalControl from "../ParentalControl/ParentalContrl";
+import ParentalControl from "@/components/ParentalControl/ParentalContrl";
 import CollectionDropdown from "@/components/CollectionDropdown/CollectionDropdown";
 
 import {
@@ -37,8 +38,6 @@ import {
 } from "./hooks";
 import { mintNFT, isKidsMode } from "./utils";
 import styles from "./RightPanel.module.scss";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 const RightPanel: React.FC = () => {
   const {

@@ -1,82 +1,30 @@
-// src/components/RightPanel/RightPanel.module.scss
+@use '../../styles/shared/variables' as *;
 
-// ===== Design System Variables =====
-// Spacing system
-$spacing-xs: 0.25rem;  // 4px
-$spacing-sm: 0.5rem;   // 8px
-$spacing-md: 1rem;     // 16px
-$spacing-lg: 1.5rem;   // 24px
-$spacing-xl: 2rem;     // 32px
-$spacing-2xl: 3rem;    // 48px
-
-// Shadows
-$shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-$shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-$shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
-
-// Border radius
-$radius-sm: 6px;
-$radius-md: 8px;
-$radius-lg: 12px;
-$radius-xl: 16px;
-
-// Transitions
-$transition-fast: all 0.15s ease;
-$transition-base: all 0.2s ease;
-$transition-slow: all 0.3s ease;
-
-// Colors
-$border-color: rgba(0, 0, 0, 0.08);
-$border-color-light: rgba(0, 0, 0, 0.06);
+// Component-specific variables
 $text-muted: rgba(0, 0, 0, 0.6);
 $background-panel: #FAFAFA;
 $background-card: #FFFFFF;
 
-// Breakpoints
-$breakpoint-tablet: 1024px;
-$breakpoint-mobile: 768px;
-$breakpoint-small: 480px;
-
-// Panel dimensions
-$header-height: 60px;
+// Panel-specific dimensions
 $panel-width: 320px;
 $panel-collapsed-width: 64px;
 $mobile-panel-width: 280px;
 
-// ===== Mixins =====
-@mixin respond-to($device) {
-  @if $device == tablet {
-    @media (max-width: $breakpoint-tablet) {
-      @content;
-    }
-  } @else if $device == mobile {
-    @media (max-width: $breakpoint-mobile) {
-      @content;
-    }
-  } @else if $device == small {
-    @media (max-width: $breakpoint-small) {
-      @content;
-    }
-  }
-}
-
-// ===== Base Panel =====
 .panel {
   display: flex;
   flex-direction: column;
   background: $background-panel;
-  border-left: 1px solid $border-color-light;
+  border-left: 1px solid rgba(0, 0, 0, 0.06);
   width: $panel-width;
-  height: calc(100vh - #{$header-height});
+  height: calc(100vh - #{layout(header-height)});
   position: sticky;
-  top: $header-height;
+  top: layout(header-height);
   overflow-y: auto;
   z-index: 50;
   transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
               transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: -1px 0 3px rgba(0, 0, 0, 0.03);
+  font-family: "DM Sans", Roboto, "Helvetica Neue", Helvetica, Arial, sans-serif !important;
 
   // Scrollbar styling
   &::-webkit-scrollbar {
@@ -101,7 +49,7 @@ $mobile-panel-width: 280px;
     width: $panel-collapsed-width;
 
     .panelContent {
-      padding: $spacing-md $spacing-sm;
+      padding: 1rem 0.5rem;
       align-items: center;
     }
   }
@@ -110,10 +58,10 @@ $mobile-panel-width: 280px;
   &.tablet {
     position: fixed;
     right: 0;
-    height: calc(100vh - #{$header-height});
+    height: calc(100vh - #{layout(header-height)});
     z-index: 40;
     box-shadow: -2px 0 8px rgba(0, 0, 0, 0.08);
-    border-radius: $radius-xl 0 0 $radius-xl;
+    border-radius: radius(xl) 0 0 radius(xl);
 
     &.collapsed {
       transform: translateX(100%);
@@ -124,16 +72,16 @@ $mobile-panel-width: 280px;
   // Mobile styling (Slide from right with fixed width)
   &.mobile {
     position: fixed;
-    top: $header-height;
+    top: layout(header-height);
     right: 0;
     bottom: 0;
     width: $mobile-panel-width;
-    height: calc(100vh - #{$header-height});
+    height: calc(100vh - #{layout(header-height)});
     background: var(--background);
     box-shadow: -5px 0 20px rgba(0, 0, 0, 0.15);
     z-index: 1000;
     transition: transform 0.25s ease;
-    border-radius: $radius-xl 0 0 $radius-xl;
+    border-radius: radius(xl) 0 0 radius(xl);
 
     &.collapsed {
       transform: translateX(100%);
@@ -145,40 +93,28 @@ $mobile-panel-width: 280px;
 .panelContent {
   display: flex;
   flex-direction: column;
-  padding: $spacing-lg;
+  padding: 1.25rem;
   height: 100%;
-  gap: $spacing-xl;
-
-  @include respond-to(mobile) {
-    padding: $spacing-md;
-    gap: $spacing-lg;
-  }
+  gap: 2rem;
 }
 
-// ===== Sections =====
 .section {
   display: flex;
   flex-direction: column;
-  gap: $spacing-md;
+  gap: 1rem;
   position: relative;
   
   &:not(:first-child) {
-    padding-top: $spacing-xl;
+    padding-top: 2rem;
     
     &::before {
       content: '';
       position: absolute;
       top: 0;
-      left: -$spacing-lg;
-      right: -$spacing-lg;
+      left: -2rem;
+      right: -2rem;
       height: 1px;
-      background: $border-color-light;
-    }
-  }
-  
-  @include respond-to(mobile) {
-    &:not(:first-child) {
-      padding-top: $spacing-lg;
+      background: rgba(0, 0, 0, 0.06);
     }
   }
 }
@@ -191,37 +127,36 @@ $mobile-panel-width: 280px;
   color: $text-muted;
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
-  margin-bottom: $spacing-sm;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .sectionIcon {
   color: var(--accent-cyan);
   opacity: 0.7;
-  transition: $transition-base;
+  transition: transition(base);
 }
 
-// ===== Toggle Buttons =====
 .mobileToggle {
   position: fixed;
-  top: calc(#{$header-height} + #{$spacing-md});
-  right: $spacing-md;
+  top: calc(#{layout(header-height)} + 1rem);
+  right: 1rem;
   width: 44px;
   height: 44px;
   border-radius: 50%;
   background: white;
-  border: 1px solid $border-color-light;
+  border: 1px solid rgba(0, 0, 0, 0.06);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1001;
   cursor: pointer;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.1);
-  transition: $transition-base;
+  transition: transition(base);
 
   svg {
     color: #000000;
-    transition: $transition-base;
+    transition: transition(base);
   }
 
   &:hover {
@@ -237,19 +172,19 @@ $mobile-panel-width: 280px;
 
 .collapseToggle {
   position: fixed;
-  top: calc(#{$header-height} + #{$spacing-md});
+  top: calc(#{layout(header-height)} + 1rem);
   right: $panel-width;
   width: 28px;
   height: 28px;
   background: $background-card;
-  border: 1px solid $border-color-light;
+  border: 1px solid rgba(0, 0, 0, 0.06);
   border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   z-index: 1001;
-  box-shadow: $shadow-sm;
+  box-shadow: shadow(sm);
   color: $text-muted;
   transition: right 0.25s cubic-bezier(0.4, 0, 0.2, 1), 
               background-color 0.2s ease,
@@ -257,9 +192,9 @@ $mobile-panel-width: 280px;
 
   &:hover {
     background: $background-card;
-    box-shadow: $shadow-md;
+    box-shadow: shadow(md);
     color: var(--foreground);
-    border-color: $border-color;
+    border-color: rgba(0, 0, 0, 0.08);
   }
 
   &.collapsed {
@@ -267,13 +202,12 @@ $mobile-panel-width: 280px;
   }
 }
 
-// ===== Collapsed State Buttons =====
 .collapsedButtons {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: $spacing-md;
-  padding-top: $spacing-sm;
+  gap: 1rem;
+  padding-top: 0.5rem;
 }
 
 .iconButton {
@@ -282,18 +216,18 @@ $mobile-panel-width: 280px;
   justify-content: center;
   width: 40px;
   height: 40px;
-  border-radius: $radius-lg;
+  border-radius: radius(lg);
   background: $background-card;
-  border: 1px solid $border-color-light;
+  border: 1px solid rgba(0, 0, 0, 0.06);
   color: var(--foreground);
   cursor: pointer;
-  transition: $transition-base;
+  transition: transition(base);
 
   &:hover {
     background: $background-card;
-    border-color: $border-color;
+    border-color: rgba(0, 0, 0, 0.08);
     transform: translateY(-1px);
-    box-shadow: $shadow-sm;
+    box-shadow: shadow(sm);
     color: var(--accent-cyan);
   }
 
@@ -302,17 +236,16 @@ $mobile-panel-width: 280px;
   }
 }
 
-// ===== Advanced Parameters Card =====
 .advancedParametersCard {
   background: $background-card;
-  border-radius: $radius-lg;
-  border: 1px solid $border-color-light;
+  border-radius: radius(lg);
+  border: 1px solid rgba(0, 0, 0, 0.06);
   overflow: hidden;
-  box-shadow: $shadow-xs;
-  transition: $transition-base;
+  box-shadow: shadow(xs);
+  transition: transition(base);
 
   &:hover {
-    box-shadow: $shadow-sm;
+    box-shadow: shadow(sm);
   }
 }
 
@@ -320,8 +253,8 @@ $mobile-panel-width: 280px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: $spacing-md;
-  border-bottom: 1px solid $border-color-light;
+  padding: 1rem;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.06);
   background: transparent;
   cursor: pointer;
   user-select: none;
@@ -330,7 +263,7 @@ $mobile-panel-width: 280px;
 .cardTitle {
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
+  gap: 0.5rem;
 
   h3 {
     font-size: 0.875rem;
@@ -351,12 +284,12 @@ $mobile-panel-width: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: $radius-md;
+  border-radius: radius(md);
   background: transparent;
   border: none;
   color: $text-muted;
   cursor: pointer;
-  transition: $transition-base;
+  transition: transition(base);
 
   &:hover {
     background: rgba(0, 0, 0, 0.04);
@@ -365,23 +298,22 @@ $mobile-panel-width: 280px;
 }
 
 .cardContent {
-  padding: $spacing-lg;
+  padding: 1.5rem;
   display: flex;
   flex-direction: column;
-  gap: $spacing-lg;
+  gap: 1.5rem;
 }
 
-// ===== Parameter Sliders =====
 .paramSlider {
   display: flex;
   flex-direction: column;
-  gap: $spacing-sm;
+  gap: 0.5rem;
 }
 
 .paramHeader {
   display: flex;
   flex-direction: column;
-  gap: $spacing-xs;
+  gap: 0.25rem;
 
   label {
     font-size: 0.8125rem;
@@ -426,8 +358,8 @@ $mobile-panel-width: 280px;
     border-radius: 50%;
     background: var(--accent-cyan);
     cursor: pointer;
-    transition: $transition-base;
-    box-shadow: $shadow-sm;
+    transition: transition(base);
+    box-shadow: shadow(sm);
 
     &:hover {
       transform: scale(1.1);
@@ -441,9 +373,9 @@ $mobile-panel-width: 280px;
     border-radius: 50%;
     background: var(--accent-cyan);
     cursor: pointer;
-    transition: $transition-base;
+    transition: transition(base);
     border: none;
-    box-shadow: $shadow-sm;
+    box-shadow: shadow(sm);
 
     &:hover {
       transform: scale(1.1);
@@ -454,8 +386,8 @@ $mobile-panel-width: 280px;
 
 .numImagesIndicator {
   display: flex;
-  gap: $spacing-sm;
-  margin-top: $spacing-xs;
+  gap: 0.5rem;
+  margin-top: 0.25rem;
 }
 
 .numBox {
@@ -463,7 +395,7 @@ $mobile-panel-width: 280px;
   height: 4px;
   background: #E5E7EB;
   border-radius: 2px;
-  transition: $transition-base;
+  transition: transition(base);
 
   &.active {
     background: var(--accent-cyan);
@@ -474,21 +406,21 @@ $mobile-panel-width: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: $spacing-sm;
-  padding: $spacing-sm $spacing-md;
-  margin-top: $spacing-sm;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  margin-top: 0.5rem;
   font-size: 0.8125rem;
   font-weight: 500;
   color: $text-muted;
   background: transparent;
-  border: 1px solid $border-color-light;
-  border-radius: $radius-md;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: radius(md);
   cursor: pointer;
-  transition: $transition-base;
+  transition: transition(base);
 
   &:hover {
     background: rgba(0, 0, 0, 0.02);
-    border-color: $border-color;
+    border-color: rgba(0, 0, 0, 0.08);
     color: var(--foreground);
   }
 }
@@ -501,13 +433,13 @@ $mobile-panel-width: 280px;
 .poolBadge {
   display: flex;
   align-items: center;
-  gap: $spacing-sm;
-  padding: $spacing-sm $spacing-md;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
   background: rgba(0, 183, 225, 0.06);
-  border-radius: $radius-md;
+  border-radius: radius(md);
   font-size: 0.8125rem;
   color: var(--foreground);
-  transition: $transition-base;
+  transition: transition(base);
   border: 1px solid rgba(0, 183, 225, 0.1);
 
   &:hover {
@@ -524,7 +456,7 @@ $mobile-panel-width: 280px;
   height: 28px;
   background: white;
   border-radius: 50%;
-  box-shadow: $shadow-xs;
+  box-shadow: shadow(xs);
   color: var(--accent-cyan);
   flex-shrink: 0;
 }
@@ -548,7 +480,7 @@ $mobile-panel-width: 280px;
   border-radius: 50%;
   color: $text-muted;
   cursor: pointer;
-  transition: $transition-fast;
+  transition: transition(fast);
 
   &:hover {
     background: rgba(255, 59, 48, 0.08);
@@ -561,7 +493,7 @@ $mobile-panel-width: 280px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: $spacing-sm;
+  margin-bottom: 0.5rem;
 }
 
 .imageCount {
@@ -570,13 +502,13 @@ $mobile-panel-width: 280px;
   justify-content: center;
   min-width: 20px;
   height: 20px;
-  padding: 0 $spacing-xs;
+  padding: 0 0.25rem;
   background: rgba(0, 183, 225, 0.08);
   border-radius: 10px;
   font-size: 0.6875rem;
   font-weight: 600;
   color: var(--accent-cyan);
-  margin-left: $spacing-xs;
+  margin-left: 0.25rem;
 }
 
 .toggleGallery {
@@ -584,9 +516,9 @@ $mobile-panel-width: 280px;
   border: none;
   cursor: pointer;
   color: $text-muted;
-  padding: $spacing-xs;
-  border-radius: $radius-sm;
-  transition: $transition-fast;
+  padding: 0.25rem;
+  border-radius: radius(sm);
+  transition: transition(fast);
 
   &:hover {
     background-color: rgba(0, 0, 0, 0.04);
@@ -597,25 +529,21 @@ $mobile-panel-width: 280px;
 .generatedImagesGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: $spacing-md;
-  
-  @media (min-width: 360px) {
-    grid-template-columns: repeat(3, 1fr);
-  }
+  gap: 1rem;
 }
 
 .generatedImageCard {
   overflow: hidden;
-  border-radius: $radius-md;
+  border-radius: radius(md);
   background: $background-card;
-  border: 1px solid $border-color-light;
-  transition: $transition-base;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  transition: transition(base);
   cursor: pointer;
   position: relative;
 
   &:hover {
     transform: translateY(-2px);
-    box-shadow: $shadow-md;
+    box-shadow: shadow(md);
     border-color: rgba(0, 183, 225, 0.2);
   }
 
@@ -644,7 +572,7 @@ $mobile-panel-width: 280px;
 }
 
 .imageTitle {
-  padding: $spacing-xs $spacing-sm;
+  padding: 0.25rem 0.5rem;
   font-size: 0.6875rem;
   text-align: center;
   white-space: nowrap;
@@ -658,7 +586,7 @@ $mobile-panel-width: 280px;
 .nftNameInput {
   display: flex;
   flex-direction: column;
-  gap: $spacing-sm;
+  gap: 0.5rem;
 
   label {
     font-size: 0.8125rem;
@@ -667,13 +595,13 @@ $mobile-panel-width: 280px;
   }
 
   .inputField {
-    padding: $spacing-sm $spacing-md;
-    border: 1px solid $border-color-light;
-    border-radius: $radius-md;
+    padding: 0.5rem 1rem;
+    border: 1px solid rgba(0, 0, 0, 0.06);
+    border-radius: radius(md);
     font-size: 0.875rem;
     background: $background-card;
     color: var(--foreground);
-    transition: $transition-base;
+    transition: transition(base);
     
     &:focus {
       outline: none;
@@ -690,7 +618,7 @@ $mobile-panel-width: 280px;
   .helperText {
     font-size: 0.6875rem;
     color: $text-muted;
-    margin-top: -$spacing-xs;
+    margin-top: -0.25rem;
   }
 }
 
@@ -698,8 +626,8 @@ $mobile-panel-width: 280px;
 .actionButtons {
   display: flex;
   flex-wrap: wrap;
-  gap: $spacing-sm;
-  margin-top: $spacing-sm;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
 
   &.mobileActions {
     flex-direction: column;
@@ -710,23 +638,23 @@ $mobile-panel-width: 280px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: $spacing-sm;
+  gap: 0.5rem;
   flex: 1;
   min-width: 0;
-  padding: $spacing-sm $spacing-md;
+  padding: 0.5rem 1rem;
   font-size: 0.8125rem;
   font-weight: 500;
   background: $background-card;
   color: var(--foreground);
-  border: 1px solid $border-color-light;
-  border-radius: $radius-md;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: radius(md);
   cursor: pointer;
-  transition: $transition-base;
+  transition: transition(base);
 
   &:hover:not(.disabled) {
     transform: translateY(-1px);
-    box-shadow: $shadow-sm;
-    border-color: $border-color;
+    box-shadow: shadow(sm);
+    border-color: rgba(0, 0, 0, 0.08);
   }
 
   &:active:not(.disabled) {
@@ -750,15 +678,15 @@ $mobile-panel-width: 280px;
   color: white;
   border: none;
 
-  &:hover {
-    transform: translateX(-50%) translateY(-2px);
+  &:hover:not(.disabled) {
+    transform: translateY(-2px);
     box-shadow: 0 4px 15px rgba(0, 0, 0, 0.25);
   }
 }
 
 .downloadButton {
   background: $background-card;
-  border: 1px solid $border-color-light;
+  border: 1px solid rgba(0, 0, 0, 0.06);
 
   &:hover:not(.disabled) {
     border-color: var(--accent-cyan);
@@ -792,11 +720,11 @@ $mobile-panel-width: 280px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: $spacing-md;
-  padding: $spacing-lg;
+  gap: 1rem;
+  padding: 1.5rem;
   text-align: center;
   background: rgba(255, 59, 48, 0.05);
-  border-radius: $radius-lg;
+  border-radius: radius(lg);
   border: 1px solid rgba(255, 59, 48, 0.1);
 }
 
@@ -817,8 +745,8 @@ $mobile-panel-width: 280px;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: $spacing-md;
-  padding: $spacing-2xl $spacing-lg;
+  gap: 1rem;
+  padding: 3rem 1.5rem;
   text-align: center;
   height: 100%;
   min-height: 300px;
@@ -831,7 +759,7 @@ $mobile-panel-width: 280px;
   align-items: center;
   justify-content: center;
   background: rgba(0, 183, 225, 0.08);
-  border-radius: $radius-xl;
+  border-radius: radius(xl);
 }
 
 .emptyStateIcon {
@@ -857,7 +785,7 @@ $mobile-panel-width: 280px;
 // ===== Overlay =====
 .sidebarOverlay {
   position: fixed;
-  top: $header-height;
+  top: layout(header-height);
   left: 0;
   right: 0;
   bottom: 0;
@@ -888,8 +816,43 @@ $mobile-panel-width: 280px;
   }
 }
 
+.selectionHint {
+  font-size: 0.75rem;
+  color: #B91C1C; // Dark red text
+  text-align: center;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
+  background: rgba(239, 68, 68, 0.06); // Light red background
+  border-radius: radius(sm);
+  border: 1px dashed rgba(239, 68, 68, 0.15); // Red dashed border
+  font-weight: 500; // Make text slightly bolder for better visibility
+}
+
+// RESPONSIVE 
+
+// Custom responsive mixins for this component
+@mixin tablet {
+  @media (max-width: 1024px) {
+    @content;
+  }
+}
+
+@mixin mobile {
+  @media (max-width: 768px) {
+    @content;
+  }
+}
+
+@mixin small {
+  @media (max-width: 480px) {
+    @content;
+  }
+}
+
 // ===== Responsive Adjustments =====
-@include respond-to(tablet) {
+
+// Tablet styles
+@include tablet {
   .panel {
     width: $panel-width;
   }
@@ -899,7 +862,8 @@ $mobile-panel-width: 280px;
   }
 }
 
-@include respond-to(mobile) {
+// Mobile styles
+@include mobile {
   .panel:not(.collapsed) {
     width: $mobile-panel-width;
     z-index: 1000;
@@ -909,23 +873,29 @@ $mobile-panel-width: 280px;
     right: $mobile-panel-width;
   }
 
-  .generatedImagesGrid {
-    grid-template-columns: repeat(2, 1fr);
+  .panelContent {
+    padding: 1rem;
+    gap: 1.5rem;
   }
 
-  .panelContent {
-    padding: $spacing-md;
+  .section {
+    &:not(:first-child) {
+      padding-top: 1.5rem;
+      
+      &::before {
+        left: -1rem;
+        right: -1rem;
+      }
+    }
   }
 
   .cardContent {
-    padding: $spacing-md;
+    padding: 1rem;
+    gap: 1rem;
   }
-}
 
-@include respond-to(small) {
   .generatedImagesGrid {
     grid-template-columns: repeat(2, 1fr);
-    gap: $spacing-sm;
   }
 
   .actionButtons {
@@ -937,13 +907,32 @@ $mobile-panel-width: 280px;
   }
 }
 
-.selectionHint {
-  font-size: 0.75rem;
-  color: $text-muted;
-  text-align: center;
-  margin-top: $spacing-sm;
-  padding: $spacing-sm;
-  background: rgba(0, 183, 225, 0.04);
-  border-radius: $radius-sm;
-  border: 1px dashed rgba(0, 183, 225, 0.1);
+// Small mobile styles
+@include small {
+  .generatedImagesGrid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
+  }
+
+  .panelContent {
+    padding: 0.75rem;
+    gap: 1rem;
+  }
+
+  .section {
+    &:not(:first-child) {
+      padding-top: 1rem;
+    }
+  }
+
+  .cardContent {
+    padding: 0.75rem;
+  }
+}
+
+// Larger screens - show 3 columns in grid
+@media (min-width: 360px) {
+  .generatedImagesGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
 }
