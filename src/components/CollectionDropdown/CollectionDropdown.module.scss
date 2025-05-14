@@ -1,7 +1,10 @@
+// src/components/CollectionDropdown/CollectionDropdown.module.scss
+
 .dropdownContainer {
   position: relative;
   width: 100%;
   margin-top: 0.5rem;
+  font-family: "Inter";
 }
 
 .dropdownButton {
@@ -14,7 +17,7 @@
   border: 1px solid var(--border);
   border-radius: 10px;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-weight: 500;
   color: var(--foreground);
   transition: all 0.2s ease;
@@ -29,6 +32,16 @@
     border-color: var(--accent-cyan);
     box-shadow: 0 0 0 2px rgba(0, 183, 225, 0.2);
   }
+
+  &.noSelection {
+    border-color: rgba(255, 59, 48, 0.2);
+    background: rgba(255, 59, 48, 0.02);
+    
+    &:hover {
+      border-color: rgba(255, 59, 48, 0.3);
+      background: rgba(255, 59, 48, 0.05);
+    }
+  }
 }
 
 .buttonText {
@@ -37,11 +50,22 @@
   white-space: nowrap;
   flex: 1;
   text-align: left;
+
+  &.placeholder {
+    color: #888;
+    font-style: italic;
+  }
 }
 
 .icon {
   margin-left: 0.5rem;
   color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+.warningIcon {
+  color: #FF3B30;
+  margin-left: 8px;
   flex-shrink: 0;
 }
 
@@ -119,7 +143,8 @@
 
 .dropdownItem {
   display: flex;
-  align-items: center;
+  flex-direction: column;
+  align-items: flex-start;
   justify-content: space-between;
   padding: 0.75rem 0.875rem;
   cursor: pointer;
@@ -127,21 +152,41 @@
   transition: background-color 0.2s ease;
   font-size: 0.875rem;
   color: var(--foreground);
+  gap: 4px;
+  position: relative;
 
   &:hover {
     background-color: rgba(0, 183, 225, 0.05);
   }
+
+  &.selected {
+    background-color: rgba(0, 183, 225, 0.1);
+    border-left: 3px solid #00B7E1;
+  }
 }
 
 .collectionName {
+  font-weight: 500;
+  color: var(--foreground);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  width: 100%;
+}
+
+.collectionAddress {
+  font-size: 0.75rem;
+  color: #888;
+  font-family: monospace;
+  align-self: flex-start;
 }
 
 .checkIcon {
   color: var(--accent-cyan);
   flex-shrink: 0;
+  position: absolute;
+  top: 0.75rem;
+  right: 0.875rem;
 }
 
 .loadingItem {
@@ -152,9 +197,25 @@
 }
 
 .emptyMessage {
-  padding: 0.75rem 0.875rem;
-  font-size: 0.875rem;
-  color: var(--text-muted);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 1rem 0.875rem;
   text-align: center;
-  font-style: italic;
+  color: #888;
+  
+  svg {
+    color: #FF3B30;
+  }
+  
+  span {
+    font-weight: 500;
+  }
+  
+  small {
+    font-size: 0.75rem;
+    color: #aaa;
+    margin-top: 4px;
+  }
 }

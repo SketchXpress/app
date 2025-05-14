@@ -6,18 +6,6 @@ import { uploadMetadataToIPFS } from "@/lib/uploadMetadataToIPFS";
 import { uploadToIPFSUsingPinata } from "@/lib/uploadToIPFSUsingPinata";
 import { GeneratedImage, Pool } from "./types";
 
-// Defining default pools for Kids and Pro modes
-export const DEFAULT_POOLS = {
-  kids: {
-    address: `Dw3DsPgXDVDPxVHoWhDcxKyJVu3ZEqkViwkpAahP9Knv`,
-    name: "Kids Collection",
-  },
-  pro: {
-    address: `8RKh6HYujHmwPCG6qgNJZCzGJZv1zyzyhhWVhPYAJBG3`,
-    name: "Pro Collection",
-  },
-};
-
 // Utility to check if kids mode is active
 export const isKidsMode = (mode: string) => mode === "kids";
 
@@ -113,12 +101,22 @@ export const mintNFT = async (
   ) => Promise<any>,
   customNftName: string
 ) => {
-  // Don't check for wallet connection here anymore - let the component handle it
+  console.log("🚀 Starting mint process...");
+  console.log("Selected pool:", selectedPool);
 
   if (!selectedImageId) {
     toast.warning("Please select an image to mint!", {
       position: "bottom-left",
       autoClose: 3000,
+    });
+    return false;
+  }
+
+  // Check if a pool is selected - don't use defaults
+  if (!selectedPool || !selectedPool.address) {
+    toast.warning("Please select a collection pool before minting!", {
+      position: "bottom-left",
+      autoClose: 4000,
     });
     return false;
   }
@@ -136,42 +134,43 @@ export const mintNFT = async (
   }
 
   try {
-    // Determine which pool to use
-    const defaultPool = isKidsMode(mode)
-      ? DEFAULT_POOLS.kids
-      : { ...DEFAULT_POOLS.pro, name: "Pro Collection" };
+    // Use only the selected pool - no defaults
+    const poolInfo = {
+      address: selectedPool.address,
+      name: selectedPool.name,
+    };
 
-    const poolInfo = selectedPool
-      ? { address: selectedPool.address, name: selectedPool.name }
-      : defaultPool;
+    console.log("✅ Using selected pool:", poolInfo);
 
-    // Use custom name if provided, otherwise use default
+    // Use custom name if provided, otherwise use pool-based default
     const nftName = customNftName || `${poolInfo.name} Artwork`;
 
     // Show a loading toast that includes pool information
-    const mintingToastId = toast.loading(
-      `Starting NFT minting process on ${poolInfo.name}...`,
-      {
-        position: "bottom-left",
-      }
-    );
+    const mintingToastId = toast.loading(`Minting NFT on ${poolInfo.name}...`, {
+      position: "bottom-left",
+    });
 
     // Fetch the image blob from the original URL
+    console.log("📥 Fetching image from:", selectedImage.url);
     const response = await fetch(selectedImage.url);
     if (!response.ok) {
       throw new Error(`Failed to fetch image for minting: ${response.status}`);
     }
     const blob = await response.blob();
+    console.log("✅ Image blob created, size:", blob.size);
 
     // Upload image to IPFS
+    console.log("☁️ Uploading image to IPFS...");
     toast.update(mintingToastId, {
       render: "Uploading image to IPFS...",
       type: "info",
       isLoading: true,
     });
     const imageIpfsUrl = await uploadToIPFSUsingPinata(blob);
+    console.log("✅ Image uploaded to IPFS:", imageIpfsUrl);
 
     // Upload metadata to IPFS
+    console.log("📄 Uploading metadata to IPFS...");
     toast.update(mintingToastId, {
       render: "Uploading metadata to IPFS...",
       type: "info",
@@ -182,10 +181,12 @@ export const mintNFT = async (
       "AI-enhanced artwork created with SketchXpress.",
       imageIpfsUrl
     );
+    console.log("✅ Metadata uploaded to IPFS:", metadataIpfsUrl);
 
     // Mint the NFT with pool info
+    console.log("⚡ Creating NFT transaction...");
     toast.update(mintingToastId, {
-      render: `Creating your NFT on the ${poolInfo.name}...`,
+      render: `Creating your NFT on ${poolInfo.name}...`,
       type: "info",
       isLoading: true,
     });
@@ -203,10 +204,10 @@ export const mintNFT = async (
     // Close the loading toast first
     toast.dismiss(mintingToastId);
 
-    // Don't show success toast here - let the component show enhanced feedback
-    // Just return success
+    console.log("🎉 Minting completed successfully!");
     return { success: true, nftAddress, poolInfo };
   } catch (error) {
+    console.error("❌ Minting failed:", error);
     toast.error(
       `Minting failed: ${
         error instanceof Error ? error.message : String(error)

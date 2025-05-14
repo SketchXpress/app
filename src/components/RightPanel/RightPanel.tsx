@@ -50,12 +50,8 @@ const RightPanel: React.FC = () => {
     toggleSidebar,
   } = useResponsiveBehavior();
 
-  const {
-    generatedImages,
-    selectedImageId,
-    setSelectedImageId,
-    error,
-  } = useEnhanceEvents(sidebarOpen, setSidebarOpen);
+  const { generatedImages, selectedImageId, setSelectedImageId, error } =
+    useEnhanceEvents(sidebarOpen, setSidebarOpen);
 
   const { showGallery, setShowGallery } = useImageGallery(setSelectedImageId);
   const [nftName, setNftName] = useState<string>("");
@@ -171,24 +167,24 @@ const RightPanel: React.FC = () => {
 
       // Show extended success message with action to navigate to Mintstreet
       toast.success(
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           <span>🎉 NFT minted successfully!</span>
           <button
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              background: 'white',
-              color: '#06b6d4',
-              border: '1px solid #06b6d4',
-              borderRadius: '6px',
-              padding: '6px 12px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '500'
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              background: "white",
+              color: "#06b6d4",
+              border: "1px solid #06b6d4",
+              borderRadius: "6px",
+              padding: "6px 12px",
+              cursor: "pointer",
+              fontSize: "14px",
+              fontWeight: "500",
             }}
             onClick={() => {
-              router.push('/mintstreet');
+              router.push("/mintstreet");
               toast.dismiss();
             }}
           >
@@ -199,7 +195,7 @@ const RightPanel: React.FC = () => {
           position: "bottom-left",
           autoClose: 8000,
           closeOnClick: false,
-          style: { maxWidth: '320px' }
+          style: { maxWidth: "320px" },
         }
       );
     }
@@ -251,19 +247,25 @@ const RightPanel: React.FC = () => {
       {/* Desktop collapse toggle */}
       {!isMobile && !isTablet && (
         <button
-          className={`${styles.collapseToggle} ${!sidebarOpen ? styles.collapsed : ""
-            }`}
+          className={`${styles.collapseToggle} ${
+            !sidebarOpen ? styles.collapsed : ""
+          }`}
           onClick={toggleSidebar}
           aria-label={sidebarOpen ? "Collapse panel" : "Expand panel"}
         >
-          {sidebarOpen ? <ChevronsRight size={18} /> : <ChevronsLeft size={18} />}
+          {sidebarOpen ? (
+            <ChevronsRight size={18} />
+          ) : (
+            <ChevronsLeft size={18} />
+          )}
         </button>
       )}
 
       <aside
         ref={sidebarRef}
-        className={`${styles.panel} ${!sidebarOpen ? styles.collapsed : ""
-          } ${isMobile ? styles.mobile : ""} ${isTablet ? styles.tablet : ""}`}
+        className={`${styles.panel} ${!sidebarOpen ? styles.collapsed : ""} ${
+          isMobile ? styles.mobile : ""
+        } ${isTablet ? styles.tablet : ""}`}
       >
         <div className={styles.panelContent}>
           {!sidebarOpen && (
@@ -410,8 +412,9 @@ const RightPanel: React.FC = () => {
                             {Array.from({ length: 4 }).map((_, i) => (
                               <div
                                 key={i}
-                                className={`${styles.numBox} ${i < numImages ? styles.active : ""
-                                  }`}
+                                className={`${styles.numBox} ${
+                                  i < numImages ? styles.active : ""
+                                }`}
                               />
                             ))}
                           </div>
@@ -511,9 +514,7 @@ const RightPanel: React.FC = () => {
                       className={styles.toggleGallery}
                       onClick={() => setShowGallery(!showGallery)}
                       type="button"
-                      aria-label={
-                        showGallery ? "Hide gallery" : "Show gallery"
-                      }
+                      aria-label={showGallery ? "Hide gallery" : "Show gallery"}
                     >
                       {showGallery ? (
                         <ChevronUp size={16} />
@@ -528,15 +529,12 @@ const RightPanel: React.FC = () => {
                       {generatedImages.map((image) => (
                         <div
                           key={image.id}
-                          className={`${styles.generatedImageCard} ${selectedImageId === image.id
-                            ? styles.selected
-                            : ""
-                            }`}
+                          className={`${styles.generatedImageCard} ${
+                            selectedImageId === image.id ? styles.selected : ""
+                          }`}
                           onClick={() => {
                             const newId =
-                              image.id === selectedImageId
-                                ? null
-                                : image.id;
+                              image.id === selectedImageId ? null : image.id;
                             setSelectedImageId(newId);
                             if (newId !== null) {
                               toast.info(`Image ${image.id} selected`, {
@@ -560,9 +558,7 @@ const RightPanel: React.FC = () => {
                               <div className={styles.selectedIndicator} />
                             )}
                           </div>
-                          <div className={styles.imageTitle}>
-                            {image.title}
-                          </div>
+                          <div className={styles.imageTitle}>{image.title}</div>
                         </div>
                       ))}
                     </div>
@@ -572,9 +568,7 @@ const RightPanel: React.FC = () => {
 
               {generatedImages.length > 0 && (
                 <div className={styles.section}>
-                  <h3 className={styles.sectionTitle}>
-                    NFT Details
-                  </h3>
+                  <h3 className={styles.sectionTitle}>NFT Details</h3>
                   <div className={styles.nftNameInput}>
                     <label htmlFor="nft-name">NFT Name (Optional)</label>
                     <input
@@ -582,9 +576,12 @@ const RightPanel: React.FC = () => {
                       type="text"
                       value={nftName}
                       onChange={(e) => setNftName(e.target.value)}
-                      placeholder={`${selectedPool?.name ||
-                        (isKidsMode(mode) ? "Kids Collection" : "Pro Collection")
-                        } Artwork`}
+                      placeholder={`${
+                        selectedPool?.name ||
+                        (isKidsMode(mode)
+                          ? "Kids Collection"
+                          : "Pro Collection")
+                      } Artwork`}
                       className={styles.inputField}
                       maxLength={50}
                     />
@@ -599,15 +596,21 @@ const RightPanel: React.FC = () => {
               {generatedImages.length > 0 && (
                 <div className={styles.section}>
                   <div
-                    className={`${styles.actionButtons} ${isMobile ? styles.mobileActions : ""
-                      }`}
+                    className={`${styles.actionButtons} ${
+                      isMobile ? styles.mobileActions : ""
+                    }`}
                   >
                     {mode === "pro" ? (
                       <button
-                        className={`${styles.actionButton} ${styles.mintButton} ${!selectedImageId ? styles.disabled : ""
-                          }`}
+                        className={`${styles.actionButton} ${
+                          styles.mintButton
+                        } ${
+                          !selectedImageId || !selectedPool
+                            ? styles.disabled
+                            : ""
+                        }`}
                         onClick={handleMintNFT}
-                        disabled={!selectedImageId}
+                        disabled={!selectedImageId || !selectedPool}
                         type="button"
                       >
                         <Coins size={18} />
@@ -615,12 +618,19 @@ const RightPanel: React.FC = () => {
                       </button>
                     ) : (
                       <button
-                        className={`${styles.actionButton} ${styles.kidsMintButton} ${!selectedImageId ? styles.disabled : ""
-                          }`}
+                        className={`${styles.actionButton} ${
+                          styles.kidsMintButton
+                        } ${
+                          !selectedImageId || !selectedPool
+                            ? styles.disabled
+                            : ""
+                        }`}
                         onClick={() =>
-                          selectedImageId && handleKidsMintClick(selectedImageId)
+                          selectedImageId &&
+                          selectedPool &&
+                          handleKidsMintClick(selectedImageId)
                         }
-                        disabled={!selectedImageId}
+                        disabled={!selectedImageId || !selectedPool}
                         type="button"
                       >
                         <Coins size={18} />
@@ -632,8 +642,9 @@ const RightPanel: React.FC = () => {
                     )}
 
                     <button
-                      className={`${styles.actionButton} ${styles.downloadButton} ${!selectedImageId ? styles.disabled : ""
-                        }`}
+                      className={`${styles.actionButton} ${
+                        styles.downloadButton
+                      } ${!selectedImageId ? styles.disabled : ""}`}
                       onClick={handleDirectDownload}
                       disabled={!selectedImageId}
                       type="button"
@@ -643,10 +654,21 @@ const RightPanel: React.FC = () => {
                     </button>
                   </div>
 
-                  {/* Show hint message when no image is selected */}
-                  {!selectedImageId && (
+                  {/* Updated hint message */}
+                  {!selectedImageId && !selectedPool && (
                     <p className={styles.selectionHint}>
-                      Select an image from Generated Images above to mint or download
+                      Select an image from Generated Images and choose a
+                      collection pool to mint
+                    </p>
+                  )}
+                  {selectedImageId && !selectedPool && (
+                    <p className={styles.selectionHint}>
+                      Please select a collection pool to mint your NFT
+                    </p>
+                  )}
+                  {!selectedImageId && selectedPool && (
+                    <p className={styles.selectionHint}>
+                      Select an image from Generated Images above to mint
                     </p>
                   )}
                 </div>

@@ -1,10 +1,9 @@
-// TrendingCollections.tsx with improved error handling
 "use client";
 
-import React, { useState, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useTrendingCollections } from "@/hook/collections/useTrendingCollections";
 import styles from "./TrendingCollections.module.scss";
+import React, { useState, useCallback, useEffect } from "react";
+import { useTrendingCollections } from "@/hook/collections/useTrendingCollections";
 import {
   DesktopCollectionTable,
   EmptyState,
@@ -15,11 +14,10 @@ import {
 
 const TrendingCollections: React.FC = () => {
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<"trending" | "top">("trending");
-  const [rateLimitError, setRateLimitError] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
+  const [rateLimitError, setRateLimitError] = useState(false);
+  const [activeTab, setActiveTab] = useState<"trending" | "top">("trending");
 
-  // Use the trending collections hook with rate limiting
   const {
     collections,
     leftCollections,
@@ -32,10 +30,10 @@ const TrendingCollections: React.FC = () => {
     maxCollections: 8,
     enablePricing: true,
     sortBy: activeTab,
-    refreshInterval: 120 * 1000, // Increase to 2 minutes to reduce rate limiting
+    refreshInterval: 120 * 1000, // Using 2 minutes to reduce rate limit
   });
 
-  // Monitor errors for rate limiting
+  // Monitoring error for rate limit
   useEffect(() => {
     if (error && error.includes("429")) {
       setRateLimitError(true);
