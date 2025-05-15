@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { NFT } from "@/types/nft";
 import { useWalletNFTs } from "@/hooks/queries/useWalletNFTs";
-import { useTransactionHistory } from "@/hooks/queries/useTransactionHistory";
+import { useTransactionHistory } from "@/hook/api/helius/useTransactionHistory";
 
 import ConnectWalletButton from "@/wallet/ConnectWalletButton";
 import styles from "./MyNFT.module.scss";
@@ -46,11 +46,10 @@ const MyNFT: React.FC = () => {
 
   // Fetch transaction history
   const {
-    data: history = [],
+    history,
     isLoading: historyLoading,
     error: historyError,
-    refetch: refetchHistory,
-  } = useTransactionHistory(100);
+  } = useTransactionHistory({ limit: 100 });
 
   // Memoized mapping of NFT mint addresses to pool addresses
   const nftToPoolMap = useMemo(() => {
@@ -133,8 +132,8 @@ const MyNFT: React.FC = () => {
 
   const handleRetry = useCallback(() => {
     if (nftsError) refetchNfts();
-    if (historyError) refetchHistory();
-  }, [nftsError, historyError, refetchNfts, refetchHistory]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nftsError, historyError, refetchNfts]);
 
   // Loading state for connecting wallet
   if (connecting) {

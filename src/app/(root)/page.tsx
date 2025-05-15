@@ -1,6 +1,6 @@
 "use client";
 
-import styles from "@/styles/pages/root.module.scss"
+import styles from "@/styles/pages/root.module.scss";
 import RightPanel from "@/components/RightPanel/RightPanel";
 import LeftSidebar from "@/components/LeftSidebar/LeftSidebar";
 import CanvasWrapper from "@/components/CanvasWrapper/CanvasWrapper";
@@ -14,7 +14,7 @@ const SketchPage = () => {
       </div>
       <RightPanel />
     </div>
-  )
-}
+  );
+};
 
 export default SketchPage;

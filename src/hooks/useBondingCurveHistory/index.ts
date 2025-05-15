@@ -4,4 +4,4 @@ export type {
   HistoryItem,
   BondingCurveHistoryResult,
   PerformanceStats,
-} from "./types";
+} from "../../hook/useBondingCurveHistory/types";

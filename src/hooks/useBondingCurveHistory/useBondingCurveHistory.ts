@@ -5,7 +5,10 @@ import { PublicKey, Connection } from "@solana/web3.js";
 import { IDL as BondingCurveIDL } from "../../utils/idl";
 import { useState, useEffect, useCallback } from "react";
 import { createTimer, findAccountIndex } from "./helpers";
-import { HistoryItem, BondingCurveHistoryResult } from "./types";
+import {
+  HistoryItem,
+  BondingCurveHistoryResult,
+} from "../../hook/useBondingCurveHistory/types";
 import {
   AnchorProvider,
   Idl,

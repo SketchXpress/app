@@ -56,6 +56,7 @@ export interface PerformanceStats {
   successfulPriceExtractions: number;
   failedPriceExtractions: number;
   lastFetchTime: number;
+  cacheHits?: any;
 }
 
 // Hook return type
@@ -68,4 +69,20 @@ export interface BondingCurveHistoryResult {
   canLoadMore: boolean;
   clearCache: () => void;
   stats: PerformanceStats;
+}
+
+export interface HistoryItem {
+  signature: string;
+  blockTime: number | null | undefined;
+  instructionName: string;
+  accounts: PublicKey[];
+  args: any;
+  description: string;
+  type: string;
+  source: string;
+  error: any;
+  poolAddress?: string;
+  price?: number;
+  isPriceLoading?: boolean;
+  priceLoadAttempted?: boolean;
 }

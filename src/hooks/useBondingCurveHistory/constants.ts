@@ -1,7 +1,7 @@
 import { PublicKey } from "@solana/web3.js";
 
 // Helius API endpoint configuration
-export const HELIUS_API_KEY = "69b4db73-1ed1-4558-8e85-192e0994e556";
+export const HELIUS_API_KEY = "70eef812-8d6b-496f-bc30-1725d5acb800";
 export const HELIUS_API_BASE = "https://api-devnet.helius.xyz/v0";
 export const HELIUS_RPC_ENDPOINT = `https://devnet.helius-rpc.com/?api-key=${HELIUS_API_KEY}`;
 export const PROGRAM_ID = "FCpT1hnh9JKPmCR8s1rPA2ab5mETT9TFUcbDdnXhLPdu";

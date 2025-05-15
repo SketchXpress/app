@@ -101,11 +101,6 @@ export const useEnhanceEvents = (
           savedSession.images &&
           savedSession.images.length > 0
         ) {
-          console.log(
-            "Loaded saved images from storage:",
-            savedSession.images.length
-          );
-
           // Process saved images to convert blob URLs if needed
           const processedImages = await Promise.all(
             savedSession.images.map(async (img) => {
@@ -157,7 +152,6 @@ export const useEnhanceEvents = (
   const saveCurrentImages = useCallback(
     async (images: GeneratedImage[], selected: number | null) => {
       if (images.length > 0) {
-        console.log("Saving images to storage:", images.length);
         await enhancedImageStorage.saveImages(images, selected);
       }
     },

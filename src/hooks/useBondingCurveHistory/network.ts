@@ -10,7 +10,7 @@ import {
   CONCURRENT_RPC_LIMIT,
 } from "./constants";
 import { delay, createTimer } from "./helpers";
-import { PerformanceStats } from "./types";
+import { PerformanceStats } from "../../hook/useBondingCurveHistory/types";
 import React from "react";
 
 // Optimized fetch with retry and backoff

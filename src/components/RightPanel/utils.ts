@@ -101,9 +101,6 @@ export const mintNFT = async (
   ) => Promise<any>,
   customNftName: string
 ) => {
-  console.log("🚀 Starting mint process...");
-  console.log("Selected pool:", selectedPool);
-
   if (!selectedImageId) {
     toast.warning("Please select an image to mint!", {
       position: "bottom-left",
@@ -140,8 +137,6 @@ export const mintNFT = async (
       name: selectedPool.name,
     };
 
-    console.log("✅ Using selected pool:", poolInfo);
-
     // Use custom name if provided, otherwise use pool-based default
     const nftName = customNftName || `${poolInfo.name} Artwork`;
 
@@ -151,26 +146,23 @@ export const mintNFT = async (
     });
 
     // Fetch the image blob from the original URL
-    console.log("📥 Fetching image from:", selectedImage.url);
     const response = await fetch(selectedImage.url);
     if (!response.ok) {
       throw new Error(`Failed to fetch image for minting: ${response.status}`);
     }
     const blob = await response.blob();
-    console.log("✅ Image blob created, size:", blob.size);
 
     // Upload image to IPFS
-    console.log("☁️ Uploading image to IPFS...");
+
     toast.update(mintingToastId, {
       render: "Uploading image to IPFS...",
       type: "info",
       isLoading: true,
     });
     const imageIpfsUrl = await uploadToIPFSUsingPinata(blob);
-    console.log("✅ Image uploaded to IPFS:", imageIpfsUrl);
 
     // Upload metadata to IPFS
-    console.log("📄 Uploading metadata to IPFS...");
+
     toast.update(mintingToastId, {
       render: "Uploading metadata to IPFS...",
       type: "info",
@@ -181,10 +173,9 @@ export const mintNFT = async (
       "AI-enhanced artwork created with SketchXpress.",
       imageIpfsUrl
     );
-    console.log("✅ Metadata uploaded to IPFS:", metadataIpfsUrl);
 
     // Mint the NFT with pool info
-    console.log("⚡ Creating NFT transaction...");
+
     toast.update(mintingToastId, {
       render: `Creating your NFT on ${poolInfo.name}...`,
       type: "info",

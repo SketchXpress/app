@@ -1,6 +1,6 @@
 import { useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { HistoryItem } from "./types";
+import { HistoryItem } from "../../hook/useBondingCurveHistory/types";
 import { extractSellPrice } from "./extractors";
 import { findAccountIndex } from "./helpers";
 import { IDL as BondingCurveIDL } from "@/utils/idl";

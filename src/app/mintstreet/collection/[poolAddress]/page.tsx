@@ -3,12 +3,34 @@
 import React, { ReactNode, useMemo } from "react";
 import { useParams } from "next/navigation";
 import styles from "./page.module.scss";
-import { usePoolInfo } from "@/hooks/usePoolInfo";
-import { useBondingCurveForPool } from "@/hooks/useBondingCurveForPool";
-import { usePoolNfts } from "@/hooks/usePoolNFTs";
+import { useBondingCurveForPool } from "@/hook/pools/useBondingCurveForPool";
+import { usePoolNfts } from "@/hook/pools/usePoolNFTs";
 import CollectionChart from "./CollectionChart";
 import PoolNFTsGrid from "./PoolNFTsGrid";
-import { Loader2 } from "lucide-react";
+import { Loader2, TrendingUp, TrendingDown } from "lucide-react";
+import ConnectionStatus from "@/components/ConnectionStatus";
+import { useRealtimePoolData, useRealtimePoolStats } from "@/hook/core";
+
+// Enhanced pool info interface with real-time data
+interface PoolInfo {
+  collectionName: ReactNode;
+  totalEscrowed: number;
+  basePrice: number;
+  growthFactor: number;
+  currentSupply: number;
+  protocolFeePercent: number;
+  isActive: boolean;
+  migrationStatus: string;
+  creator: string;
+  collection: string;
+  // Real-time fields
+  volume24h?: number;
+  transactions24h?: number;
+  priceChange24h?: number;
+  lastPrice?: number;
+  hasRealtimeData?: boolean;
+  connectionState?: string;
+}
 
 export default function CollectionDetailPage() {
   const params = useParams();
@@ -17,32 +39,20 @@ export default function CollectionDetailPage() {
     ? params.poolAddress[0]
     : params.poolAddress || "";
 
-  // Always call hooks unconditionally at the top level
-  // Using the correct property names from React Query
-  interface PoolInfo {
-    collectionName: ReactNode;
-    totalEscrowed: number;
-    basePrice: number;
-    growthFactor: number;
-    currentSupply: number;
-    protocolFeePercent: number;
-    isActive: boolean;
-    migrationStatus: string;
-    creator: string;
-    collection: string;
-  }
-
+  // Enhanced pool data with real-time integration
   const {
-    data: info,
+    poolInfo: enhancedInfo,
     isLoading: infoLoading,
     error: infoError,
-  } = usePoolInfo(poolAddress) as {
-    data: PoolInfo | undefined;
-    isLoading: boolean;
-    error: Error | null;
-  };
-  console.table(info);
+    connectionState,
+    hasRealtimeData,
+    lastUpdate,
+  } = useRealtimePoolData(poolAddress);
 
+  // Real-time pool statistics
+  const { stats: realtimeStats } = useRealtimePoolStats(poolAddress);
+
+  // Existing hooks (unchanged)
   const { history, isLoading: historyLoading } =
     useBondingCurveForPool(poolAddress);
   const {
@@ -51,7 +61,7 @@ export default function CollectionDetailPage() {
     error: nftsError,
   } = usePoolNfts(poolAddress);
 
-  // Calculate last mint price from history
+  // Calculate last mint price from history (keeping existing logic)
   const lastMintPrice = useMemo(() => {
     if (history.length === 0) return "N/A";
 
@@ -75,13 +85,13 @@ export default function CollectionDetailPage() {
     return "N/A";
   }, [history]);
 
-  // Calculate migration progress percentage
+  // Enhanced migration progress with real-time data
   const migrationProgress = useMemo(() => {
-    if (!info) return 0;
+    if (!enhancedInfo) return 0;
     const threshold = 690; // 690 SOL
-    const progress = (info.totalEscrowed / threshold) * 100;
+    const progress = (enhancedInfo.totalEscrowed / threshold) * 100;
     return Math.min(progress, 100); // Cap at 100%
-  }, [info]);
+  }, [enhancedInfo]);
 
   // Helper to format addresses for display
   const formatAddress = (address: string) => {
@@ -91,7 +101,22 @@ export default function CollectionDetailPage() {
     )}`;
   };
 
-  // Check for invalid pool address - do this AFTER calling hooks
+  // Format price change with color
+  const formatPriceChange = (change: number) => {
+    const isPositive = change >= 0;
+    const icon = isPositive ? TrendingUp : TrendingDown;
+    const colorClass = isPositive ? styles.positive : styles.negative;
+
+    return (
+      <span className={`${styles.priceChange} ${colorClass}`}>
+        {React.createElement(icon, { size: 16 })}
+        {isPositive ? "+" : ""}
+        {change.toFixed(2)}%
+      </span>
+    );
+  };
+
+  // Check for invalid pool address
   if (!poolAddress) {
     return (
       <div className={styles.errorContainer}>
@@ -114,33 +139,79 @@ export default function CollectionDetailPage() {
     );
   }
 
-  // Error state - properly handle the error type
-  if (infoError || !info) {
+  // Error state
+  if (infoError || !enhancedInfo) {
     return (
       <div className={styles.errorContainer}>
         <h2>Error Loading Pool</h2>
-        <p>
-          {infoError ? infoError.message : "Could not load pool information."}
-        </p>
+        <p>{infoError ? infoError : "Could not load pool information."}</p>
       </div>
     );
   }
 
+  // Cast enhancedInfo to match existing interface for compatibility
+  const info = enhancedInfo as PoolInfo;
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <h1 className={styles.title}>
-          Collection: {formatAddress(info.collection)}({info.collectionName})
-        </h1>
+        <div className={styles.headerMain}>
+          <h1 className={styles.title}>
+            Collection: {formatAddress(info.collection)}({info.collectionName})
+          </h1>
+
+          {/* Real-time connection status */}
+          <ConnectionStatus
+            connectionState={connectionState}
+            hasRealtimeData={hasRealtimeData}
+            lastUpdate={lastUpdate}
+            size="md"
+          />
+        </div>
+
         <div className={styles.poolAddress}>
           Pool: <span>{formatAddress(poolAddress)}</span>
         </div>
+
+        {/* Real-time statistics bar */}
+        {realtimeStats && (
+          <div className={styles.realtimeStats}>
+            <div className={styles.statItem}>
+              <span className={styles.statLabel}>24h Volume</span>
+              <span className={styles.statValue}>
+                {realtimeStats.volume24h.toFixed(4)} SOL
+              </span>
+            </div>
+            <div className={styles.statItem}>
+              <span className={styles.statLabel}>24h Transactions</span>
+              <span className={styles.statValue}>
+                {realtimeStats.transactions24h}
+              </span>
+            </div>
+            <div className={styles.statItem}>
+              <span className={styles.statLabel}>24h Traders</span>
+              <span className={styles.statValue}>
+                {realtimeStats.uniqueTraders24h}
+              </span>
+            </div>
+            {realtimeStats.priceChange24h !== undefined && (
+              <div className={styles.statItem}>
+                <span className={styles.statLabel}>24h Change</span>
+                {formatPriceChange(realtimeStats.priceChange24h)}
+              </div>
+            )}
+          </div>
+        )}
       </header>
 
       <main className={styles.content}>
         {/* Left side - Chart */}
         <section className={styles.chartSection}>
-          <CollectionChart poolAddress={poolAddress} />
+          <CollectionChart
+            poolAddress={poolAddress}
+            hasRealtimeData={hasRealtimeData}
+            connectionState={connectionState}
+          />
 
           {/* NFTs Grid - Below the chart */}
           <PoolNFTsGrid
@@ -153,21 +224,44 @@ export default function CollectionDetailPage() {
               price: nft.price || 0,
             }))}
             isLoading={nftsLoading}
-            error={nftsError}
+            error={nftsError?.message || null}
             poolAddress={poolAddress}
           />
         </section>
 
         {/* Right side - Pool info */}
         <section className={styles.infoSection}>
-          {/* Price card */}
+          {/* Enhanced Price card with real-time data */}
           <div className={styles.card}>
-            <h2 className={styles.cardTitle}>Price Information</h2>
+            <div className={styles.cardHeader}>
+              <h2 className={styles.cardTitle}>Price Information</h2>
+              {hasRealtimeData && (
+                <span className={styles.liveIndicator}>
+                  <span className={styles.liveDot}></span>
+                  LIVE
+                </span>
+              )}
+            </div>
             <div className={styles.cardContent}>
-              <div className={styles.priceHighlight}>
-                <span className={styles.priceLabel}>Last Mint Price</span>
-                <span className={styles.priceValue}>{lastMintPrice}</span>
-              </div>
+              {/* Real-time last price if available */}
+              {info.lastPrice && hasRealtimeData ? (
+                <div className={styles.priceHighlight}>
+                  <span className={styles.priceLabel}>Current Price</span>
+                  <span className={styles.priceValue}>
+                    {info.lastPrice.toFixed(4)} SOL
+                  </span>
+                  {info.priceChange24h !== undefined && (
+                    <div className={styles.priceChangeContainer}>
+                      {formatPriceChange(info.priceChange24h)}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className={styles.priceHighlight}>
+                  <span className={styles.priceLabel}>Last Mint Price</span>
+                  <span className={styles.priceValue}>{lastMintPrice}</span>
+                </div>
+              )}
 
               <div className={styles.infoGrid}>
                 <div className={styles.infoItem}>
@@ -197,7 +291,7 @@ export default function CollectionDetailPage() {
             </div>
           </div>
 
-          {/* Bonding curve card */}
+          {/* Enhanced Bonding curve card */}
           <div className={styles.card}>
             <h2 className={styles.cardTitle}>Bonding Curve</h2>
             <div className={styles.cardContent}>
@@ -238,7 +332,7 @@ export default function CollectionDetailPage() {
             </div>
           </div>
 
-          {/* Creator info card */}
+          {/* Enhanced Collection details with real-time data */}
           <div className={styles.card}>
             <h2 className={styles.cardTitle}>Collection Details</h2>
             <div className={styles.cardContent}>
@@ -257,6 +351,14 @@ export default function CollectionDetailPage() {
                 <span className={styles.detailLabel}>Creator</span>
                 <span className={styles.detailValue} title={info.creator}>
                   {formatAddress(info.creator)}
+                </span>
+              </div>
+
+              {/* Show data source */}
+              <div className={styles.detailItem}>
+                <span className={styles.detailLabel}>Data Source</span>
+                <span className={styles.detailValue}>
+                  {hasRealtimeData ? "Real-time + API" : "API Only"}
                 </span>
               </div>
             </div>

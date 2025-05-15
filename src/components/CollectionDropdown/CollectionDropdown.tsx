@@ -6,9 +6,17 @@ import {
   Check,
   RefreshCw,
   AlertCircle,
+  Wifi,
+  WifiOff,
+  Bell,
+  Circle,
 } from "lucide-react";
 import { usePoolStore } from "@/stores/poolStore";
-import { useTransactionHistory } from "@/hooks/queries/useTransactionHistory";
+import {
+  useRealTimeCollections,
+  Pool,
+  Collection,
+} from "@/hook/api/realtime/useRealTimeCollections";
 import { toast } from "react-toastify";
 import styles from "./CollectionDropdown.module.scss";
 
@@ -16,115 +24,47 @@ interface CollectionDropdownProps {
   mode: string;
 }
 
-// Interface for collection data
-interface CollectionData {
-  id: string;
-  poolAddress: string;
-  collectionName: string;
-  isDefault?: boolean;
-}
-
-const CollectionDropdown: React.FC<CollectionDropdownProps> = ({ mode }) => {
+const CollectionDropdown: React.FC<CollectionDropdownProps> = () => {
   const [isOpen, setIsOpen] = useState(false);
-  const [collections, setCollections] = useState<CollectionData[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const { selectedPool, setSelectedPool } = usePoolStore();
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // Fetch transaction history data
+  // Use real-time collections hook - Try real data first, fallback to mock
   const {
-    data: history,
-    isLoading: historyLoading,
-    error: historyError,
-  } = useTransactionHistory(100);
+    pools,
+    collections,
+    newPoolsCount,
+    newCollectionsCount,
+    lastUpdate,
+    connectionState,
+    isLoading,
+    error,
+    refresh,
+    stats,
+  } = useRealTimeCollections({
+    enableSSE: true,
+    fallbackPolling: true,
+    newItemExpiry: 5 * 60 * 1000, // 5 minutes
+    useMockData: false, // Try real data first
+  });
 
-  // Process transaction history to extract collections
+  // Show toast notifications for new items
   useEffect(() => {
-    if (historyLoading) {
-      setIsLoading(true);
-      return;
+    const totalNewItems = newPoolsCount + newCollectionsCount;
+    if (totalNewItems > 0) {
+      toast.info(
+        `${totalNewItems} new item(s) available! ${newCollectionsCount} collections, ${newPoolsCount} pools`,
+        {
+          position: "bottom-right",
+          autoClose: 5000,
+          onClick: () => {
+            setIsOpen(true);
+            refresh();
+          },
+        }
+      );
     }
-
-    if (historyError) {
-      console.error("Error loading collections:", historyError);
-      toast.error("Failed to load collections");
-      setIsLoading(false);
-      return;
-    }
-
-    if (history && history.length > 0) {
-      try {
-        // Create a map to track unique collections
-        const collectionsMap = new Map<string, CollectionData>();
-
-        // First, find collection names from createCollectionNft transactions
-        const collectionNameMap = new Map<string, string>();
-
-        history.forEach((tx) => {
-          if (
-            tx.instructionName === "createCollectionNft" &&
-            tx.args?.name &&
-            tx.accounts
-          ) {
-            const collectionMint = tx.accounts[1].toString();
-            collectionNameMap.set(collectionMint, tx.args.name as string);
-          }
-        });
-
-        // Then process pool creation transactions
-        history.forEach((tx) => {
-          if (
-            tx.instructionName === "createPool" &&
-            tx.poolAddress &&
-            tx.accounts
-          ) {
-            const poolAddress = tx.poolAddress;
-
-            // Try to get a name for the collection
-            let collectionName = "";
-
-            // If we have the collection mint in the accounts, try to look up its name
-            if (tx.accounts.length > 1) {
-              const collectionMint = tx.accounts[1].toString();
-              collectionName = collectionNameMap.get(collectionMint) || "";
-            }
-
-            // If no name found, generate a generic one
-            if (!collectionName) {
-              collectionName = `Collection ${poolAddress.slice(0, 6)}...`;
-            }
-
-            // Only add if not already in the map
-            if (!collectionsMap.has(poolAddress)) {
-              collectionsMap.set(poolAddress, {
-                id: poolAddress,
-                poolAddress,
-                collectionName,
-                isDefault: false,
-              });
-            }
-          }
-        });
-
-        // Convert map to array and sort alphabetically
-        const collectionsArray = Array.from(collectionsMap.values());
-        collectionsArray.sort((a, b) =>
-          a.collectionName.localeCompare(b.collectionName)
-        );
-
-        setCollections(collectionsArray);
-        setIsLoading(false);
-      } catch (error) {
-        console.error("Error processing collections:", error);
-        toast.error("Failed to process collections");
-        setIsLoading(false);
-      }
-    } else {
-      // No history data, empty collections array
-      setCollections([]);
-      setIsLoading(false);
-    }
-  }, [history, historyLoading, historyError, mode]);
+  }, [newPoolsCount, newCollectionsCount, refresh]);
 
   // Handle click outside to close dropdown
   useEffect(() => {
@@ -157,34 +97,58 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = ({ mode }) => {
       type: "custom",
     });
     setIsOpen(false);
+    refresh(); // Clear new indicators
     toast.success(`Selected collection: ${collectionName}`, {
       position: "bottom-left",
       autoClose: 2000,
     });
   };
 
-  // Get the currently selected collection name or placeholder
   const getSelectedName = () => {
-    if (selectedPool) {
-      return selectedPool.name;
-    }
-    return "Select a collection...";
+    return selectedPool?.name || "Select a collection...";
   };
 
-  // Check if a collection is selected
   const isSelected = (poolAddress: string) => {
     return selectedPool?.address === poolAddress;
   };
 
-  // Handle refresh button click
-  const handleRefresh = () => {
-    setIsLoading(true);
-    // You can implement a refetch mechanism here if you have one
-    // For now, just simulate a refresh by setting loading state
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 1000);
+  // Get display pools with collection names
+  const displayPools = pools.map((pool: Pool) => {
+    // Find matching collection by mint address
+    const collection = collections.find(
+      (c: Collection) => c.collectionMint === pool.collectionMint
+    );
+    return {
+      ...pool,
+      collectionName:
+        collection?.collectionName ||
+        pool.collectionName ||
+        `Collection ${pool.collectionMint.slice(0, 6)}...`,
+      symbol: collection?.symbol,
+    };
+  });
+
+  // Get connection status display
+  const getConnectionStatus = () => {
+    switch (connectionState) {
+      case "connected":
+        return { icon: Wifi, color: "text-green-500", text: "Real-time" };
+      case "connecting":
+        return {
+          icon: WifiOff,
+          color: "text-yellow-500",
+          text: "Connecting...",
+        };
+      case "disconnected":
+        return { icon: WifiOff, color: "text-gray-500", text: "Offline" };
+      case "error":
+        return { icon: WifiOff, color: "text-red-500", text: "Error" };
+      default:
+        return { icon: WifiOff, color: "text-gray-500", text: "Unknown" };
+    }
   };
+
+  const { icon: StatusIcon, color, text } = getConnectionStatus();
 
   return (
     <div className={styles.dropdownContainer} ref={dropdownRef}>
@@ -204,9 +168,21 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = ({ mode }) => {
         >
           {getSelectedName()}
         </span>
-        {!selectedPool && (
-          <AlertCircle size={16} className={styles.warningIcon} />
-        )}
+
+        {/* Real-time indicator and new item badge */}
+        <div className={styles.indicators}>
+          {/* New items badge */}
+          {(newPoolsCount > 0 || newCollectionsCount > 0) && (
+            <div className={styles.newItemsBadge}>
+              <Bell size={12} />
+              <span>{newPoolsCount + newCollectionsCount}</span>
+            </div>
+          )}
+
+          {/* Connection status */}
+          <StatusIcon size={14} className={color} />
+        </div>
+
         {isOpen ? (
           <ChevronUp size={16} className={styles.icon} />
         ) : (
@@ -217,54 +193,107 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = ({ mode }) => {
       {isOpen && (
         <div className={styles.dropdownMenu}>
           <div className={styles.dropdownHeader}>
-            <span>Select Collection</span>
-            <button
-              className={styles.refreshButton}
-              onClick={handleRefresh}
-              type="button"
-              aria-label="Refresh collections"
-            >
-              <RefreshCw
-                size={14}
-                className={isLoading ? styles.rotating : ""}
-              />
-            </button>
+            <div className={styles.headerLeft}>
+              <span>Select Collection</span>
+              <div className={styles.statusIndicator}>
+                <StatusIcon size={12} className={color} />
+                <span className={styles.statusText}>{text}</span>
+              </div>
+            </div>
+            <div className={styles.headerRight}>
+              <span className={styles.lastUpdate}>
+                {lastUpdate
+                  ? `Updated ${Math.floor(
+                      (Date.now() - lastUpdate) / 1000
+                    )}s ago`
+                  : ""}
+              </span>
+              <span className={styles.itemCount}>
+                {stats.totalPools} pool{stats.totalPools !== 1 ? "s" : ""}
+              </span>
+              <button
+                className={styles.refreshButton}
+                onClick={refresh}
+                type="button"
+                aria-label="Refresh collections"
+              >
+                <RefreshCw
+                  size={14}
+                  className={isLoading ? styles.rotating : ""}
+                />
+              </button>
+            </div>
           </div>
 
-          {isLoading ? (
-            <div className={styles.loadingItem}>Loading collections...</div>
+          {error && (
+            <div className={styles.errorMessage}>
+              <AlertCircle size={16} />
+              <span>Connection error - using cached data</span>
+              <small>Error: {error.toString()}</small>
+            </div>
+          )}
+
+          {isLoading && displayPools.length === 0 ? (
+            <div className={styles.loadingItem}>Loading pools...</div>
           ) : (
             <>
-              {collections.length > 0 ? (
-                collections.map((collection) => (
-                  <div
-                    key={collection.id}
-                    className={`${styles.dropdownItem} ${
-                      isSelected(collection.poolAddress) ? styles.selected : ""
-                    }`}
-                    onClick={() =>
-                      handleSelectCollection(
-                        collection.poolAddress,
-                        collection.collectionName
-                      )
-                    }
-                  >
-                    <span className={styles.collectionName}>
-                      {collection.collectionName}
-                    </span>
-                    <span className={styles.collectionAddress}>
-                      {collection.poolAddress.slice(0, 6)}...
-                      {collection.poolAddress.slice(-4)}
-                    </span>
-                    {isSelected(collection.poolAddress) && (
-                      <Check size={16} className={styles.checkIcon} />
-                    )}
-                  </div>
-                ))
+              {displayPools.length > 0 ? (
+                <div className={styles.poolsList}>
+                  {displayPools.map((pool: Pool & { symbol?: string }) => (
+                    <div
+                      key={pool.poolAddress}
+                      className={`${styles.dropdownItem} ${
+                        isSelected(pool.poolAddress) ? styles.selected : ""
+                      } ${pool.isNew ? styles.newItem : ""}`}
+                      onClick={() =>
+                        handleSelectCollection(
+                          pool.poolAddress,
+                          pool.collectionName!
+                        )
+                      }
+                    >
+                      <div className={styles.itemContent}>
+                        <div className={styles.itemHeader}>
+                          <span className={styles.collectionName}>
+                            {pool.collectionName}
+                            {pool.isNew && (
+                              <Circle
+                                size={8}
+                                className={styles.newIndicator}
+                              />
+                            )}
+                          </span>
+                          {pool.symbol && (
+                            <span className={styles.symbol}>
+                              ({pool.symbol})
+                            </span>
+                          )}
+                        </div>
+
+                        <div className={styles.itemDetails}>
+                          <span className={styles.poolAddress}>
+                            Pool: {pool.poolAddress.slice(0, 6)}...
+                            {pool.poolAddress.slice(-4)}
+                          </span>
+                          {pool.basePrice && (
+                            <span className={styles.price}>
+                              Price:{" "}
+                              {(parseInt(pool.basePrice) / 1e9).toFixed(4)} SOL
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {isSelected(pool.poolAddress) && (
+                        <Check size={16} className={styles.checkIcon} />
+                      )}
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className={styles.emptyMessage}>
                   <AlertCircle size={20} />
-                  <span>No collections available</span>
+                  <span>No pools available</span>
                   <small>Create a collection pool to mint NFTs</small>
                 </div>
               )}

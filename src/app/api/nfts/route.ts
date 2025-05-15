@@ -19,7 +19,6 @@ export async function GET(request: Request) {
     const url = `https://api-devnet.helius-rpc.com/v0/addresses/${walletAddress}/tokens?api-key=${HELIUS_API_KEY}`;
 
     const response = await fetch(url);
-    console.log(response);
 
     if (!response.ok) {
       const errorText = await response.text();

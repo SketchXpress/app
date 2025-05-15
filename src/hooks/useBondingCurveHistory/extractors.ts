@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PublicKey } from "@solana/web3.js";
-import { HeliusTransaction, HistoryItem } from "./types";
+import {
+  HeliusTransaction,
+  HistoryItem,
+} from "../../hook/useBondingCurveHistory/types";
 import { LAMPORTS_PER_SOL } from "./constants";
 import { findAccountIndex } from "./helpers";
 import { BorshInstructionCoder } from "@coral-xyz/anchor";

@@ -103,7 +103,6 @@ async function fetchWithRetryAndFallback(
           const waitTime = retryAfter
             ? parseInt(retryAfter) * 1000
             : RETRY_DELAY * (attempt + 1);
-          console.log(`Rate limited, waiting ${waitTime}ms before retry...`);
           await delay(waitTime);
           continue;
         }

@@ -8,7 +8,7 @@ import { processTransactionFast } from "@/hooks/useBondingCurveHistory/extractor
 import {
   HistoryItem,
   HeliusTransaction,
-} from "@/hooks/useBondingCurveHistory/types";
+} from "@/hook/useBondingCurveHistory/types";
 
 /**
  * useTransactionHistory hook is for fetching transaction history for the bonding curve program

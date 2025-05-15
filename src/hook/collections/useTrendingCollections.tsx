@@ -1,57 +1,98 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useState, useEffect, useCallback, useMemo } from "react";
-import { useTransactionHistory } from "@/hook/api/helius/";
-import { usePoolPrices } from "@/hook/api/anchor/usePoolPrices";
-import { processTrendingCollections } from "@/utils/processTrendingCollections";
-import { fetchMetadataBatch } from "@/utils/metadataUtils";
+// src/hook/collections/useTrendingCollections.tsx - Fixed with image loading
+import React, { useMemo, useCallback, useEffect, useState } from "react";
+import { useCollectionsStore } from "@/stores/collectionsStore";
 import type {
   DynamicCollection,
   TrendingCollectionsConfig,
   TrendingCollectionsResult,
 } from "@/types/collections";
 
-// Constants
-const PLACEHOLDER_NFT_IMAGES = [
-  "/assets/images/defaultNFT.png",
-  "/assets/images/nft1.jpeg",
-  "/assets/images/nft2.avif",
-  "/assets/images/nft3.jpg",
-  "/assets/images/nft4.jpg",
-  "/assets/images/nft5.png",
-  "/assets/images/nft6.webp",
-];
+// Helper function to get stable placeholder image
+const getStableImage = (poolAddress: string): string => {
+  const PLACEHOLDER_IMAGES = [
+    "/assets/images/defaultNFT.png",
+    "/assets/images/nft1.jpeg",
+    "/assets/images/nft2.avif",
+    "/assets/images/nft3.jpg",
+    "/assets/images/nft4.jpg",
+    "/assets/images/nft5.png",
+    "/assets/images/nft6.webp",
+  ];
 
-// Helper Functions
-const getStableImage = (
-  poolAddress: string,
-  images: string[] = PLACEHOLDER_NFT_IMAGES
-): string => {
-  if (!poolAddress) return images[0];
-
-  // Create a simple hash from the pool address
+  // Create deterministic image selection based on pool address
   const hash = poolAddress
     .split("")
     .reduce((acc, char) => acc + char.charCodeAt(0), 0);
-  const imageIndex = hash % images.length;
-  return images[imageIndex];
+  const imageIndex = hash % PLACEHOLDER_IMAGES.length;
+  return PLACEHOLDER_IMAGES[imageIndex];
 };
 
-const sortCollections = (
-  collections: any[],
-  sortBy: "trending" | "top"
-): any[] => {
-  const sorted = [...collections];
+// Function to fetch metadata and extract image
+const fetchMetadataImage = async (uri: string): Promise<string | null> => {
+  try {
+    // Validate URI format
+    if (!uri || uri === "google.com" || uri.length < 10) {
+      console.warn("❌ Invalid URI:", uri);
+      return null;
+    }
 
-  if (sortBy === "trending") {
-    sorted.sort((a, b) => b.timestamp - a.timestamp); // Sort by most recent
-  } else {
-    sorted.sort((a, b) => b.totalVolume - a.totalVolume); // Sort by highest volume
+    // Ensure it's a proper URL
+    const validUrl = uri;
+    if (!uri.startsWith("http://") && !uri.startsWith("https://")) {
+      console.warn("❌ URI missing protocol:", uri);
+      return null;
+    }
+
+    console.log("🖼️ Fetching metadata from:", validUrl);
+
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+
+    const response = await fetch(validUrl, {
+      signal: controller.signal,
+      headers: {
+        Accept: "application/json",
+      },
+    });
+
+    clearTimeout(timeoutId);
+
+    if (!response.ok) {
+      console.warn(`❌ HTTP ${response.status} for ${validUrl}`);
+      return null;
+    }
+
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      console.warn("❌ Non-JSON response:", contentType);
+      return null;
+    }
+
+    const metadata = await response.json();
+    console.log("✅ Metadata fetched:", {
+      name: metadata.name,
+      hasImage: !!metadata.image,
+      imageUrl: metadata.image
+        ? metadata.image.substring(0, 50) + "..."
+        : "none",
+    });
+
+    return metadata.image || null;
+  } catch (error) {
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        console.warn("⏱️ Fetch timeout for:", uri);
+      } else {
+        console.warn("❌ Failed to fetch metadata:", error.message);
+      }
+    } else {
+      console.warn("❌ Unexpected error:", error);
+    }
+    return null;
   }
-
-  return sorted;
 };
 
-// Main Hook
 export function useTrendingCollections(
   config: TrendingCollectionsConfig = {}
 ): TrendingCollectionsResult {
@@ -59,187 +100,270 @@ export function useTrendingCollections(
     maxCollections = 8,
     enablePricing = true,
     sortBy = "trending",
-    refreshInterval,
   } = config;
 
-  // States
-  const [processedCollections, setProcessedCollections] = useState<
-    DynamicCollection[]
-  >([]);
-  const [poolAddressesForPricing, setPoolAddressesForPricing] = useState<
-    string[]
-  >([]);
-  const [error, setError] = useState<string | null>(null);
+  // State for tracking loaded images
+  const [loadedImages, setLoadedImages] = useState<Map<string, string>>(
+    new Map()
+  );
 
-  // Fetch transaction history
+  console.log("📊 useTrendingCollections initialized with config:", config);
+
+  // Get data from shared store
   const {
-    history,
-    isLoading: historyLoading,
-    error: historyError,
-    refetch: refetchHistory,
-  } = useTransactionHistory({
-    limit: 100,
-    staleTime: refreshInterval || 60 * 1000,
-  });
+    getTrendingCollections,
+    connectionState,
+    lastUpdate,
+    isLoading,
+    collections: allCollections,
+    pools: allPools,
+    poolMetrics,
+    error: storeError,
+  } = useCollectionsStore();
 
-  // Fetch pool prices
-  const {
-    data: prices,
-    isLoading: pricesLoading,
-    error: pricesError,
-    refetch: refetchPrices,
-  } = usePoolPrices(poolAddressesForPricing, {
-    enabled: enablePricing && poolAddressesForPricing.length > 0,
-    staleTime: 30 * 1000,
-  });
+  // Debug the trending calculation in more detail
+  const trendingData = useMemo(() => {
+    const trending = getTrendingCollections(maxCollections);
 
-  // Process transaction history into collections
+    // Debug information
+    console.log(`📊 Trending data calculated:`, {
+      total: trending.length,
+      withMetrics: trending.filter((t) => t.metrics.volume24h > 0).length,
+      topScore: trending[0]?.trendingScore || 0,
+      storeState: {
+        totalPools: allPools.length,
+        totalCollections: allCollections.length,
+        metricsSize: poolMetrics.size,
+      },
+      // More detailed debug info
+      poolsWithBasePrice: allPools.filter(
+        (p) => p.basePrice && parseFloat(p.basePrice) > 0
+      ).length,
+      samplePoolMetrics: trending.slice(0, 3).map((t) => ({
+        poolAddress: t.pool.poolAddress.slice(0, 8) + "...",
+        collectionName: t.collection?.collectionName || t.pool.collectionName,
+        basePrice: t.pool.basePrice,
+        volume24h: t.metrics.volume24h,
+        transactions24h: t.metrics.transactions24h,
+        trendingScore: t.trendingScore.toFixed(3),
+      })),
+    });
+    return trending;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    getTrendingCollections,
+    maxCollections,
+    allPools.length,
+    allCollections.length,
+    poolMetrics.size,
+  ]);
+
+  // Fetch images for collections that have valid URIs
   useEffect(() => {
-    if (historyLoading) return;
+    const fetchImages = async () => {
+      const imagesToFetch = new Map<string, string>();
 
-    if (historyError) {
-      setError(
-        historyError instanceof Error
-          ? historyError.message
-          : "Failed to load transaction history."
+      // Collect all URIs that need to be fetched
+      trendingData.forEach((item) => {
+        const collection = item.collection;
+        if (
+          collection?.uri &&
+          !loadedImages.has(collection.uri) &&
+          collection.uri !== "google.com" && // Filter out invalid URIs
+          collection.uri.startsWith("http")
+        ) {
+          imagesToFetch.set(collection.uri, collection.collectionMint);
+        }
+      });
+
+      if (imagesToFetch.size === 0) {
+        console.log("📷 No valid URIs to fetch images from");
+        return;
+      }
+
+      console.log(
+        `🖼️ Fetching images for ${imagesToFetch.size} collections...`
       );
-      setProcessedCollections([]);
-      return;
-    }
 
-    if (!history || history.length === 0) {
-      setProcessedCollections([]);
-      setError(null);
-      return;
-    }
-
-    const processData = async () => {
-      try {
-        // Process trending collections with metadata fetching
-        const poolData = await processTrendingCollections(history);
-        console.log("Pool data with URIs:", poolData);
-
-        // Sort collections based on configuration
-        const sortedPools = sortCollections(poolData, sortBy);
-
-        // Take only the top collections
-        const topPools = sortedPools.slice(0, maxCollections);
-
-        // Collect all URIs that need fetching
-        const urisToFetch = topPools
-          .filter((pool) => pool.uri && !pool.image)
-          .map((pool) => pool.uri!)
-          .filter((uri, index, self) => self.indexOf(uri) === index); // Remove duplicates
-
-        // Batch fetch metadata
-        if (urisToFetch.length > 0) {
-          const metadataResults = await fetchMetadataBatch(urisToFetch);
-
-          // Update pools with fetched metadata
-          topPools.forEach((pool) => {
-            if (pool.uri && metadataResults.has(pool.uri)) {
-              const metadata = metadataResults.get(pool.uri);
-              if (metadata) {
-                pool.name = metadata.name || pool.name;
-                pool.image = metadata.image;
-              }
-            }
-          });
+      // Fetch images in parallel with limited concurrency
+      const imagePromises = Array.from(imagesToFetch.entries()).map(
+        async ([uri, collectionMint]) => {
+          const image = await fetchMetadataImage(uri);
+          return { uri, collectionMint, image };
         }
+      );
 
-        // Format collections with fetched metadata images
-        const formattedCollections: DynamicCollection[] = topPools.map(
-          (pool, index) => ({
-            id: pool.poolAddress,
-            rank: index + 1,
-            name: pool.name,
-            // Use metadata image if available, otherwise use stable fallback
-            image:
-              pool.image ||
-              getStableImage(pool.poolAddress, PLACEHOLDER_NFT_IMAGES),
-            verified: true,
-            nftCount: pool.nftCount,
-            totalVolume: pool.totalVolume,
-          })
-        );
+      const results = await Promise.allSettled(imagePromises);
 
-        setProcessedCollections(formattedCollections);
+      const newImages = new Map(loadedImages);
+      let successCount = 0;
 
-        // Extract unique pool addresses for pricing
-        if (enablePricing) {
-          const uniquePoolAddresses = [
-            ...new Set(formattedCollections.map((c) => c.id)),
-          ];
-          setPoolAddressesForPricing(uniquePoolAddresses);
+      results.forEach((result) => {
+        if (result.status === "fulfilled" && result.value.image) {
+          newImages.set(result.value.uri, result.value.image);
+          successCount++;
+          console.log(
+            `✅ Loaded image for collection ${result.value.collectionMint}`
+          );
         }
+      });
 
-        setError(null);
-      } catch (err) {
-        console.error("Error processing collections:", err);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "An error occurred while processing collections."
-        );
-        setProcessedCollections([]);
+      console.log(
+        `📊 Image fetch complete: ${successCount}/${imagesToFetch.size} successful`
+      );
+
+      if (newImages.size > loadedImages.size) {
+        setLoadedImages(newImages);
       }
     };
 
-    processData();
-  }, [
-    history,
-    historyLoading,
-    historyError,
-    sortBy,
-    maxCollections,
-    enablePricing,
-  ]);
+    // Debounce fetching to avoid too many rapid requests
+    const timeoutId = setTimeout(fetchImages, 500);
+    return () => clearTimeout(timeoutId);
+  }, [trendingData, loadedImages]);
 
-  // Handle price loading errors
-  useEffect(() => {
-    if (pricesError) {
-      console.error("Error fetching pool prices:", pricesError);
-    }
-  }, [pricesError]);
+  // Convert to DynamicCollection format with loaded images
+  const processedCollections = useMemo(() => {
+    return trendingData
+      .sort((a, b) => {
+        // Apply sorting based on config
+        switch (sortBy) {
+          case "top":
+            return b.metrics.volume24h - a.metrics.volume24h;
+          default: // "trending"
+            return b.trendingScore - a.trendingScore;
+        }
+      })
+      .slice(0, maxCollections)
+      .map((item, index): DynamicCollection => {
+        const { pool, collection, metrics } = item;
 
-  // Create render props for pool prices
+        // Get image from loaded metadata or use placeholder
+        let image = getStableImage(pool.poolAddress); // Default fallback
+
+        if (collection?.uri && loadedImages.has(collection.uri)) {
+          // Use loaded image from metadata
+          image = loadedImages.get(collection.uri)!;
+          console.log(`🖼️ Using loaded image for ${collection.collectionName}`);
+        } else if (collection?.image) {
+          // Use image already in collection data
+          image = collection.image;
+        }
+
+        return {
+          id: pool.poolAddress,
+          rank: index + 1,
+          name:
+            collection?.collectionName ||
+            pool.collectionName ||
+            `Collection ${pool.collectionMint.slice(0, 6)}...`,
+          image,
+          verified: true,
+          nftCount: metrics.transactions24h,
+          totalVolume: metrics.volume24h,
+          poolAddress: pool.poolAddress,
+          metrics,
+          trendingScore: item.trendingScore,
+        };
+      });
+  }, [trendingData, sortBy, maxCollections, loadedImages]);
+
+  // Create render function for pool prices with trending indicators
   const renderPoolPrice = useCallback(
     (collection: DynamicCollection): React.ReactNode => {
-      if (!enablePricing) {
+      // Get the metrics for this collection using the pool address
+      const trendingItem = trendingData.find(
+        (item) =>
+          item.pool.poolAddress === (collection.poolAddress || collection.id)
+      );
+
+      if (!trendingItem) {
+        // Fallback: show total volume if no pricing data
         return React.createElement(
           "div",
-          { className: "price-cell" },
-          `${collection.totalVolume.toFixed(4)} SOL`
+          { className: "text-right" },
+          React.createElement(
+            "div",
+            { className: "text-gray-400" },
+            `${collection.totalVolume.toFixed(4)} SOL`
+          )
         );
       }
 
-      if (
-        !pricesLoading &&
-        prices &&
-        typeof prices === "object" &&
-        collection.id in prices
-      ) {
-        const price = prices[collection.id];
-        if (typeof price === "number") {
-          return React.createElement(
-            "div",
-            { className: "price-cell" },
-            `${price.toFixed(4)} SOL`
-          );
-        }
-      }
+      const { metrics, pool } = trendingItem;
+      const priceChangeClass =
+        metrics.priceChange24h >= 0 ? "text-green-500" : "text-red-500";
 
-      // Fallback to showing total volume if price isn't available or still loading
-      return React.createElement(
-        "div",
-        { className: "price-cell" },
-        `${collection.totalVolume.toFixed(4)} SOL`
-      );
+      // Check if we have actual volume/price data
+      if (enablePricing && metrics.lastPrice > 0) {
+        // Show current price with 24h change
+        return React.createElement(
+          "div",
+          { className: "text-right" },
+          React.createElement(
+            "div",
+            { className: priceChangeClass },
+            `${metrics.lastPrice.toFixed(4)} SOL`
+          ),
+          React.createElement(
+            "div",
+            { className: `text-xs ${priceChangeClass}` },
+            `${
+              metrics.priceChange24h >= 0 ? "+" : ""
+            }${metrics.priceChange24h.toFixed(1)}%`
+          )
+        );
+      } else if (pool.basePrice && parseFloat(pool.basePrice) > 0) {
+        // Fallback: Show base price from pool creation
+        const basePriceSOL = parseFloat(pool.basePrice) / 1e9; // Convert lamports to SOL
+        return React.createElement(
+          "div",
+          { className: "text-right" },
+          React.createElement(
+            "div",
+            { className: "text-blue-500" },
+            `${basePriceSOL.toFixed(4)} SOL`
+          ),
+          React.createElement(
+            "div",
+            { className: "text-xs text-gray-500" },
+            "Base Price"
+          )
+        );
+      } else if (metrics.transactions24h > 0) {
+        // Show volume with transaction count
+        return React.createElement(
+          "div",
+          { className: "text-right" },
+          React.createElement(
+            "div",
+            { className: "text-purple-500" },
+            `${metrics.volume24h.toFixed(4)} SOL`
+          ),
+          React.createElement(
+            "div",
+            { className: "text-xs text-gray-500" },
+            `${metrics.transactions24h} txns`
+          )
+        );
+      } else {
+        // No data available
+        return React.createElement(
+          "div",
+          { className: "text-right" },
+          React.createElement("div", { className: "text-gray-400" }, "No Data"),
+          React.createElement(
+            "div",
+            { className: "text-xs text-gray-500" },
+            "0 txns"
+          )
+        );
+      }
     },
-    [enablePricing, pricesLoading, prices]
+    [enablePricing, trendingData]
   );
 
-  // Split collections into left and right columns for desktop display
+  // Split collections for desktop layout
   const { leftCollections, rightCollections } = useMemo(
     () => ({
       leftCollections: processedCollections.slice(0, 4),
@@ -248,35 +372,87 @@ export function useTrendingCollections(
     [processedCollections]
   );
 
-  // Combined loading state
-  const isLoading =
-    historyLoading ||
-    (enablePricing && poolAddressesForPricing.length > 0 && pricesLoading);
-
-  // Combined refetch function
+  // Manual refresh function
   const refetch = useCallback(() => {
-    refetchHistory();
-    if (enablePricing && poolAddressesForPricing.length > 0) {
-      refetchPrices();
-    }
+    console.log(
+      "🔄 Trending collections using real-time data - no manual refetch needed"
+    );
+    return Promise.resolve();
+  }, []);
+
+  // Error handling
+  const error = useMemo(() => {
+    if (storeError) return storeError;
+    if (connectionState === "error")
+      return "Connection error - using cached data";
+    return null;
+  }, [storeError, connectionState]);
+
+  // Loading state (only show loading if we have no data at all)
+  const isLoadingState = useMemo(() => {
+    return isLoading && processedCollections.length === 0;
+  }, [isLoading, processedCollections.length]);
+
+  // Log trending stats for debugging
+  useEffect(() => {
+    const validUriCount = allCollections.filter(
+      (c) => c.uri && c.uri !== "google.com" && c.uri.startsWith("http")
+    ).length;
+
+    console.log("📊 Trending Collections Stats:", {
+      totalCollections: processedCollections.length,
+      totalPools: allPools.length,
+      poolsWithMetrics: poolMetrics.size,
+      connectionState,
+      lastUpdate: new Date(lastUpdate).toLocaleTimeString(),
+      hasVolumeData: trendingData.some((t) => t.metrics.volume24h > 0),
+      topVolume: Math.max(...trendingData.map((t) => t.metrics.volume24h), 0),
+      loadedImages: loadedImages.size,
+      collectionsWithValidUris: validUriCount,
+      invalidUris: allCollections
+        .filter(
+          (c) => c.uri && (c.uri === "google.com" || !c.uri.startsWith("http"))
+        )
+        .map((c) => ({ name: c.collectionName, uri: c.uri })),
+    });
   }, [
-    refetchHistory,
-    refetchPrices,
-    enablePricing,
-    poolAddressesForPricing.length,
+    processedCollections.length,
+    allPools.length,
+    poolMetrics.size,
+    connectionState,
+    lastUpdate,
+    trendingData,
+    loadedImages.size,
+    allCollections,
   ]);
 
   return {
     collections: processedCollections,
     leftCollections,
     rightCollections,
-    isLoading,
-    isLoadingPrices: pricesLoading,
+    isLoading: isLoadingState,
+    isLoadingPrices: false,
     error,
     refetch,
     renderPoolPrice,
+    connectionState,
+    lastUpdate,
+    stats: {
+      totalCollections: processedCollections.length,
+      connectionStatus: connectionState,
+      lastUpdate,
+      hasMetrics: trendingData.some((item) => item.metrics.volume24h > 0),
+      totalVolume: trendingData.reduce(
+        (sum, item) => sum + item.metrics.volume24h,
+        0
+      ),
+      totalTransactions: trendingData.reduce(
+        (sum, item) => sum + item.metrics.transactions24h,
+        0
+      ),
+    },
   };
 }
 
 // Export helper functions for testing
-export { getStableImage, sortCollections };
+export { getStableImage };
