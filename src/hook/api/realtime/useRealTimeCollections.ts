@@ -43,7 +43,7 @@ export function useRealTimeCollections(
     useMockData = false,
   } = options;
 
-  // Get store actions and state
+  // Get store actions and state - now includes pool-specific actions
   const {
     collections,
     pools,
@@ -59,6 +59,9 @@ export function useRealTimeCollections(
     newPoolsCount,
     lastUpdate,
     connectionState,
+    // Pool-specific actions for real-time updates
+    addTransactionToPool,
+    addNFTToPool,
   } = useCollectionsStore();
 
   // Local state for error handling
@@ -278,11 +281,46 @@ export function useRealTimeCollections(
       }
     });
 
+    // NEW: Subscribe to pool-specific transaction events
+    const unsubscribePoolTransactions = subscribe(
+      "poolTransaction",
+      (event: SSEEvent) => {
+        console.log("📡 Received SSE poolTransaction event:", event.data);
+
+        if (event.data && event.data.poolAddress && event.data.transaction) {
+          const { poolAddress, transaction, transactionType } = event.data;
+
+          // Add transaction to pool history
+          addTransactionToPool(poolAddress, transaction);
+
+          // If it's a mint, add NFT to pool
+          if (transactionType === "mintNft" && transaction.args) {
+            const nft = {
+              mintAddress: transaction.accounts[1]?.toString() || "",
+              name: transaction.args.name,
+              symbol: transaction.args.symbol,
+              uri: transaction.args.uri,
+              timestamp: transaction.blockTime,
+              signature: transaction.signature,
+              price: transaction.price,
+              minterAddress: transaction.accounts[0]?.toString() || "",
+            };
+
+            addNFTToPool(poolAddress, nft);
+            console.log(`Added NFT to pool ${poolAddress}:`, nft.name);
+          }
+
+          console.log(`Processed ${transactionType} for pool ${poolAddress}`);
+        }
+      }
+    );
+
     return () => {
       console.log("🔌 Unsubscribing from SSE events");
       unsubscribeCollections();
       unsubscribePools();
       unsubscribeVolume();
+      unsubscribePoolTransactions(); // Added cleanup for pool transactions
     };
   }, [
     enableSSE,
@@ -290,6 +328,8 @@ export function useRealTimeCollections(
     addCollections,
     addPools,
     updatePoolMetrics,
+    addTransactionToPool, // Added to dependencies
+    addNFTToPool, // Added to dependencies
     useMockData,
   ]);
 

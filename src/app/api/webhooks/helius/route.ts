@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/api/webhooks/helius/route.ts - Enhanced version with volume tracking
 import { NextRequest, NextResponse } from "next/server";
 import {
@@ -12,6 +13,52 @@ import { volumeCache } from "@/lib/cache/volumeCache";
 // Log discriminators on startup for debugging
 if (process.env.NODE_ENV === "development") {
   logInstructionDiscriminators();
+}
+
+// Helper function to extract pool address from event
+function extractPoolAddressFromEvent(event: any): string | null {
+  try {
+    // Log the event structure for debugging
+    console.log("Extracting pool address from event:", {
+      signature: event.signature,
+      instructionCount: event.instructions?.length,
+      firstInstruction: event.instructions?.[0],
+      accountCount: event.instructions?.[0]?.accounts?.length,
+    });
+
+    // The pool address is typically the first account in the instruction
+    if (event.instructions?.[0]?.accounts?.[0]) {
+      const poolAddress = event.instructions[0].accounts[0];
+      console.log(`Extracted pool address: ${poolAddress}`);
+      return poolAddress;
+    }
+
+    console.log("No pool address found in event");
+    return null;
+  } catch (error) {
+    console.error("Error extracting pool address:", error);
+    return null;
+  }
+}
+
+// Helper function to determine transaction type from processed data
+function getTransactionType(processedData: any): string | null {
+  try {
+    // Check the instruction name from processed data
+    if (processedData.instructionName) {
+      return processedData.instructionName;
+    }
+
+    // Fallback: check the type field
+    if (processedData.type) {
+      return processedData.type;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error determining transaction type:", error);
+    return null;
+  }
 }
 
 export async function POST(request: NextRequest) {
@@ -37,12 +84,14 @@ export async function POST(request: NextRequest) {
 
     // Parse the webhook payload
     const payload: HeliusWebhookPayload = JSON.parse(body);
+    console.log(`Processing webhook with ${payload.events.length} events`);
 
     // Process each event
     const processedEvents = [];
     let totalNewPools = 0;
     let totalNewCollections = 0;
     let totalVolumeEvents = 0;
+    let totalPoolTransactions = 0;
 
     for (const event of payload.events) {
       try {
@@ -69,26 +118,6 @@ export async function POST(request: NextRequest) {
           const { newPools, newCollections } =
             extractCollectionInfo(processedData);
 
-          // Log interesting findings
-          if (newPools.length > 0 || newCollections.length > 0) {
-            if (newCollections.length > 0) {
-              newCollections.forEach((collection) => {
-                if (collection.symbol)
-                  console.log(`    Symbol: ${collection.symbol}`);
-                if (collection.uri) console.log(`    URI: ${collection.uri}`);
-              });
-            }
-
-            if (newPools.length > 0) {
-              newPools.forEach((pool) => {
-                if (pool.basePrice)
-                  console.log(`    Base Price: ${pool.basePrice}`);
-                if (pool.growthFactor)
-                  console.log(`    Growth Factor: ${pool.growthFactor}`);
-              });
-            }
-          }
-
           totalNewPools += newPools.length;
           totalNewCollections += newCollections.length;
 
@@ -97,6 +126,47 @@ export async function POST(request: NextRequest) {
             newPools,
             newCollections,
           });
+        }
+
+        // Process pool-specific real-time updates
+        try {
+          const poolAddress = extractPoolAddressFromEvent(event);
+          const transactionType = getTransactionType(processedData);
+
+          if (poolAddress && transactionType) {
+            // Check if this is a mint or sell transaction
+            if (
+              transactionType === "mintNft" ||
+              transactionType === "sellNft"
+            ) {
+              console.log(
+                `Processing ${transactionType} for pool ${poolAddress}`
+              );
+
+              // Import broadcast function dynamically
+              const { broadcastToSSEClients } = await import(
+                "@/lib/sse/eventBroadcaster"
+              );
+
+              // Broadcast pool-specific transaction
+              broadcastToSSEClients({
+                type: "poolTransaction",
+                timestamp: new Date().toISOString(),
+                data: {
+                  poolAddress,
+                  transaction: processedData,
+                  transactionType,
+                },
+              });
+
+              totalPoolTransactions++;
+              console.log(
+                `Broadcasted ${transactionType} for pool ${poolAddress}`
+              );
+            }
+          }
+        } catch (poolError) {
+          console.error("Error processing pool-specific event:", poolError);
         }
       } catch (error) {
         console.error(`Error processing event ${event.signature}:`, error);
@@ -107,7 +177,7 @@ export async function POST(request: NextRequest) {
     if (processedEvents.length > 0 || totalVolumeEvents > 0) {
       // Import the broadcast function dynamically to avoid circular dependencies
       const { broadcastToSSEClients } = await import(
-        "@/app/api/collections/sse/route"
+        "@/lib/sse/eventBroadcaster"
       );
 
       // Broadcast each processed event (existing logic)
@@ -132,10 +202,9 @@ export async function POST(request: NextRequest) {
         }
       });
 
-      // NEW: Broadcast volume updates if there were any trading activities
+      // Broadcast volume updates if there were any trading activities
       if (totalVolumeEvents > 0) {
         // Get updated metrics for all pools that had volume activity
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         const updatedPools: Array<{ poolAddress: string; metrics: any }> = [];
 
         // Get unique pool addresses from volume events
@@ -171,14 +240,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
+    const response = {
       success: true,
       processed: processedEvents.length,
       totalNewPools,
       totalNewCollections,
-      totalVolumeEvents, // NEW: Include volume events in response
+      totalVolumeEvents,
+      totalPoolTransactions,
       message: "Webhook processed successfully",
-    });
+    };
+
+    console.log("Webhook processing complete:", response);
+    return NextResponse.json(response);
   } catch (error) {
     console.error("Error processing webhook:", error);
     return NextResponse.json(

@@ -437,8 +437,23 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
 
   const handleImageError = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
-      e.currentTarget.src = "/assets/images/defaultNFT.png";
-      e.currentTarget.onerror = null;
+      const target = e.currentTarget as HTMLImageElement;
+      const currentSrc = target.src;
+
+      // Prevent infinite loops
+      if (currentSrc.includes("defaultNFT.png")) {
+        console.warn("Fallback image also failed to load");
+        return;
+      }
+
+      // Log the failed URL for debugging (only in development)
+      if (process.env.NODE_ENV === "development") {
+        console.warn("Failed to load image:", currentSrc);
+      }
+
+      // Set fallback image
+      target.src = "/assets/images/defaultNFT.png";
+      target.onerror = null; // Remove error handler to prevent recursion
     },
     []
   );

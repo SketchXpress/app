@@ -1,12 +1,6 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 // src/app/api/collections/sse/route.ts
 import { NextRequest } from "next/server";
 import { sseManager } from "@/lib/sse/sseManager";
-
-// Helper to send data to all connected clients (used by webhook)
-export function broadcastToSSEClients(data: any) {
-  return sseManager.broadcast(data);
-}
 
 export async function GET(request: NextRequest) {
   // Extract client ID from query params for debugging
