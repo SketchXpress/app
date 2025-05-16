@@ -41,7 +41,6 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = () => {
     isLoading,
     error,
     refresh,
-    stats,
   } = useRealTimeCollections({
     enableSSE: true,
     fallbackPolling: true,
@@ -212,9 +211,6 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = () => {
                       (Date.now() - lastUpdate) / 1000
                     )}s ago`
                   : ""}
-              </span>
-              <span className={styles.itemCount}>
-                {stats.totalPools} pool{stats.totalPools !== 1 ? "s" : ""}
               </span>
               <button
                 className={styles.refreshButton}
