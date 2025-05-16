@@ -1,9 +1,7 @@
-// src/hook/core/useRealtimeChartData.ts
 import { useMemo } from "react";
 import { useCollectionsStore } from "@/stores/collectionsStore";
 import { Time } from "lightweight-charts";
 
-// Types for chart data enhancement
 export interface ChartDataPoint {
   time: Time;
   open: number;
@@ -22,25 +20,14 @@ export interface EnhancedChartData {
   lastUpdate: number;
 }
 
-/**
- * Hook to enhance chart data with real-time price points
- * Adds current/live price data to existing historical candles
- *
- * @param poolAddress - Pool address to get real-time data for
- * @param historicalCandles - Existing historical candlestick data
- * @returns Enhanced chart data with real-time integration
- */
 export function useRealtimeChartData(
   poolAddress: string | null,
   historicalCandles: ChartDataPoint[]
 ): EnhancedChartData {
-  // Get real-time store data
   const { poolMetrics, connectionState, lastUpdate } = useCollectionsStore();
 
-  // Get metrics for this specific pool
   const poolMetricsData = poolAddress ? poolMetrics.get(poolAddress) : null;
 
-  // Generate real-time data point
   const realtimePoint = useMemo((): ChartDataPoint | undefined => {
     if (
       !poolMetricsData ||
@@ -53,8 +40,6 @@ export function useRealtimeChartData(
     const lastCandle = historicalCandles[historicalCandles.length - 1];
     const currentTime = Math.floor(Date.now() / 1000) as Time;
 
-    // Only add if the price is different from the last candle
-    // and if it's been at least 30 seconds since the last update
     const timeDiff = Number(currentTime) - Number(lastCandle.time || 0);
     const priceDiff = Math.abs(poolMetricsData.lastPrice - lastCandle.close);
 
@@ -62,8 +47,6 @@ export function useRealtimeChartData(
       return undefined;
     }
 
-    // Create a real-time candle point
-    // Since we only have current price, we'll create a minimal candle
     const realtimeCandle: ChartDataPoint = {
       time: currentTime,
       open: lastCandle.close,

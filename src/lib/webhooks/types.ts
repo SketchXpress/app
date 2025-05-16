@@ -1,4 +1,3 @@
-// src/lib/webhooks/types.ts - Enhanced with volume data
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 export interface HeliusWebhookEvent {

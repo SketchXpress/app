@@ -1,6 +1,5 @@
-// src/lib/enhancedImageStorage.ts
-import { GeneratedImage } from "@/components/RightPanel/types";
 import localforage from "localforage";
+import { GeneratedImage } from "@/components/RightPanel/types";
 
 // Define types for the stored images
 export interface StoredImageSession {

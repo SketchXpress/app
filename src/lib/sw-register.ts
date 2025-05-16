@@ -17,9 +17,7 @@ export function registerServiceWorker() {
                   newWorker.state === "installed" &&
                   navigator.serviceWorker.controller
                 ) {
-                  // New service worker is installed but waiting to activate
-                  // You can notify users about the update here
-                  // Optional: Show a toast notification for updates
+                  // Need to optimze later
                 }
               });
             }

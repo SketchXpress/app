@@ -1,6 +1,3 @@
-// utils/metadataUtils.ts - Updated to handle your URI format
-
-// Global cache for metadata to prevent re-fetching
 const metadataCache = new Map<string, { name?: string; image?: string }>();
 
 // Batch metadata fetching with caching

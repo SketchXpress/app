@@ -1,4 +1,3 @@
-// src/providers/CollectionsProvider.tsx - Ensure real-time data initialization
 "use client";
 
 import React from "react";

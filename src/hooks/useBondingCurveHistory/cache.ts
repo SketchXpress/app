@@ -1,7 +1,6 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// Global price cache - makes price lookups incredibly fast even across hook instances
 export const globalPriceCache = new Map<string, number>();
-export const globalEscrowPriceCache = new Map<string, number>(); // Map escrow addresses to prices
+export const globalEscrowPriceCache = new Map<string, number>();
 
 // Initialize signature and transaction cache if needed
 export const initializeCache = () => {
@@ -62,8 +61,8 @@ export const serializeCache = (
     serializedCache[key] = {
       ...value,
       accounts: value.accounts.map((pk: any) => pk.toBase58()),
-      isPriceLoading: false, // Don't persist loading states
-      priceLoadAttempted: true, // Mark as attempted when saving
+      isPriceLoading: false,
+      priceLoadAttempted: true,
     };
   });
 

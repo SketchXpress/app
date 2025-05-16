@@ -1,5 +1,3 @@
-// src/utils/fetchSellingPrice.ts
-
 import {
   Connection,
   PublicKey,

@@ -1,4 +1,3 @@
-// hooks/useRealTimeBondingCurveHistory.ts
 import { useState, useEffect, useCallback, useRef } from "react";
 import { Connection } from "@solana/web3.js";
 import { useBondingCurveHistory, HistoryItem } from "./useBondingCurveHistory";

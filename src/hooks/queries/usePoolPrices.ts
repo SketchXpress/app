@@ -3,13 +3,6 @@ import { useAnchorContext } from "@/contexts/AnchorContextProvider";
 import { isValidPublicKeyFormat, safePublicKey } from "@/utils/bn-polyfill";
 import { PublicKey } from "@solana/web3.js";
 
-/**
- * usePoolPrices hook is for fetching prices of multiple pools
- * with optimized caching
- *
- * @param poolAddresses - Array of pool addresses to fetch prices for
- * @returns Query result containing pool prices, loading state, and error state
- */
 export const usePoolPrices = (poolAddresses: string[]) => {
   const { program } = useAnchorContext();
 

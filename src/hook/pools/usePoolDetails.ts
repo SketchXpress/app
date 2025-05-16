@@ -1,8 +1,9 @@
 import { useMemo, useEffect } from "react";
+
 import { useQuery } from "@tanstack/react-query";
+import { fetchAllPoolData } from "@/lib/poolDetails";
 import { useCollectionsStore } from "@/stores/collectionsStore";
 import { useAnchorContext } from "@/contexts/AnchorContextProvider";
-import { fetchAllPoolData } from "@/lib/poolDetails";
 import type { PoolDetailsWithRealtime } from "@/stores/collectionsStore";
 
 export interface UsePoolDetailsResult {
@@ -27,7 +28,6 @@ export interface UsePoolDetailsResult {
 export function usePoolDetails(poolAddress: string): UsePoolDetailsResult {
   const { program } = useAnchorContext();
 
-  // Get everything from store
   const {
     getPoolDetailsWithRealtime,
     getPoolByAddress,
@@ -58,7 +58,6 @@ export function usePoolDetails(poolAddress: string): UsePoolDetailsResult {
   } = useQuery({
     queryKey: ["poolDetails", poolAddress],
     queryFn: async () => {
-      // Use empty array for history since webhook will provide real-time updates
       return fetchAllPoolData(poolAddress, program, []);
     },
     enabled: shouldFetch,
@@ -72,8 +71,8 @@ export function usePoolDetails(poolAddress: string): UsePoolDetailsResult {
     if (apiData && poolAddress) {
       setPoolDetails(poolAddress, {
         info: apiData.info,
-        nfts: apiData.nfts || [], // Use NFTs from API if available
-        history: apiData.history || [], // Use history from API if available
+        nfts: apiData.nfts || [],
+        history: apiData.history || [],
         lastUpdated: Date.now(),
         isLoading: false,
       });
@@ -125,7 +124,7 @@ export function usePoolDetails(poolAddress: string): UsePoolDetailsResult {
     connectionState,
   ]);
 
-  // Get NFTs and history - prioritize webhook data from store, then API, then empty
+  // Get NFTs and history
   const nfts =
     storeData?.nfts && storeData.nfts.length > 0
       ? storeData.nfts

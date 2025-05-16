@@ -38,8 +38,8 @@ export interface HistoryItem {
   error: any;
   poolAddress?: string;
   price?: number;
-  isPriceLoading?: boolean; // Track price loading state
-  priceLoadAttempted?: boolean; // Track if price load was attempted
+  isPriceLoading?: boolean;
+  priceLoadAttempted?: boolean;
 }
 
 // Type for pool prices record

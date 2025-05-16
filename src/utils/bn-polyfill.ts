@@ -1,7 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/**
- * Enhanced polyfill and safety wrapper for BN.js to handle bigint binding issues
- */
 
 import BN from "bn.js";
 import * as bigintBufferModule from "bigint-buffer";

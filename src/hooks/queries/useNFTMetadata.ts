@@ -1,17 +1,10 @@
 import { useQueries } from "@tanstack/react-query";
 
-/**
- *
- * @param nfts - Array of NFTs with mintAddress and optional uri
- * @param nfts[].mintAddress - The mint address of the NFT
- * @param nfts[].uri - The URI of the NFT metadata
- */
 export const useNFTMetadataBatch = (
   nfts: { mintAddress: string; uri?: string }[]
 ) => {
   const nftsWithUris = nfts.filter((nft) => nft.uri);
 
-  // Grouping NFTs by domain to avoid CORS issues and rate limiting
   const nftsByDomain = nftsWithUris.reduce<
     Record<string, Array<(typeof nftsWithUris)[0] & { cleanUri: string }>>
   >((acc, nft) => {

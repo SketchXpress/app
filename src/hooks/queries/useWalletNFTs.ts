@@ -2,12 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { HeliusNFT, HeliusRPCResponse, NFT } from "@/types/helius";
 
-/**
- * useWalletNFTs hook is for fetching NFTs owned by the connected wallet
- * with optimized caching
- *
- * @returns Query result containing NFTs, loading state, and error state
- */
 export const useWalletNFTs = () => {
   const { publicKey, connected } = useWallet();
 

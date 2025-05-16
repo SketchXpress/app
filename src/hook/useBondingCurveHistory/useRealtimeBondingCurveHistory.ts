@@ -1,11 +1,11 @@
-// src/hook/useBondingCurveHistory/useRealtimeBondingCurveHistory.ts - Fixed version
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { useState, useEffect, useCallback } from "react";
+import { useBondingCurveForPool } from "@/hook/pools/useBondingCurveForPool";
 import {
   useSSEConnection,
   SSEEvent,
 } from "@/hook/api/realtime/useSSEConnection";
-import { useBondingCurveForPool } from "@/hook/pools/useBondingCurveForPool";
+
 import { BondingCurveHistoryResult, PerformanceStats } from "./types";
 
 export interface UseRealtimeBondingCurveHistoryOptions {
@@ -94,7 +94,6 @@ export function useRealtimeBondingCurveHistory(
   }, [fallbackToPolling, isConnected, isLoading, refetch, updateInterval]);
 
   // Create enhanced statistics that match the PerformanceStats interface
-  // Based on the errors, PerformanceStats likely has these exact properties
   const enhancedStats: PerformanceStats = {
     totalApiCalls: 0, // Default values since we don't have access to these stats
     totalRpcCalls: 0,
@@ -131,7 +130,7 @@ export function useRealtimeBondingCurveHistory(
   return {
     history,
     isLoading,
-    isLoadingPrices, // Add the required property
+    isLoadingPrices,
     error: formattedError,
     refetch,
     clearCache,
@@ -139,7 +138,6 @@ export function useRealtimeBondingCurveHistory(
     globalStats,
     loadMore,
     canLoadMore,
-    // We can add additional properties without type assertion since we're extending
     reconnect,
     connectionState,
     usingRealTimeData,

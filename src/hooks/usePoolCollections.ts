@@ -1,4 +1,3 @@
-// src/hooks/usePoolCollections.ts
 import { useState, useEffect, useMemo } from "react";
 import { useBondingCurveHistory } from "@/hooks/useBondingCurveHistory";
 

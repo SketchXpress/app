@@ -1,9 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/hook/webhooks/useWebhookTransactions.ts - Fixed version
 import { useState, useEffect, useRef } from "react";
-import { PublicKey } from "@solana/web3.js"; // Add missing import
+
+import { PublicKey } from "@solana/web3.js";
+import { HistoryItem } from "@/hook/useBondingCurveHistory/types";
+
 import { useSSEConnection } from "../api/realtime/useSSEConnection";
-import { HistoryItem } from "@/hook/useBondingCurveHistory/types"; // Import HistoryItem
 
 interface WebhookTransaction {
   signature: string;
@@ -66,7 +67,7 @@ export function useWebhookTransactions() {
             signature: tx.signature,
             blockTime: tx.timestamp,
             instructionName: tx.instructionName,
-            accounts: tx.accounts, // Now correctly typed as PublicKey[]
+            accounts: tx.accounts,
             args: tx.args,
             description: tx.description,
             type: tx.type,

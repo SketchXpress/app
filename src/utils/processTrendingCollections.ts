@@ -1,5 +1,4 @@
-// utils/processTrendingCollections.ts
-import { HistoryItem } from "@/hook/api/helius/"; // Adjust import path as needed
+import { HistoryItem } from "@/hook/api/helius/";
 
 export interface PoolData {
   poolAddress: string;

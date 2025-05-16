@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
-import { toast } from "@/utils/toast";
 import { useState, useCallback } from "react";
+
+import { toast } from "@/utils/toast";
 import { TOKEN_METADATA_PROGRAM_ID } from "@/constants";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { SellNFTResult, UseSellNFTConfig } from "@/types/nft";
@@ -267,7 +268,7 @@ export function useSellNFT(config: UseSellNFTConfig = {}) {
           })
           .preInstructions(instructions)
           .rpc({
-            skipPreflight: true, // Skip preflight to allow more complex transactions through
+            skipPreflight: true,
             commitment: "confirmed",
           });
 

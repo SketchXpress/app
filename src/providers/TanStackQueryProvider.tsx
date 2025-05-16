@@ -1,4 +1,3 @@
-// src/providers/TanStackQueryProvider.tsx
 "use client";
 
 import { ReactNode } from "react";
@@ -16,13 +15,11 @@ const queryClient = new QueryClient({
 });
 
 export default function TanStackQueryProvider({
-  children
+  children,
 }: {
-  children: ReactNode
+  children: ReactNode;
 }) {
   return (
-    <QueryClientProvider client={queryClient}>
-      {children}
-    </QueryClientProvider>
+    <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 }

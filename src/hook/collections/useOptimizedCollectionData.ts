@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/hook/collections/useOptimizedCollectionData.ts - FIXED with selective API for migration
 import { useMemo } from "react";
 import { useRealTimeCollections } from "@/hook/api/realtime/useRealTimeCollections";
 import { usePoolInfo } from "@/hook/api/anchor/usePoolInfo";
@@ -10,13 +9,9 @@ import {
   CollectionPageData,
 } from "@/app/mintstreet/collection/[poolAddress]/types";
 
-/**
- * FIXED: Selectively fetch pool info for migration progress while using store for everything else
- */
 export function useOptimizedCollectionData(
   poolAddress: string
 ): CollectionPageData {
-  // Use real-time collections for basic data
   const {
     pools,
     collections,
@@ -41,8 +36,6 @@ export function useOptimizedCollectionData(
     ? collections.find((c) => c.collectionMint === storePool.collectionMint)
     : null;
 
-  // Fetch pool info ONLY for migration progress (totalEscrowed)
-  // This is a lightweight call compared to fetching transaction history
   const {
     data: apiPoolInfo,
     isLoading: poolInfoLoading,
@@ -112,12 +105,10 @@ export function useOptimizedCollectionData(
 
   // Calculate last mint price
   const lastMintPrice = useMemo(() => {
-    // Priority 1: Use real-time metrics if available
     if (metrics?.lastPrice && metrics.lastPrice > 0) {
       return `${metrics.lastPrice.toFixed(4)} SOL`;
     }
 
-    // Priority 2: Calculate from recent transactions
     if (poolDetails?.history && poolDetails.history.length > 0) {
       const recentMints = poolDetails.history
         .filter((tx) => tx.instructionName === "mintNft" && tx.price)
@@ -128,7 +119,6 @@ export function useOptimizedCollectionData(
       }
     }
 
-    // Priority 3: Use base price from store
     if (storePool?.basePrice) {
       const basePriceSOL = parseFloat(storePool.basePrice) / 1e9;
       return `${basePriceSOL.toFixed(4)} SOL`;
@@ -140,7 +130,7 @@ export function useOptimizedCollectionData(
   // Calculate migration progress using API totalEscrowed
   const migrationProgress = useMemo(() => {
     if (!poolInfo || poolInfo.totalEscrowed === undefined) {
-      return 0; // Return 0 while loading
+      return 0;
     }
 
     const threshold = 690; // 690 SOL migration threshold

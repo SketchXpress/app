@@ -173,7 +173,7 @@ export function useTrendingCollections(
         switch (sortBy) {
           case "top":
             // Sort by base price (highest first)
-            const basePriceA = parseFloat(a.pool.basePrice || "0") / 1e9; // Convert lamports to SOL
+            const basePriceA = parseFloat(a.pool.basePrice || "0") / 1e9;
             const basePriceB = parseFloat(b.pool.basePrice || "0") / 1e9;
             return basePriceB - basePriceA;
           default: // "trending"
@@ -363,5 +363,4 @@ export function useTrendingCollections(
   };
 }
 
-// Export helper functions for testing
 export { getStableImage };

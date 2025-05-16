@@ -1,9 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/hook/api/realtime/useRealTimeCollections.ts - Fixed to properly update store
-import { useState, useEffect, useCallback, useRef } from "react";
 import { useSSEConnection, SSEEvent } from "./useSSEConnection";
-import { useTransactionHistory } from "../helius/useTransactionHistory";
 import { useCollectionsStore } from "@/stores/collectionsStore";
+import { useState, useEffect, useCallback, useRef } from "react";
+import { useTransactionHistory } from "../helius/useTransactionHistory";
 
 export interface Collection {
   collectionMint: string;
@@ -43,7 +42,6 @@ export function useRealTimeCollections(
     useMockData = false,
   } = options;
 
-  // Get store actions and state - now includes pool-specific actions
   const {
     collections,
     pools,
@@ -59,7 +57,6 @@ export function useRealTimeCollections(
     newPoolsCount,
     lastUpdate,
     connectionState,
-    // Pool-specific actions for real-time updates
     addTransactionToPool,
     addNFTToPool,
   } = useCollectionsStore();
@@ -121,7 +118,6 @@ export function useRealTimeCollections(
       const newPools: Pool[] = [];
       const collectionMap = new Map();
 
-      // First pass: collect collection metadata
       transactions.forEach((tx) => {
         if (
           tx.instructionName === "createCollectionNft" &&
@@ -146,7 +142,6 @@ export function useRealTimeCollections(
         }
       });
 
-      // Second pass: process pools
       transactions.forEach((tx) => {
         if (
           tx.instructionName === "createPool" &&
@@ -170,7 +165,6 @@ export function useRealTimeCollections(
         }
       });
 
-      // Update store with new data
       if (newCollections.length > 0) {
         addCollections(newCollections);
       }
@@ -284,7 +278,7 @@ export function useRealTimeCollections(
       unsubscribeCollections();
       unsubscribePools();
       unsubscribeVolume();
-      unsubscribePoolTransactions(); // Added cleanup for pool transactions
+      unsubscribePoolTransactions();
     };
   }, [
     enableSSE,
@@ -292,19 +286,17 @@ export function useRealTimeCollections(
     addCollections,
     addPools,
     updatePoolMetrics,
-    addTransactionToPool, // Added to dependencies
-    addNFTToPool, // Added to dependencies
+    addTransactionToPool,
+    addNFTToPool,
     useMockData,
   ]);
 
-  // Clear "new" indicators after expiry
   useEffect(() => {
     if (newItemExpiry <= 0) return;
 
     const interval = setInterval(() => {
       const now = Date.now();
 
-      // Check if any items are old enough to clear "new" status
       const hasOldNewItems =
         [
           ...collections.filter(
@@ -318,7 +310,7 @@ export function useRealTimeCollections(
       if (hasOldNewItems) {
         clearNewIndicators();
       }
-    }, 30000); // Check every 30 seconds
+    }, 30000);
 
     return () => clearInterval(interval);
   }, [newItemExpiry, collections, pools, clearNewIndicators]);
@@ -327,7 +319,6 @@ export function useRealTimeCollections(
   const refresh = useCallback(() => {
     clearNewIndicators();
 
-    // Don't refetch if using mock data
     if (useMockData) {
       return;
     }

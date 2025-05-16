@@ -1,6 +1,5 @@
 /* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/hook/api/realtime/useSSEConnection.ts
 import { useState, useEffect, useRef, useCallback } from "react";
 
 export interface SSEEvent {
@@ -26,8 +25,8 @@ export function useSSEConnection(options: UseSSEConnectionOptions = {}) {
       .toString(36)
       .substr(2, 9)}`,
     autoReconnect = true,
-    reconnectDelay = 5000, // Increased delay
-    maxReconnectAttempts = 3, // Reduced attempts
+    reconnectDelay = 5000,
+    maxReconnectAttempts = 3,
   } = options;
 
   const [connectionState, setConnectionState] = useState<
@@ -85,7 +84,7 @@ export function useSSEConnection(options: UseSSEConnectionOptions = {}) {
     if (!isMountedRef.current) return;
 
     if (eventSourceRef.current || isConnectingRef.current) {
-      return; // Already connected or connecting
+      return;
     }
 
     isConnectingRef.current = true;
@@ -127,7 +126,6 @@ export function useSSEConnection(options: UseSSEConnectionOptions = {}) {
       eventSource.close();
       eventSourceRef.current = null;
 
-      // Only attempt reconnection if we had a successful connection before
       if (
         connectionState === "connected" &&
         autoReconnect &&
@@ -142,7 +140,7 @@ export function useSSEConnection(options: UseSSEConnectionOptions = {}) {
           if (isMountedRef.current) {
             connect();
           }
-        }, reconnectDelay * reconnectAttemptsRef.current); // Exponential backoff
+        }, reconnectDelay * reconnectAttemptsRef.current);
       } else {
         setConnectionState("disconnected");
         setError("Connection failed");
@@ -187,7 +185,7 @@ export function useSSEConnection(options: UseSSEConnectionOptions = {}) {
       isMountedRef.current = false;
       disconnect();
     };
-  }, []); // Empty dependency array - only run on mount/unmount
+  }, []);
 
   return {
     connectionState,

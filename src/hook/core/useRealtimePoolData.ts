@@ -1,11 +1,9 @@
-// src/hook/core/useRealtimePoolData.ts
 import { useMemo } from "react";
+
 import { useCollectionsStore } from "@/stores/collectionsStore";
 import { usePoolInfo } from "@/hook/api/anchor/usePoolInfo";
 
-// Types for enhanced pool data
 export interface EnhancedPoolInfo {
-  // Original pool info from API
   collection: string;
   creator: string;
   basePrice: number;
@@ -137,8 +135,6 @@ export function useRealtimePoolData(
     // Use real-time total escrowed if available and more recent
     const totalEscrowed = enhancedPoolInfo.totalEscrowed;
 
-    // If we have real-time data and it includes volume, we might have more current data
-    // Note: This is approximation - real implementation would need actual escrowed amount
     if (enhancedPoolInfo.hasRealtimeData && enhancedPoolInfo.volume24h) {
       // Keep the API value for now, but we could enhance this with real-time escrow data
       // if your SSE system provides it

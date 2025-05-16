@@ -1,10 +1,10 @@
-// src/hook/core/useOptimizedChartData.ts
 import { useMemo } from "react";
-import { useCollectionsStore } from "@/stores/collectionsStore";
-import { useBondingCurveForPool } from "@/hooks/useBondingCurveForPool";
+import { Time } from "lightweight-charts";
+
 import { useHeliusSales } from "@/hooks/useHeliusSales";
 import { useRealtimeChartData } from "./useRealtimeChartData";
-import { Time } from "lightweight-charts";
+import { useCollectionsStore } from "@/stores/collectionsStore";
+import { useBondingCurveForPool } from "@/hooks/useBondingCurveForPool";
 
 type ChartDataPoint = {
   time: Time;
@@ -16,12 +16,7 @@ type ChartDataPoint = {
   isRealtime?: boolean;
 };
 
-/**
- * Optimized chart data hook that prioritizes store data
- * Reduces API calls by using webhook/SSE data when available
- */
 export function useOptimizedChartData(poolAddress: string) {
-  // Get store data first
   const { getPoolDetailsWithRealtime } = useCollectionsStore();
   const storeData = getPoolDetailsWithRealtime(poolAddress);
 
@@ -65,7 +60,6 @@ export function useOptimizedChartData(poolAddress: string) {
     return sales || [];
   }, [storeData?.history, sales]);
 
-  // Process raw historical data into candles (existing logic)
   const rawCandles = useMemo(() => {
     const mintEvents = finalHistory
       .filter(
@@ -82,7 +76,6 @@ export function useOptimizedChartData(poolAddress: string) {
       }))
       .sort((a, b) => Number(a.time) - Number(b.time));
 
-    // Process sell events
     let processedSellEvents = finalSales
       .filter((s) => {
         const isDuplicateOfMint = mintEvents.some(
@@ -99,7 +92,6 @@ export function useOptimizedChartData(poolAddress: string) {
         signature: item.signature,
       }));
 
-    // Add sell transactions from history if not in sales data
     const sellTransactions = finalHistory.filter(
       (tx) => tx.instructionName === "sellNft" && tx.blockTime != null
     );
@@ -116,7 +108,6 @@ export function useOptimizedChartData(poolAddress: string) {
 
     processedSellEvents.sort((a, b) => Number(a.time) - Number(b.time));
 
-    // Convert to candles (existing logic from CollectionChart.tsx)
     const allEvents = [...mintEvents, ...processedSellEvents].sort((a, b) => {
       const timeDiff = Number(a.time) - Number(b.time);
       if (timeDiff !== 0) return timeDiff;
@@ -167,7 +158,6 @@ export function useOptimizedChartData(poolAddress: string) {
             close: event.price,
           });
         } else if (event.type === "sell") {
-          // Sell price calculation (existing logic)
           const basePrice = 0.05;
           const growthFactor = 0.02;
           const supplyBeforeSell =
@@ -195,7 +185,6 @@ export function useOptimizedChartData(poolAddress: string) {
     return candles.sort((a, b) => Number(a.time) - Number(b.time));
   }, [finalHistory, finalSales]);
 
-  // Enhanced candles with real-time data
   const {
     candles: enhancedCandles,
     hasRealtimeData,
@@ -204,7 +193,6 @@ export function useOptimizedChartData(poolAddress: string) {
     lastUpdate,
   } = useRealtimeChartData(poolAddress, rawCandles);
 
-  // Calculate loading state - only loading if we're fetching from API
   const isLoading =
     (shouldFetchHistory && historyLoading) ||
     (shouldFetchSales && salesLoading);

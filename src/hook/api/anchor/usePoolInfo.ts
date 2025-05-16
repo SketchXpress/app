@@ -1,10 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { BN } from "@coral-xyz/anchor";
-import { PoolInfo, UsePoolInfoConfig } from "@/types/pool";
-import { PublicKey } from "@solana/web3.js";
 import { useState, useEffect } from "react";
+
+import { BN } from "@coral-xyz/anchor";
+import { PublicKey } from "@solana/web3.js";
 import { useQuery } from "@tanstack/react-query";
 import { safePublicKey } from "@/utils/bn-polyfill";
+import { PoolInfo, UsePoolInfoConfig } from "@/types/pool";
 import { useAnchorContext } from "@/contexts/AnchorContextProvider";
 import { useGlobalCache } from "@/hook/shared/state/useGlobalCache";
 
@@ -64,7 +65,7 @@ const fetchPoolInfo = async (
     isActive: poolData.isActive,
     migrationStatus,
     migrationProgress,
-    collectionName: poolData.collection.toString(), // Fallback to collection address if name not available
+    collectionName: poolData.collection.toString(),
   };
 };
 
@@ -75,8 +76,8 @@ export function usePoolInfo(
 ) {
   const {
     enabled = true,
-    staleTime = 30 * 1000, // 30 seconds
-    gcTime = 5 * 60 * 1000, // 5 minutes
+    staleTime = 30 * 1000,
+    gcTime = 5 * 60 * 1000,
     refetchOnWindowFocus = false,
   } = config;
 

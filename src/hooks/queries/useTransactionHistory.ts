@@ -10,13 +10,6 @@ import {
   HeliusTransaction,
 } from "@/hook/useBondingCurveHistory/types";
 
-/**
- * useTransactionHistory hook is for fetching transaction history for the bonding curve program
- * with optimized caching
- *
- * @param limit - Maximum number of transactions to fetch (default: 50)
- * @returns Query result containing history items, loading state, and error state
- */
 export const useTransactionHistory = (limit: number = 50) => {
   const { program } = useAnchorContext();
 

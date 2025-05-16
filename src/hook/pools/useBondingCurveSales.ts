@@ -1,4 +1,3 @@
-// src/hook/pools/useBondingCurveSales.ts - Enhanced with comprehensive debugging
 import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useCollectionsStore } from "@/stores/collectionsStore";
@@ -52,12 +51,7 @@ async function fetchHeliusSales(
   }
 }
 
-/**
- * Hook to get sales data for a pool
- * OPTIMIZED: Uses store data first, falls back to Helius API only when needed
- */
 export function useHeliusSales(poolAddress: string, apiKey: string) {
-  // Get store data first
   const { getPoolDetailsWithRealtime } = useCollectionsStore();
   const storeData = getPoolDetailsWithRealtime(poolAddress);
   const { deduplicatedFetch } = useDeduplicateRequests<SaleEvent[]>();
@@ -81,12 +75,11 @@ export function useHeliusSales(poolAddress: string, apiKey: string) {
         seller: tx.accounts?.[1]?.toString(),
         nftMint: tx.accounts?.[2]?.toString(),
       }))
-      .filter((sale) => sale.blockTime > 0); // Only include valid sales
+      .filter((sale) => sale.blockTime > 0);
 
     return processedSales;
   }, [storeData?.history]);
 
-  // FIX: Ensure enabled is always boolean (not string)
   const shouldFetchFromAPI = Boolean(
     poolAddress && apiKey && storeSales.length === 0
   );
@@ -102,12 +95,12 @@ export function useHeliusSales(poolAddress: string, apiKey: string) {
       return deduplicatedFetch(
         `helius-sales-${poolAddress}`,
         () => fetchHeliusSales(poolAddress, apiKey),
-        60000 // 1 minute deduplication window
+        60000
       );
     },
-    enabled: shouldFetchFromAPI, // Now guaranteed to be boolean
-    staleTime: 5 * 60 * 1000, // 5 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
+    enabled: shouldFetchFromAPI,
+    staleTime: 5 * 60 * 1000,
+    gcTime: 10 * 60 * 1000,
     refetchOnWindowFocus: false,
     refetchOnMount: false,
     retry: 2,

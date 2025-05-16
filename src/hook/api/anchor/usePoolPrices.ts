@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PublicKey } from "@solana/web3.js";
 import { useQuery } from "@tanstack/react-query";
+import { PoolPrices, UsePoolPricesConfig } from "@/types/pool";
 import { useAnchorContext } from "@/contexts/AnchorContextProvider";
 import { useGlobalCache } from "@/hook/shared/state/useGlobalCache";
 import { isValidPublicKeyFormat, safePublicKey } from "@/utils/bn-polyfill";
 import { useDeduplicateRequests } from "@/hook/shared/utils/useDeduplicateRequests";
-import { PoolPrices, UsePoolPricesConfig } from "@/types/pool";
 
 const formatPoolPrice = (poolData: any): number => {
   if (!poolData || !poolData.totalEscrowed) {
@@ -13,7 +13,7 @@ const formatPoolPrice = (poolData: any): number => {
   }
 
   const totalEscrowed = poolData.totalEscrowed as { toNumber: () => number };
-  return totalEscrowed.toNumber() / 1_000_000_000; // Convert lamports to SOL
+  return totalEscrowed.toNumber() / 1_000_000_000;
 };
 
 // Batch fetching function

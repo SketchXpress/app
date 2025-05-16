@@ -1,17 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
+import { useState, useEffect, useCallback, useMemo } from "react";
+
 import { PublicKey } from "@solana/web3.js";
 import { useQuery } from "@tanstack/react-query";
 import { IDL as BondingCurveIDL } from "@/utils/idl";
 import { BorshInstructionCoder } from "@coral-xyz/anchor";
-import { useState, useEffect, useCallback, useMemo } from "react";
-import { useAnchorContext } from "@/contexts/AnchorContextProvider";
+import { solanaRPCManager } from "@/lib/solanaRPCManager";
 import { useGlobalCache } from "@/hook/shared/state/useGlobalCache";
+import { useAnchorContext } from "@/contexts/AnchorContextProvider";
+import { PROGRAM_PUBLIC_KEY } from "@/hooks/useBondingCurveHistory/constants";
 import { useDeduplicateRequests } from "@/hook/shared/utils/useDeduplicateRequests";
 import { processTransactionFast } from "@/hooks/useBondingCurveHistory/extractors";
-import { PROGRAM_PUBLIC_KEY } from "@/hooks/useBondingCurveHistory/constants";
-import { solanaRPCManager } from "@/lib/solanaRPCManager";
 
-// Types
 export interface HistoryItem {
   signature: string;
   blockTime: number | null | undefined;
@@ -46,7 +46,7 @@ const fetchTransactionHistory = async (
     throw new Error("Helius API key not configured");
   }
 
-  // Ensure limit does not exceed Helius API constraints (1-100)
+  // Ensure limit does not exceed Helius API constraints
   const apiLimit = Math.max(1, Math.min(limit, 100));
 
   const API_BASE = `https://api-devnet.helius.xyz/v0`;
@@ -124,7 +124,7 @@ const fetchTransactionHistory = async (
 
 // Main Hook
 export function useTransactionHistory(
-  config: UseTransactionHistoryConfig = { limit: 100 } // Default limit set to 100 (Helius max)
+  config: UseTransactionHistoryConfig = { limit: 100 }
 ) {
   const { limit, staleTime = 120 * 1000, gcTime = 10 * 60 * 1000 } = config;
 
@@ -148,12 +148,12 @@ export function useTransactionHistory(
     error,
     refetch,
   } = useQuery({
-    queryKey: ["transactionHistory", effectiveLimit], // Use effectiveLimit in queryKey
+    queryKey: ["transactionHistory", effectiveLimit],
     queryFn: () =>
       deduplicatedFetch(
         `tx-history-${effectiveLimit}`,
-        () => fetchTransactionHistory(effectiveLimit, undefined, program), // Pass effectiveLimit
-        60000 // 1 minute deduplication window
+        () => fetchTransactionHistory(effectiveLimit, undefined, program),
+        60000
       ),
     enabled: !!program,
     staleTime,
@@ -219,7 +219,7 @@ export function useTransactionHistory(
       // Update pagination
       const newLastSig = moreHistory[moreHistory.length - 1]?.signature;
       setLastSignature(newLastSig);
-      setCanLoadMore(moreHistory.length === effectiveLimit); // Use effectiveLimit
+      setCanLoadMore(moreHistory.length === effectiveLimit);
     } catch (error) {
       console.error("Error loading more transactions:", error);
     }
@@ -228,7 +228,7 @@ export function useTransactionHistory(
     lastSignature,
     isLoading,
     deduplicatedFetch,
-    effectiveLimit, // Use effectiveLimit
+    effectiveLimit,
     program,
   ]);
 

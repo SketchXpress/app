@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/utils/fetchHeliusSales.ts
-
 import { extractSalesFromParsedTxs, SaleEvent } from "./salesHelper";
 
 const HELIUS_RPC = "https://api-devnet.helius.xyz/v0";

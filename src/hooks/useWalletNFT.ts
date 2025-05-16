@@ -1,4 +1,3 @@
-// src/hooks/useWalletNFT.ts
 import { useState, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 

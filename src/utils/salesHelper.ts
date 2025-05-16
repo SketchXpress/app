@@ -7,11 +7,6 @@ export interface SaleEvent {
   soldSol?: number;
 }
 
-/**
- * Given the raw array from Helius's Parse Transaction(s) endpoint,
- * extract the "selling price" by finding the native-transfer that
- * corresponds to the rent‑refund / sale payment.
- */
 export function extractSalesFromParsedTxs(parsedTxs: any[]): SaleEvent[] {
   return parsedTxs.map((tx) => {
     const signature: string = tx.signature;

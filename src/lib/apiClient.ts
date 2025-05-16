@@ -4,15 +4,6 @@ interface ApiClientOptions {
   headers?: Record<string, string>;
 }
 
-/**
- * Creates an API client for Helius API and RPC endpoints.
- * @param options - Options for the API client
- * @param options.baseDelay - Base delay for exponential backoff (default: 1000ms)
- * @param options.maxRetries - Maximum number of retries for failed requests (default: 3)
- * @param options.headers - Additional headers to include in requests
- * @param options.HELIUS_API_KEY - Helius API key (required)
- * @returns
- */
 export function createApiClient(options: ApiClientOptions = {}) {
   const { baseDelay = 1000, maxRetries = 3, headers = {} } = options;
 
@@ -115,5 +106,4 @@ export function createApiClient(options: ApiClientOptions = {}) {
   };
 }
 
-// Singleton instance of the API client
 export const apiClient = createApiClient();

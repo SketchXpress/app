@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/lib/sse/sseManager.ts
 export interface SSEConnection {
   id: string;
   controller: ReadableStreamDefaultController;
