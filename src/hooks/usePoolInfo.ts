@@ -33,25 +33,25 @@ const fetchCollectionMetadata = async (
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   connection: any
 ): Promise<string> => {
-  try {
-    // Method 1: Try to fetch from Metaplex metadata
-    const response = await fetch(
-      `https://metadata.metaplex.com/metadata/${collectionAddress}`,
-      {
-        method: "GET",
-        headers: {
-          Accept: "application/json",
-        },
-      }
-    );
+  // try {
+  //   // Method 1: Try to fetch from Metaplex metadata
+  //   const response = await fetch(
+  //     `https://metadata.metaplex.com/metadata/${collectionAddress}`,
+  //     {
+  //       method: "GET",
+  //       headers: {
+  //         Accept: "application/json",
+  //       },
+  //     }
+  //   );
 
-    if (response.ok) {
-      const metadata = await response.json();
-      return metadata.name || "Unknown Collection";
-    }
-  } catch (error) {
-    console.error("Error fetching from Metaplex:", error);
-  }
+  //   if (response.ok) {
+  //     const metadata = await response.json();
+  //     return metadata.name || "Unknown Collection";
+  //   }
+  // } catch (error) {
+  //   console.error("Error fetching from Metaplex:", error);
+  // }
 
   try {
     // Method 2: Try to fetch using Helius RPC
@@ -93,10 +93,6 @@ const fetchCollectionMetadata = async (
   try {
     // This would require implementing Metaplex metadata account fetching
     // For now, we'll return a generic name
-    console.log(
-      "Falling back to default name for collection:",
-      collectionAddress
-    );
   } catch (error) {
     console.error("Error fetching on-chain metadata:", error);
   }

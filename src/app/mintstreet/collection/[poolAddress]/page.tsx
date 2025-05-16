@@ -1,266 +1,126 @@
 "use client";
 
-import React, { ReactNode, useMemo } from "react";
+import React from "react";
 import { useParams } from "next/navigation";
-import styles from "./page.module.scss";
-import { usePoolInfo } from "@/hooks/usePoolInfo";
-import { useBondingCurveForPool } from "@/hooks/useBondingCurveForPool";
-import { usePoolNfts } from "@/hooks/usePoolNFTs";
+import { useOptimizedCollectionData } from "@/hook/collections/useOptimizedCollectionData";
+import { usePoolNfts, PoolNft } from "@/hook/pools/usePoolNFTs"; // Import PoolNft type
 import CollectionChart from "./CollectionChart";
 import PoolNFTsGrid from "./PoolNFTsGrid";
-import { Loader2 } from "lucide-react";
+import CollectionHeader from "./components/CollectionHeader";
+import PriceCard from "./components/PriceCard";
+import BondingCurveCard from "./components/BondingCurveCard";
+import CollectionDetailsCard from "./components/CollectionDetailsCard";
+import {
+  LoadingState,
+  ErrorState,
+  InvalidPoolAddress,
+} from "./components/LoadingError";
+import styles from "./page.module.scss";
+
+// Define the NFT type expected by PoolNFTsGrid, if not already globally available
+// This should match the interface in PoolNFTsGrid.tsx
+interface NFT {
+  mintAddress: string;
+  name: string;
+  symbol: string;
+  uri?: string;
+  timestamp: number;
+  signature: string;
+  price: number;
+  image?: string; // This is optional, PoolNFTsGrid should handle it or use uri
+  minterAddress?: string;
+}
 
 export default function CollectionDetailPage() {
   const params = useParams();
-  // Extract the pool address (handle array case by taking first element)
+
   const poolAddress = Array.isArray(params.poolAddress)
     ? params.poolAddress[0]
     : params.poolAddress || "";
 
-  // Always call hooks unconditionally at the top level
-  // Using the correct property names from React Query
-  interface PoolInfo {
-    collectionName: ReactNode;
-    totalEscrowed: number;
-    basePrice: number;
-    growthFactor: number;
-    currentSupply: number;
-    protocolFeePercent: number;
-    isActive: boolean;
-    migrationStatus: string;
-    creator: string;
-    collection: string;
-  }
+  const {
+    poolInfo,
+    isLoading: isLoadingPoolInfo,
+    error: errorPoolInfo,
+    lastMintPrice,
+    migrationProgress,
+  } = useOptimizedCollectionData(poolAddress);
 
   const {
-    data: info,
-    isLoading: infoLoading,
-    error: infoError,
-  } = usePoolInfo(poolAddress) as {
-    data: PoolInfo | undefined;
-    isLoading: boolean;
-    error: Error | null;
-  };
-  console.table(info);
-
-  const { history, isLoading: historyLoading } =
-    useBondingCurveForPool(poolAddress);
-  const {
-    nfts,
-    isLoading: nftsLoading,
-    error: nftsError,
+    nfts: rawPoolGridNfts,
+    isLoading: isLoadingPoolGridNfts,
+    error: errorDataPoolGridNfts, // Original error object (Error | null)
   } = usePoolNfts(poolAddress);
 
-  // Calculate last mint price from history
-  const lastMintPrice = useMemo(() => {
-    if (history.length === 0) return "N/A";
-
-    // Sort by blockTime descending to get the most recent
-    const sortedHistory = [...history].sort(
-      (a, b) => (b.blockTime ?? 0) - (a.blockTime ?? 0)
+  // Transform PoolNft[] to NFT[] to match PoolNFTsGridProps
+  const mappedPoolGridNfts: NFT[] = React.useMemo(() => {
+    if (!rawPoolGridNfts) return [];
+    return rawPoolGridNfts.map(
+      (nft: PoolNft): NFT => ({
+        mintAddress: nft.mintAddress,
+        name: nft.name || "Unnamed NFT", // Provide default for name
+        symbol: nft.symbol || "UNSYM", // Provide default for symbol
+        uri: nft.uri, // Pass the metadata URI
+        timestamp: nft.timestamp || 0, // Provide default for timestamp
+        signature: nft.signature,
+        price: nft.price || 0, // Provide default for price
+        image: undefined, // Set image to undefined as PoolNft does not have a direct image URL.
+        // PoolNFTsGrid should use the 'uri' to fetch metadata and then the image.
+        minterAddress: nft.minterAddress,
+      })
     );
+  }, [rawPoolGridNfts]);
 
-    // Find the most recent mint or sell transaction with a price
-    const lastPricedTx = sortedHistory.find(
-      (tx) =>
-        (tx.instructionName === "mintNft" ||
-          tx.instructionName === "sellNft") &&
-        tx.price
-    );
-
-    if (lastPricedTx && lastPricedTx.price) {
-      return `${lastPricedTx.price.toFixed(4)} SOL`;
+  // Convert Error object to string for PoolNFTsGrid error prop
+  const gridErrorString: string | null = React.useMemo(() => {
+    if (!errorDataPoolGridNfts) return null;
+    if (errorDataPoolGridNfts instanceof Error) {
+      return errorDataPoolGridNfts.message;
     }
+    return String(errorDataPoolGridNfts);
+  }, [errorDataPoolGridNfts]);
 
-    return "N/A";
-  }, [history]);
-
-  // Calculate migration progress percentage
-  const migrationProgress = useMemo(() => {
-    if (!info) return 0;
-    const threshold = 690; // 690 SOL
-    const progress = (info.totalEscrowed / threshold) * 100;
-    return Math.min(progress, 100); // Cap at 100%
-  }, [info]);
-
-  // Helper to format addresses for display
-  const formatAddress = (address: string) => {
-    if (!address || address.length <= 12) return address;
-    return `${address.substring(0, 6)}...${address.substring(
-      address.length - 6
-    )}`;
-  };
-
-  // Check for invalid pool address - do this AFTER calling hooks
   if (!poolAddress) {
-    return (
-      <div className={styles.errorContainer}>
-        <h2>Invalid Pool Address</h2>
-        <p>
-          The provided pool address is invalid. Please check the URL and try
-          again.
-        </p>
-      </div>
-    );
+    return <InvalidPoolAddress poolAddress={poolAddress} />;
   }
 
-  // Loading state
-  if (infoLoading || historyLoading) {
-    return (
-      <div className={styles.loadingContainer}>
-        <Loader2 className={styles.loadingSpinner} />
-        <p>Loading pool data...</p>
-      </div>
-    );
+  if (isLoadingPoolInfo) {
+    return <LoadingState />;
   }
 
-  // Error state - properly handle the error type
-  if (infoError || !info) {
+  if (errorPoolInfo || !poolInfo) {
     return (
-      <div className={styles.errorContainer}>
-        <h2>Error Loading Pool</h2>
-        <p>
-          {infoError ? infoError.message : "Could not load pool information."}
-        </p>
-      </div>
+      <ErrorState
+        message={errorPoolInfo || "Could not load pool information."}
+      />
     );
   }
 
   return (
     <div className={styles.container}>
-      <header className={styles.header}>
-        <h1 className={styles.title}>
-          Collection: {formatAddress(info.collection)}({info.collectionName})
-        </h1>
-        <div className={styles.poolAddress}>
-          Pool: <span>{formatAddress(poolAddress)}</span>
-        </div>
-      </header>
+      <CollectionHeader poolInfo={poolInfo} poolAddress={poolAddress} />
 
       <main className={styles.content}>
-        {/* Left side - Chart */}
         <section className={styles.chartSection}>
           <CollectionChart poolAddress={poolAddress} />
 
-          {/* NFTs Grid - Below the chart */}
           <PoolNFTsGrid
-            nfts={nfts.map((nft) => ({
-              ...nft,
-              name: nft.name || "Unnamed NFT",
-              symbol: nft.symbol || "",
-              uri: nft.uri || "",
-              timestamp: nft.timestamp || 0,
-              price: nft.price || 0,
-            }))}
-            isLoading={nftsLoading}
-            error={nftsError}
+            nfts={mappedPoolGridNfts} // Use mapped NFTs
+            isLoading={isLoadingPoolGridNfts}
+            error={gridErrorString} // Use stringified error
             poolAddress={poolAddress}
           />
         </section>
 
-        {/* Right side - Pool info */}
         <section className={styles.infoSection}>
-          {/* Price card */}
-          <div className={styles.card}>
-            <h2 className={styles.cardTitle}>Price Information</h2>
-            <div className={styles.cardContent}>
-              <div className={styles.priceHighlight}>
-                <span className={styles.priceLabel}>Last Mint Price</span>
-                <span className={styles.priceValue}>{lastMintPrice}</span>
-              </div>
+          <PriceCard poolInfo={poolInfo} lastMintPrice={lastMintPrice} />
 
-              <div className={styles.infoGrid}>
-                <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>Base Price</span>
-                  <span className={styles.infoValue}>
-                    {info.basePrice.toFixed(4)} SOL
-                  </span>
-                </div>
+          <BondingCurveCard
+            poolInfo={poolInfo}
+            migrationProgress={migrationProgress}
+          />
 
-                <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>Growth Factor</span>
-                  <span className={styles.infoValue}>{info.growthFactor}</span>
-                </div>
-
-                <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>Current Supply</span>
-                  <span className={styles.infoValue}>{info.currentSupply}</span>
-                </div>
-
-                <div className={styles.infoItem}>
-                  <span className={styles.infoLabel}>Protocol Fee</span>
-                  <span className={styles.infoValue}>
-                    {(info.protocolFeePercent / 100).toFixed(2)}%
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Bonding curve card */}
-          <div className={styles.card}>
-            <h2 className={styles.cardTitle}>Bonding Curve</h2>
-            <div className={styles.cardContent}>
-              <div className={styles.totalSol}>
-                <span className={styles.totalSolLabel}>Total SOL</span>
-                <span className={styles.totalSolValue}>
-                  {info.totalEscrowed.toFixed(4)} SOL
-                </span>
-              </div>
-
-              <div className={styles.progressContainer}>
-                <div className={styles.progressHeader}>
-                  <span>Migration Progress</span>
-                  <span>{migrationProgress.toFixed(1)}%</span>
-                </div>
-
-                <div className={styles.progressBar}>
-                  <div
-                    className={styles.progressFill}
-                    style={{ width: `${migrationProgress}%` }}
-                  />
-                </div>
-
-                <div className={styles.progressFooter}>
-                  <span>{info.totalEscrowed.toFixed(2)} / 690 SOL</span>
-                </div>
-              </div>
-
-              <div className={styles.migrationStatus}>
-                <span
-                  className={
-                    info.isActive ? styles.statusActive : styles.statusInactive
-                  }
-                >
-                  {info.migrationStatus}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          {/* Creator info card */}
-          <div className={styles.card}>
-            <h2 className={styles.cardTitle}>Collection Details</h2>
-            <div className={styles.cardContent}>
-              <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>Status</span>
-                <span
-                  className={
-                    info.isActive ? styles.statusActive : styles.statusInactive
-                  }
-                >
-                  {info.isActive ? "Active" : "Inactive"}
-                </span>
-              </div>
-
-              <div className={styles.detailItem}>
-                <span className={styles.detailLabel}>Creator</span>
-                <span className={styles.detailValue} title={info.creator}>
-                  {formatAddress(info.creator)}
-                </span>
-              </div>
-            </div>
-          </div>
+          <CollectionDetailsCard poolInfo={poolInfo} />
         </section>
       </main>
     </div>

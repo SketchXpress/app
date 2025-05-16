@@ -77,7 +77,6 @@ export const useBuyNft = () => {
         })
         .rpc();
 
-      console.log("NFT bought successfully with signature:", tx);
       setTxSignature(tx);
       setSuccess(true);
 

@@ -124,7 +124,6 @@ export const useMintNFT = () => {
       // Generate NFT mint keypair
       const nftMintKeypair = Keypair.generate();
       const nftMint = nftMintKeypair.publicKey;
-      console.log("Generated NFT mint keypair:", nftMint.toString());
 
       // Get pool data
       const poolData = await program.account.bondingCurvePool.fetch(pool);
@@ -219,8 +218,6 @@ export const useMintNFT = () => {
       // Use your existing getPhantomProvider helper function
       const phantomProvider = getPhantomProvider();
       if (phantomProvider && wallet.wallet?.adapter?.name === "Phantom") {
-        console.log("Using Phantom's signAndSendTransaction method");
-
         // Define options using your PhantomSendOptions interface
         const sendOptions: PhantomSendOptions = {
           skipPreflight: false,
@@ -235,7 +232,6 @@ export const useMintNFT = () => {
           );
         signature = phantomSig;
       } else {
-        console.log("Using standard wallet adapter method");
         // Standard flow for other wallets
         const signedTransaction = await wallet.signTransaction(transaction);
         signature = await connection.sendRawTransaction(
@@ -264,8 +260,6 @@ export const useMintNFT = () => {
           )}`
         );
       }
-
-      console.log("NFT minted successfully with signature:", signature);
 
       setTxSignature(signature);
       setNftMintAddress(nftMint.toString());

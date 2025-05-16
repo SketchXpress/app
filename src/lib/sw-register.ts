@@ -19,7 +19,6 @@ export function registerServiceWorker() {
                 ) {
                   // New service worker is installed but waiting to activate
                   // You can notify users about the update here
-                  console.log("New version available! Refresh to update.");
                   // Optional: Show a toast notification for updates
                 }
               });

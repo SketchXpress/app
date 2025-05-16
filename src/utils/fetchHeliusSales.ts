@@ -42,10 +42,9 @@ export async function fetchHeliusSales(
   // Add validation layer
   const validatedSales = salesEvents.filter((sale) => {
     // Log all detected sales for debugging
-    console.log("Sale detected:", sale);
 
     // Validate: The price should be reasonable (not dust amounts)
-    if (sale.soldSol !== undefined && sale.soldSol < 0.01) {
+    if (sale.soldSol !== undefined && sale.soldSol < 0.001) {
       console.warn("Filtering out suspiciously small sale price:", sale);
       return false;
     }

@@ -19,10 +19,8 @@ async function fetchPoolInfo(
   program: any
 ): Promise<PoolInfo> {
   try {
-    console.log(`🔍 Fetching pool info for ${poolAddress}`);
     const poolKey = new PublicKey(poolAddress);
     const poolDataRaw = await program.account.bondingCurvePool.fetch(poolKey);
-    console.log("📋 Raw pool data:", poolDataRaw);
 
     const formatLamports = (lamports: any) =>
       lamports.toNumber() / 1_000_000_000;
@@ -49,7 +47,7 @@ async function fetchPoolInfo(
           )} / ${migrationThreshold} SOL (${progressPercentage.toFixed(1)}%)`;
 
     const collectionAddrStr = poolDataRaw.collection.toString();
-    console.log(`🔍 Fetching collection name for: ${collectionAddrStr}`);
+
     let collectionName = collectionAddrStr; // Fallback to address
 
     try {
@@ -70,7 +68,6 @@ async function fetchPoolInfo(
           const data = await response.json();
           if (data.result?.content?.metadata?.name) {
             collectionName = data.result.content.metadata.name;
-            console.log(`✅ Found collection name: ${collectionName}`);
           }
         }
       }
@@ -91,7 +88,7 @@ async function fetchPoolInfo(
       migrationProgress,
       collectionName,
     };
-    console.log(`✅ Successfully fetched pool info:`, result);
+
     return result;
   } catch (error) {
     console.error(`❌ Error fetching pool info for ${poolAddress}:`, error);
@@ -103,9 +100,6 @@ async function fetchPoolInfo(
 async function fetchTransactionHistoryFromHelius(
   poolAddress: string
 ): Promise<HistoryItem[]> {
-  console.log(
-    `🔍 Fetching transaction history for pool ${poolAddress} from Helius`
-  );
   const HELIUS_API_KEY = process.env.NEXT_PUBLIC_HELIUS_API_KEY;
   if (!HELIUS_API_KEY) {
     console.warn("Helius API key not found, cannot fetch transaction history.");
@@ -175,9 +169,6 @@ async function fetchTransactionHistoryFromHelius(
       })
       .filter((item: HistoryItem) => item.instructionName !== "unknown"); // Filter out unparsed
 
-    console.log(
-      `✅ Fetched ${historyItems.length} history items for pool ${poolAddress}`
-    );
     return historyItems.sort((a, b) => (b.blockTime ?? 0) - (a.blockTime ?? 0)); // Newest first
   } catch (error) {
     console.error(
@@ -195,11 +186,8 @@ export async function fetchAllPoolData(
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _unusedHistoryParam: HistoryItem[] = [] // Parameter kept for signature compatibility, but not used as primary source
 ): Promise<PoolDetails> {
-  console.log(`🚀 Fetching all pool data for ${poolAddress}`);
-
   try {
     const info = await fetchPoolInfo(poolAddress, program);
-    console.log(`✅ Fetched pool info:`, info);
 
     // Fetch transaction history to derive NFTs and history list
     const fullHistory: HistoryItem[] = await fetchTransactionHistoryFromHelius(
@@ -232,13 +220,6 @@ export async function fetchAllPoolData(
         };
       })
       .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0)); // Newest first
-
-    console.log(`📊 Pool data summary:`, {
-      hasInfo: !!info,
-      collectionName: info.collectionName,
-      nftCount: nfts.length,
-      historyCount: fullHistory.length,
-    });
 
     return { info, nfts, history: fullHistory };
   } catch (error) {

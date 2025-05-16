@@ -83,7 +83,6 @@ export function useRealTimeCollections(
 
   // Update connection state in store
   useEffect(() => {
-    console.log("📡 SSE Connection state:", sseConnectionState);
     setConnectionState(sseConnectionState);
   }, [sseConnectionState, setConnectionState]);
 
@@ -118,7 +117,6 @@ export function useRealTimeCollections(
   // Process transaction history (initial load and fallback)
   const processTransactionHistory = useCallback(
     (transactions: any[]) => {
-      console.log("🔍 Processing transactions:", transactions.length);
       const newCollections: Collection[] = [];
       const newPools: Pool[] = [];
       const collectionMap = new Map();
@@ -145,7 +143,6 @@ export function useRealTimeCollections(
             signature: tx.signature,
             timestamp: tx.blockTime || 0,
           });
-          console.log("✅ Found collection:", tx.args.name);
         }
       });
 
@@ -170,27 +167,14 @@ export function useRealTimeCollections(
             basePrice: tx.args?.basePrice?.toString(),
             growthFactor: tx.args?.growthFactor?.toString(),
           });
-          console.log(
-            "✅ Found pool:",
-            tx.poolAddress,
-            "for collection:",
-            collectionInfo?.name
-          );
         }
-      });
-
-      console.log("📊 Processing complete:", {
-        foundCollections: newCollections.length,
-        foundPools: newPools.length,
       });
 
       // Update store with new data
       if (newCollections.length > 0) {
-        console.log("📝 Adding collections to store:", newCollections.length);
         addCollections(newCollections);
       }
       if (newPools.length > 0) {
-        console.log("📝 Adding pools to store:", newPools.length);
         addPools(newPools);
       }
     },
@@ -201,26 +185,18 @@ export function useRealTimeCollections(
   useEffect(() => {
     if (isInitializedRef.current) return;
 
-    console.log("🚀 Initializing data...");
-
     // Check if we have a rate limit error
     const isRateLimited =
       historyError?.message?.includes("429") ||
       historyError?.message?.includes("Too Many Requests");
 
     if (isRateLimited && pools.length === 0 && collections.length === 0) {
-      console.log("⚠️ Rate limited, skipping initialization");
       isInitializedRef.current = true;
       return;
     }
 
     // Process actual history if available
     if (history && history.length > 0) {
-      console.log(
-        "📚 Processing initial transaction history...",
-        history.length,
-        "transactions"
-      );
       processTransactionHistory(history);
       isInitializedRef.current = true;
     }
@@ -235,7 +211,6 @@ export function useRealTimeCollections(
   // Process transaction history as fallback
   useEffect(() => {
     if (!isConnected && fallbackPolling && history && history.length > 0) {
-      console.log("📡 SSE disconnected, processing history as fallback...");
       processTransactionHistory(history);
     }
   }, [isConnected, fallbackPolling, history, processTransactionHistory]);
@@ -244,13 +219,10 @@ export function useRealTimeCollections(
   useEffect(() => {
     if (!enableSSE || useMockData) return;
 
-    console.log("📡 Setting up SSE event listeners...");
-
     // Subscribe to collection events
     const unsubscribeCollections = subscribe(
       "newCollections",
       (event: SSEEvent) => {
-        console.log("📡 Received SSE newCollections event:", event.data);
         if (event.data && Array.isArray(event.data)) {
           const collections = event.data.map((collection: any) => ({
             ...collection,
@@ -263,7 +235,6 @@ export function useRealTimeCollections(
 
     // Subscribe to pool events
     const unsubscribePools = subscribe("newPools", (event: SSEEvent) => {
-      console.log("📡 Received SSE newPools event:", event.data);
       if (event.data && Array.isArray(event.data)) {
         const pools = event.data.map((pool: any) => ({
           ...pool,
@@ -275,7 +246,6 @@ export function useRealTimeCollections(
 
     // Subscribe to volume updates
     const unsubscribeVolume = subscribe("volumeUpdate", (event: SSEEvent) => {
-      console.log("📡 Received SSE volumeUpdate event:", event.data);
       if (event.data && event.data.updatedPools) {
         updatePoolMetrics(event.data.updatedPools);
       }
@@ -285,8 +255,6 @@ export function useRealTimeCollections(
     const unsubscribePoolTransactions = subscribe(
       "poolTransaction",
       (event: SSEEvent) => {
-        console.log("📡 Received SSE poolTransaction event:", event.data);
-
         if (event.data && event.data.poolAddress && event.data.transaction) {
           const { poolAddress, transaction, transactionType } = event.data;
 
@@ -307,16 +275,12 @@ export function useRealTimeCollections(
             };
 
             addNFTToPool(poolAddress, nft);
-            console.log(`Added NFT to pool ${poolAddress}:`, nft.name);
           }
-
-          console.log(`Processed ${transactionType} for pool ${poolAddress}`);
         }
       }
     );
 
     return () => {
-      console.log("🔌 Unsubscribing from SSE events");
       unsubscribeCollections();
       unsubscribePools();
       unsubscribeVolume();
@@ -361,19 +325,15 @@ export function useRealTimeCollections(
 
   // Manual refresh function
   const refresh = useCallback(() => {
-    console.log("🔄 Manual refresh triggered");
     clearNewIndicators();
 
     // Don't refetch if using mock data
     if (useMockData) {
-      console.log("🎭 Using mock data - no refetch needed");
       return;
     }
 
-    console.log("📡 Triggering refetch...");
     refetch()
       .then(() => {
-        console.log("✅ Refetch completed");
         setError(null);
         setLocalError(null);
       })
@@ -384,26 +344,6 @@ export function useRealTimeCollections(
         setLocalError(errorMsg);
       });
   }, [refetch, clearNewIndicators, useMockData, setError]);
-
-  // Log final state
-  useEffect(() => {
-    console.log("📊 Final state:", {
-      collections: collections.length,
-      pools: pools.length,
-      poolsWithMetrics: poolMetrics.size,
-      newCollections: newCollectionsCount,
-      newPools: newPoolsCount,
-      connectionState,
-      isInitialized: isInitializedRef.current,
-    });
-  }, [
-    collections,
-    pools,
-    poolMetrics,
-    newCollectionsCount,
-    newPoolsCount,
-    connectionState,
-  ]);
 
   return {
     collections,

@@ -24,7 +24,6 @@ export async function uploadToIPFSUsingPinata(
   if (!response.ok) {
     const errorText = await response.text();
     console.error("Pinata upload failed:", errorText);
-    throw new Error("Failed to upload file to Pinata IPFS.");
   }
 
   const data = await response.json();

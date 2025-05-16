@@ -30,7 +30,7 @@ export const processTrendingCollections = async (
   >();
 
   // First pass: Collect all collection creations
-  console.log("Processing collection creations...");
+
   history.forEach((tx) => {
     if (tx.instructionName === "createCollectionNft" && tx.args) {
       const name = tx.args.name as string;
@@ -39,9 +39,6 @@ export const processTrendingCollections = async (
 
       if (tx.accounts && tx.accounts.length > 1) {
         const collectionMintAddress = tx.accounts[1].toString();
-        console.log(
-          `Found collection creation: ${name} (${collectionMintAddress}) with URI: ${uri}`
-        );
 
         collectionCreations.set(collectionMintAddress, {
           name,
@@ -58,7 +55,7 @@ export const processTrendingCollections = async (
   const metadataResults: any[] = []; // Replace with your actual metadataResults if available
 
   // Second pass: Map pools to their collections
-  console.log("Mapping pools to collections...");
+
   history.forEach((tx) => {
     if (
       tx.instructionName === "createPool" &&
@@ -86,17 +83,13 @@ export const processTrendingCollections = async (
                 ? correspondingMetadata.value.metadata?.image
                 : undefined,
           });
-
-          console.log(
-            `Mapped pool ${tx.poolAddress} to collection ${collection.name} with URI: ${collection.uri}`
-          );
         }
       }
     }
   });
 
   // Third pass: Process all transactions to build pool statistics
-  console.log("Processing pool transactions...");
+
   history.forEach((tx) => {
     if (!tx.poolAddress) return;
 
@@ -154,7 +147,6 @@ export const processTrendingCollections = async (
   });
 
   const result = Array.from(poolsData.values());
-  console.log(`Processed ${result.length} pools:`, result);
 
   return result;
 };

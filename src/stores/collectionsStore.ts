@@ -169,22 +169,6 @@ function calculateTrendingScore(metrics: PoolMetrics, poolAge: number): number {
   const ageDecay = ageHours < 24 ? 1.1 : ageHours < 168 ? 1.0 : 0.9;
   const ageScore = (1 / (1 + ageHours / 168)) * 0.15;
 
-  console.log(`Trending Score Debug for pool:`, {
-    volume24h,
-    transactions24h,
-    uniqueTraders24h,
-    priceChange24h,
-    volumeScore,
-    transactionScore,
-    traderScore,
-    priceScore,
-    ageScore,
-    ageDecay,
-    finalScore:
-      (volumeScore + transactionScore + traderScore + priceScore + ageScore) *
-      ageDecay,
-  });
-
   return (
     (volumeScore + transactionScore + traderScore + priceScore + ageScore) *
     ageDecay
@@ -225,11 +209,6 @@ export const useCollectionsStore = create<CollectionsState>()(
 
         if (filteredNew.length === 0) return state;
 
-        console.log(
-          `Adding ${filteredNew.length} new collections:`,
-          filteredNew
-        );
-
         return {
           collections: [
             ...filteredNew.map((c) => ({ ...c, isNew: true })),
@@ -251,8 +230,6 @@ export const useCollectionsStore = create<CollectionsState>()(
 
         if (filteredNew.length === 0) return state;
 
-        console.log(`Adding ${filteredNew.length} new pools:`, filteredNew);
-
         return {
           pools: [
             ...filteredNew.map((p) => ({ ...p, isNew: true })),
@@ -271,7 +248,6 @@ export const useCollectionsStore = create<CollectionsState>()(
         updates.forEach(({ poolAddress, metrics }) => {
           newMetrics.set(poolAddress, metrics);
           newRealtimeUpdate.set(poolAddress, Date.now());
-          console.log(`Updated metrics for pool ${poolAddress}:`, metrics);
         });
 
         // Recalculate trending collections when metrics update
@@ -294,14 +270,12 @@ export const useCollectionsStore = create<CollectionsState>()(
       })),
 
     setConnectionState: (connectionState) => {
-      console.log(`Connection state changed to: ${connectionState}`);
       set({ connectionState });
     },
 
     setLoading: (isLoading) => set({ isLoading }),
 
     setError: (error) => {
-      console.log(`Store error set:`, error);
       set({ error });
     },
 
@@ -310,8 +284,6 @@ export const useCollectionsStore = create<CollectionsState>()(
       set((state) => {
         const newPoolDetails = new Map(state.poolDetails);
         newPoolDetails.set(poolAddress, details);
-
-        console.log(`Set pool details for ${poolAddress}:`, details);
 
         return {
           poolDetails: newPoolDetails,
@@ -339,8 +311,6 @@ export const useCollectionsStore = create<CollectionsState>()(
             isLoading: false,
           });
         }
-
-        console.log(`Updated pool info for ${poolAddress}:`, info);
 
         return {
           poolDetails: newPoolDetails,
@@ -372,8 +342,6 @@ export const useCollectionsStore = create<CollectionsState>()(
               lastUpdated: Date.now(),
             });
           }
-
-          console.log(`Added NFT to pool ${poolAddress}:`, nft);
 
           return {
             poolNFTs: newPoolNFTs,
@@ -410,8 +378,6 @@ export const useCollectionsStore = create<CollectionsState>()(
             });
           }
 
-          console.log(`Added transaction to pool ${poolAddress}:`, transaction);
-
           return {
             poolHistory: newPoolHistory,
             poolDetails: newPoolDetails,
@@ -438,8 +404,6 @@ export const useCollectionsStore = create<CollectionsState>()(
           });
         }
 
-        console.log(`Set ${nfts.length} NFTs for pool ${poolAddress}`);
-
         return {
           poolNFTs: newPoolNFTs,
           poolDetails: newPoolDetails,
@@ -462,10 +426,6 @@ export const useCollectionsStore = create<CollectionsState>()(
             lastUpdated: Date.now(),
           });
         }
-
-        console.log(
-          `Set ${history.length} history items for pool ${poolAddress}`
-        );
 
         return {
           poolHistory: newPoolHistory,
@@ -495,8 +455,6 @@ export const useCollectionsStore = create<CollectionsState>()(
           });
         }
 
-        console.log(`Set loading state for pool ${poolAddress}: ${isLoading}`);
-
         return {
           poolDetails: newPoolDetails,
         };
@@ -515,8 +473,6 @@ export const useCollectionsStore = create<CollectionsState>()(
           });
         }
 
-        console.log(`Set error for pool ${poolAddress}:`, error);
-
         return {
           poolDetails: newPoolDetails,
         };
@@ -525,10 +481,6 @@ export const useCollectionsStore = create<CollectionsState>()(
     // Enhanced getters
     getTrendingCollections: (limit = 20) => {
       const { pools, collections, poolMetrics } = get();
-
-      console.log(
-        `Calculating trending collections. Pools: ${pools.length}, Collections: ${collections.length}, Metrics: ${poolMetrics.size}`
-      );
 
       const trendingData = pools.map((pool) => {
         // Find matching collection
@@ -564,11 +516,6 @@ export const useCollectionsStore = create<CollectionsState>()(
         .slice(0, limit)
         .map((item, index) => ({ ...item, rank: index + 1 }));
 
-      console.log(
-        `Trending collections calculated. Top 3:`,
-        result.slice(0, 3)
-      );
-
       return result;
     },
 
@@ -579,7 +526,6 @@ export const useCollectionsStore = create<CollectionsState>()(
       const lastRealtimeUpdate = state.lastRealtimeUpdate.get(poolAddress);
 
       if (!poolDetails) {
-        console.log(`No pool details found for ${poolAddress}`);
         return null;
       }
 
@@ -590,14 +536,6 @@ export const useCollectionsStore = create<CollectionsState>()(
         connectionState: state.connectionState,
         lastUpdate: lastRealtimeUpdate || poolDetails.lastUpdated,
       };
-
-      console.log(`Retrieved pool details with realtime for ${poolAddress}:`, {
-        hasInfo: !!result.info,
-        nftCount: result.nfts.length,
-        historyCount: result.history.length,
-        hasMetrics: !!result.metrics,
-        hasRealtimeData: result.hasRealtimeData,
-      });
 
       return result;
     },

@@ -43,8 +43,6 @@ const fetchMetadataImage = async (uri: string): Promise<string | null> => {
       return null;
     }
 
-    console.log("🖼️ Fetching metadata from:", validUrl);
-
     // Add timeout to prevent hanging
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
@@ -70,13 +68,6 @@ const fetchMetadataImage = async (uri: string): Promise<string | null> => {
     }
 
     const metadata = await response.json();
-    console.log("✅ Metadata fetched:", {
-      name: metadata.name,
-      hasImage: !!metadata.image,
-      imageUrl: metadata.image
-        ? metadata.image.substring(0, 50) + "..."
-        : "none",
-    });
 
     return metadata.image || null;
   } catch (error) {
@@ -107,8 +98,6 @@ export function useTrendingCollections(
     new Map()
   );
 
-  console.log("📊 useTrendingCollections initialized with config:", config);
-
   // Get data from shared store
   const {
     getTrendingCollections,
@@ -124,30 +113,6 @@ export function useTrendingCollections(
   // Debug the trending calculation in more detail
   const trendingData = useMemo(() => {
     const trending = getTrendingCollections(maxCollections);
-
-    // Debug information
-    console.log(`📊 Trending data calculated:`, {
-      total: trending.length,
-      withMetrics: trending.filter((t) => t.metrics.volume24h > 0).length,
-      topScore: trending[0]?.trendingScore || 0,
-      storeState: {
-        totalPools: allPools.length,
-        totalCollections: allCollections.length,
-        metricsSize: poolMetrics.size,
-      },
-      // More detailed debug info
-      poolsWithBasePrice: allPools.filter(
-        (p) => p.basePrice && parseFloat(p.basePrice) > 0
-      ).length,
-      samplePoolMetrics: trending.slice(0, 3).map((t) => ({
-        poolAddress: t.pool.poolAddress.slice(0, 8) + "...",
-        collectionName: t.collection?.collectionName || t.pool.collectionName,
-        basePrice: t.pool.basePrice,
-        volume24h: t.metrics.volume24h,
-        transactions24h: t.metrics.transactions24h,
-        trendingScore: t.trendingScore.toFixed(3),
-      })),
-    });
     return trending;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
@@ -177,13 +142,8 @@ export function useTrendingCollections(
       });
 
       if (imagesToFetch.size === 0) {
-        console.log("📷 No valid URIs to fetch images from");
         return;
       }
-
-      console.log(
-        `🖼️ Fetching images for ${imagesToFetch.size} collections...`
-      );
 
       // Fetch images in parallel with limited concurrency
       const imagePromises = Array.from(imagesToFetch.entries()).map(
@@ -196,21 +156,12 @@ export function useTrendingCollections(
       const results = await Promise.allSettled(imagePromises);
 
       const newImages = new Map(loadedImages);
-      let successCount = 0;
 
       results.forEach((result) => {
         if (result.status === "fulfilled" && result.value.image) {
           newImages.set(result.value.uri, result.value.image);
-          successCount++;
-          console.log(
-            `✅ Loaded image for collection ${result.value.collectionMint}`
-          );
         }
       });
-
-      console.log(
-        `📊 Image fetch complete: ${successCount}/${imagesToFetch.size} successful`
-      );
 
       if (newImages.size > loadedImages.size) {
         setLoadedImages(newImages);
@@ -244,7 +195,6 @@ export function useTrendingCollections(
         if (collection?.uri && loadedImages.has(collection.uri)) {
           // Use loaded image from metadata
           image = loadedImages.get(collection.uri)!;
-          console.log(`🖼️ Using loaded image for ${collection.collectionName}`);
         } else if (collection?.image) {
           // Use image already in collection data
           image = collection.image;
@@ -374,9 +324,6 @@ export function useTrendingCollections(
 
   // Manual refresh function
   const refetch = useCallback(() => {
-    console.log(
-      "🔄 Trending collections using real-time data - no manual refetch needed"
-    );
     return Promise.resolve();
   }, []);
 
@@ -392,39 +339,6 @@ export function useTrendingCollections(
   const isLoadingState = useMemo(() => {
     return isLoading && processedCollections.length === 0;
   }, [isLoading, processedCollections.length]);
-
-  // Log trending stats for debugging
-  useEffect(() => {
-    const validUriCount = allCollections.filter(
-      (c) => c.uri && c.uri !== "google.com" && c.uri.startsWith("http")
-    ).length;
-
-    console.log("📊 Trending Collections Stats:", {
-      totalCollections: processedCollections.length,
-      totalPools: allPools.length,
-      poolsWithMetrics: poolMetrics.size,
-      connectionState,
-      lastUpdate: new Date(lastUpdate).toLocaleTimeString(),
-      hasVolumeData: trendingData.some((t) => t.metrics.volume24h > 0),
-      topVolume: Math.max(...trendingData.map((t) => t.metrics.volume24h), 0),
-      loadedImages: loadedImages.size,
-      collectionsWithValidUris: validUriCount,
-      invalidUris: allCollections
-        .filter(
-          (c) => c.uri && (c.uri === "google.com" || !c.uri.startsWith("http"))
-        )
-        .map((c) => ({ name: c.collectionName, uri: c.uri })),
-    });
-  }, [
-    processedCollections.length,
-    allPools.length,
-    poolMetrics.size,
-    connectionState,
-    lastUpdate,
-    trendingData,
-    loadedImages.size,
-    allCollections,
-  ]);
 
   return {
     collections: processedCollections,

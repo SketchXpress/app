@@ -25,8 +25,6 @@ export interface UsePoolDetailsResult {
 }
 
 export function usePoolDetails(poolAddress: string): UsePoolDetailsResult {
-  console.log(`🔍 usePoolDetails (hybrid) for pool: ${poolAddress}`);
-
   const { program } = useAnchorContext();
 
   // Get everything from store
@@ -49,28 +47,8 @@ export function usePoolDetails(poolAddress: string): UsePoolDetailsResult {
   const collection = pool ? getCollectionByMint(pool.collectionMint) : null;
   const metrics = poolMetrics.get(poolAddress) || null;
 
-  console.log(`📊 Store data for pool ${poolAddress}:`);
-  console.table({
-    "Has Store Data": !!storeData,
-    "Has Pool Info": !!storeData?.info,
-    "Has Pool Object": !!pool,
-    "Has Collection": !!collection,
-    "Collection Name (from collection)":
-      collection?.collectionName || "Not found",
-    "Collection Name (from pool)": pool?.collectionName || "Not found",
-    "NFT Count": storeData?.nfts.length || 0,
-    "History Count": storeData?.history.length || 0,
-    "Has Metrics": !!metrics,
-    "Connection State": connectionState,
-  });
-
   // Fetch pool details from API if not in store
   const shouldFetch = !storeData?.info && !!program;
-
-  console.log(`🤔 Should fetch from API: ${shouldFetch}`, {
-    hasStoreInfo: !!storeData?.info,
-    hasProgram: !!program,
-  });
 
   const {
     data: apiData,
@@ -80,7 +58,6 @@ export function usePoolDetails(poolAddress: string): UsePoolDetailsResult {
   } = useQuery({
     queryKey: ["poolDetails", poolAddress],
     queryFn: async () => {
-      console.log(`🚀 Fetching pool data from API for ${poolAddress}`);
       // Use empty array for history since webhook will provide real-time updates
       return fetchAllPoolData(poolAddress, program, []);
     },
@@ -93,8 +70,6 @@ export function usePoolDetails(poolAddress: string): UsePoolDetailsResult {
   // Store API data when it arrives
   useEffect(() => {
     if (apiData && poolAddress) {
-      console.log(`💾 Storing API data for pool ${poolAddress}`);
-
       setPoolDetails(poolAddress, {
         info: apiData.info,
         nfts: apiData.nfts || [], // Use NFTs from API if available
@@ -151,26 +126,20 @@ export function usePoolDetails(poolAddress: string): UsePoolDetailsResult {
   ]);
 
   // Get NFTs and history - prioritize webhook data from store, then API, then empty
-  const nfts = storeData?.nfts && storeData.nfts.length > 0 ? storeData.nfts : apiData?.nfts || [];
-  const history = storeData?.history && storeData.history.length > 0 ? storeData.history : apiData?.history || [];
+  const nfts =
+    storeData?.nfts && storeData.nfts.length > 0
+      ? storeData.nfts
+      : apiData?.nfts || [];
+  const history =
+    storeData?.history && storeData.history.length > 0
+      ? storeData.history
+      : apiData?.history || [];
 
   // Calculate loading state
   const isLoading = (!storeData?.info && apiLoading) || storeLoading;
 
   // Calculate error state
   const error = storeError || apiError?.message || null;
-
-  console.log(`📋 Final result for ${poolAddress}:`);
-  console.table({
-    "Has Pool Info": !!enhancedPoolInfo,
-    "Collection Name": enhancedPoolInfo?.collectionName || "Not set",
-    "NFT Count": nfts.length,
-    "History Count": history.length,
-    "Data Source": enhancedPoolInfo?.dataSource || "none",
-    "Is Loading": isLoading,
-    Error: error || "None",
-    "Has Real-time Data": !!metrics,
-  });
 
   return {
     poolInfo: enhancedPoolInfo,
@@ -185,4 +154,3 @@ export function usePoolDetails(poolAddress: string): UsePoolDetailsResult {
     refetch,
   };
 }
-

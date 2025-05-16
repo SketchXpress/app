@@ -23,8 +23,7 @@ export const fetchMetadataFromUri = async (
       name: metadata.name,
       image: metadata.image,
     };
-  } catch (error) {
-    console.error("Error fetching metadata from URI:", error);
+  } catch {
     return null;
   }
 };
@@ -63,14 +62,6 @@ export const processPoolDataFromHistory = async (
       const symbol = args.symbol ?? "";
       const uri = args.uri;
 
-      console.log("🔍 Processing createCollectionNft in useNFTCollections:", {
-        name,
-        symbol,
-        uri,
-        signature: tx.signature,
-        accounts: tx.accounts?.map((acc) => acc.toString()),
-      });
-
       // Fetch metadata from URI if available
       let metadata = null;
       if (uri) {
@@ -105,22 +96,9 @@ export const processPoolDataFromHistory = async (
       const poolAddress = tx.poolAddress;
       const collectionMintAddress = tx.accounts[1].toString();
 
-      // ADD THIS:
-      console.log("🔗 Found createPool transaction:", {
-        poolAddress,
-        collectionMintAddress,
-        hasCollectionInMap: collectionCreations.has(collectionMintAddress),
-      });
-
       if (poolAddress && collectionCreations.has(collectionMintAddress)) {
         const collection = collectionCreations.get(collectionMintAddress);
         if (collection) {
-          console.log("✅ Successfully mapped pool to collection:", {
-            poolAddress,
-            collectionName: collection.name,
-            collectionMint: collectionMintAddress,
-          });
-
           poolToCollectionMap.set(poolAddress, {
             name: collection.name,
             collectionMint: collectionMintAddress,

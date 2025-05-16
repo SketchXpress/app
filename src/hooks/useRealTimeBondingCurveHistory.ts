@@ -184,7 +184,6 @@ export function useRealTimeBondingCurveHistory(
       wsRef.current = ws;
 
       ws.onopen = () => {
-        console.log("WebSocket connected");
         setIsWebSocketConnected(true);
 
         // Subscribe to program changes
@@ -211,10 +210,7 @@ export function useRealTimeBondingCurveHistory(
           // Handle subscription confirmation
           if (data.id === 1 && typeof data.result === "number") {
             subscriptionIdRef.current = data.result;
-            console.log(
-              "Subscribed to program updates, subscription ID:",
-              data.result
-            );
+
             return;
           }
 
@@ -239,12 +235,10 @@ export function useRealTimeBondingCurveHistory(
       };
 
       ws.onclose = (event) => {
-        console.log("WebSocket closed:", event.code, event.reason);
         setIsWebSocketConnected(false);
 
         // Attempt to reconnect if it wasn't a manual close
         if (event.code !== 1000 && enableWebSocket) {
-          console.log("Attempting to reconnect in 5 seconds...");
           reconnectTimeoutRef.current = setTimeout(() => {
             connectWebSocket();
           }, 5000);

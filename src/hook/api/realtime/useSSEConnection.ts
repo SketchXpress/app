@@ -85,15 +85,12 @@ export function useSSEConnection(options: UseSSEConnectionOptions = {}) {
     if (!isMountedRef.current) return;
 
     if (eventSourceRef.current || isConnectingRef.current) {
-      console.log("SSE already connected or connecting");
       return; // Already connected or connecting
     }
 
     isConnectingRef.current = true;
     setConnectionState("connecting");
     setError(null);
-
-    console.log(`SSE attempting connection: ${clientId}`);
 
     const url = `${endpoint}?clientId=${encodeURIComponent(clientId)}`;
     const eventSource = new EventSource(url);
@@ -102,7 +99,6 @@ export function useSSEConnection(options: UseSSEConnectionOptions = {}) {
     eventSource.onopen = () => {
       if (!isMountedRef.current) return;
 
-      console.log(`SSE connected successfully: ${clientId}`);
       setConnectionState("connected");
       setError(null);
       reconnectAttemptsRef.current = 0;
@@ -141,9 +137,6 @@ export function useSSEConnection(options: UseSSEConnectionOptions = {}) {
         setError("Connection lost - attempting reconnect...");
 
         reconnectAttemptsRef.current++;
-        console.log(
-          `Attempting reconnect ${reconnectAttemptsRef.current}/${maxReconnectAttempts} in ${reconnectDelay}ms`
-        );
 
         reconnectTimeoutRef.current = setTimeout(() => {
           if (isMountedRef.current) {
@@ -167,8 +160,6 @@ export function useSSEConnection(options: UseSSEConnectionOptions = {}) {
 
   // Disconnect from SSE
   const disconnect = useCallback(() => {
-    console.log(`SSE disconnecting: ${clientId}`);
-
     if (reconnectTimeoutRef.current) {
       clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = null;

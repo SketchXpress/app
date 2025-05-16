@@ -46,8 +46,11 @@ const fetchTransactionHistory = async (
     throw new Error("Helius API key not configured");
   }
 
+  // Ensure limit does not exceed Helius API constraints (1-100)
+  const apiLimit = Math.max(1, Math.min(limit, 100));
+
   const API_BASE = `https://api-devnet.helius.xyz/v0`;
-  let url = `${API_BASE}/addresses/${PROGRAM_PUBLIC_KEY.toBase58()}/transactions?api-key=${HELIUS_API_KEY}&limit=${limit}`;
+  let url = `${API_BASE}/addresses/${PROGRAM_PUBLIC_KEY.toBase58()}/transactions?api-key=${HELIUS_API_KEY}&limit=${apiLimit}`;
 
   if (beforeSig) {
     url += `&before=${beforeSig}`;
@@ -65,7 +68,6 @@ const fetchTransactionHistory = async (
         if (response.status === 429) {
           const retryAfter = response.headers.get("retry-after");
           const waitTime = retryAfter ? parseInt(retryAfter) * 1000 : delay;
-          console.log(`Rate limited by Helius API, waiting ${waitTime}ms...`);
           await new Promise((resolve) => setTimeout(resolve, waitTime));
           delay *= 2;
           retries--;
@@ -73,6 +75,8 @@ const fetchTransactionHistory = async (
         }
 
         if (!response.ok) {
+          // Log the URL that caused the error for easier debugging
+          console.error(`Helius API request failed for URL: ${url}`);
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
@@ -120,9 +124,12 @@ const fetchTransactionHistory = async (
 
 // Main Hook
 export function useTransactionHistory(
-  config: UseTransactionHistoryConfig = { limit: 50 }
+  config: UseTransactionHistoryConfig = { limit: 100 } // Default limit set to 100 (Helius max)
 ) {
   const { limit, staleTime = 120 * 1000, gcTime = 10 * 60 * 1000 } = config;
+
+  // Ensure the limit used by the hook internally respects the API constraint
+  const effectiveLimit = Math.max(1, Math.min(limit, 100));
 
   const { program } = useAnchorContext();
   const { deduplicatedFetch } = useDeduplicateRequests<HistoryItem[]>();
@@ -141,11 +148,11 @@ export function useTransactionHistory(
     error,
     refetch,
   } = useQuery({
-    queryKey: ["transactionHistory", limit],
+    queryKey: ["transactionHistory", effectiveLimit], // Use effectiveLimit in queryKey
     queryFn: () =>
       deduplicatedFetch(
-        `tx-history-${limit}`,
-        () => fetchTransactionHistory(limit, undefined, program),
+        `tx-history-${effectiveLimit}`,
+        () => fetchTransactionHistory(effectiveLimit, undefined, program), // Pass effectiveLimit
         60000 // 1 minute deduplication window
       ),
     enabled: !!program,
@@ -174,12 +181,12 @@ export function useTransactionHistory(
       setLastSignature(lastSig);
 
       // Check if we can load more
-      setCanLoadMore(initialHistory.length === limit);
+      setCanLoadMore(initialHistory.length === effectiveLimit); // Use effectiveLimit
 
       // Disabled background price loading to prevent rate limiting
       setIsLoadingPrices(false);
     }
-  }, [initialHistory, limit]);
+  }, [initialHistory, effectiveLimit]);
 
   // Load more function (simplified)
   const loadMore = useCallback(async () => {
@@ -187,8 +194,8 @@ export function useTransactionHistory(
 
     try {
       const moreHistory = await deduplicatedFetch(
-        `tx-history-${limit}-${lastSignature}`,
-        () => fetchTransactionHistory(limit, lastSignature, program),
+        `tx-history-${effectiveLimit}-${lastSignature}`,
+        () => fetchTransactionHistory(effectiveLimit, lastSignature, program), // Pass effectiveLimit
         60000
       );
 
@@ -212,7 +219,7 @@ export function useTransactionHistory(
       // Update pagination
       const newLastSig = moreHistory[moreHistory.length - 1]?.signature;
       setLastSignature(newLastSig);
-      setCanLoadMore(moreHistory.length === limit);
+      setCanLoadMore(moreHistory.length === effectiveLimit); // Use effectiveLimit
     } catch (error) {
       console.error("Error loading more transactions:", error);
     }
@@ -221,7 +228,7 @@ export function useTransactionHistory(
     lastSignature,
     isLoading,
     deduplicatedFetch,
-    limit,
+    effectiveLimit, // Use effectiveLimit
     program,
   ]);
 

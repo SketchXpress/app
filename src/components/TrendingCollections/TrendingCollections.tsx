@@ -32,7 +32,6 @@ const TrendingCollections: React.FC = () => {
     sortBy: activeTab,
     refreshInterval: 1 * 1000, // Using 2 minutes to reduce rate limit
   });
-  console.log(collections);
 
   // Monitoring error for rate limit
   useEffect(() => {

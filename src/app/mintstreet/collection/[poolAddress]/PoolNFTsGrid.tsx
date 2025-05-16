@@ -46,111 +46,99 @@ type OwnershipStatus = "pool" | "user" | "other" | "burned" | "loading";
 const SKELETON_COUNT = 5;
 const mintInfoCache = new Map<string, { supply: bigint } | "nonexistent">();
 
-// IPFS Gateway fallbacks configuration
-const IPFS_GATEWAYS = [
-  "https://gateway.pinata.cloud/ipfs/",
-  "https://ipfs.io/ipfs/",
-  "https://dweb.link/ipfs/",
-  "https://cf-ipfs.com/ipfs/",
-  "https://cloudflare-ipfs.com/ipfs/",
-];
-
-// Rate limiting configuration
-const MAX_CONCURRENT_REQUESTS = 3;
-const RETRY_DELAY = 1000; // 1 second
-const MAX_RETRIES = 3;
-
 // Helper function to delay execution
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Helper function to fetch with retry and fallback gateways
-async function fetchWithRetryAndFallback(
-  url: string,
-  retries = MAX_RETRIES
-): Promise<Response> {
-  let lastError: Error;
-
-  // Try each gateway
-  for (const gateway of IPFS_GATEWAYS) {
-    let currentUrl = url;
-
-    // Convert IPFS URLs to use the current gateway
-    if (url.startsWith("https://gateway.pinata.cloud/ipfs/")) {
-      const hash = url.split("/ipfs/")[1];
-      currentUrl = `${gateway}${hash}`;
-    } else if (url.startsWith("https://ipfs.io/ipfs/")) {
-      const hash = url.split("/ipfs/")[1];
-      currentUrl = `${gateway}${hash}`;
-    }
-
-    // Try with retries for this gateway
-    for (let attempt = 0; attempt <= retries; attempt++) {
-      try {
-        const response = await fetch(currentUrl, {
-          mode: "cors",
-          headers: {
-            Accept: "application/json, image/*",
-          },
-        });
-
-        if (response.ok) {
-          return response;
-        }
-
-        // If we get a 429, wait before retrying
-        if (response.status === 429) {
-          const retryAfter = response.headers.get("Retry-After");
-          const waitTime = retryAfter
-            ? parseInt(retryAfter) * 1000
-            : RETRY_DELAY * (attempt + 1);
-          await delay(waitTime);
-          continue;
-        }
-
-        // For other errors, throw to try next gateway
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      } catch (error) {
-        lastError = error as Error;
-        if (attempt < retries) {
-          await delay(RETRY_DELAY * (attempt + 1));
-        }
-      }
-    }
+// Updated metadata fetching functions using API route
+const fetchMetadataForNft = async (nft: NFT) => {
+  if (!nft.uri) {
+    return {
+      mintAddress: nft.mintAddress,
+      metadata: { name: nft.name, image: nft.image, symbol: nft.symbol },
+    };
   }
 
-  throw lastError!;
-}
+  try {
+    // Use your API route instead of direct fetch
+    const response = await fetch(
+      `/api/nft-metadata?uri=${encodeURIComponent(nft.uri)}`
+    );
 
-// Helper function to process requests in batches
-async function processBatched<T, R>(
-  items: T[],
-  processor: (item: T) => Promise<R>,
-  batchSize: number = MAX_CONCURRENT_REQUESTS
-): Promise<R[]> {
-  const results: R[] = [];
+    if (!response.ok) {
+      throw new Error(`API error: ${response.status}`);
+    }
 
-  for (let i = 0; i < items.length; i += batchSize) {
-    const batch = items.slice(i, i + batchSize);
-    const batchPromises = batch.map(processor);
-    const batchResults = await Promise.allSettled(batchPromises);
+    const metadata = await response.json();
 
-    batchResults.forEach((result, index) => {
-      if (result.status === "fulfilled") {
-        results.push(result.value);
-      } else {
-        console.error(`Failed to process item ${i + index}:`, result.reason);
-        // You might want to push a default value here depending on the use case
-      }
+    // Handle API error response
+    if (metadata.error) {
+      throw new Error(metadata.error);
+    }
+
+    return { mintAddress: nft.mintAddress, metadata };
+  } catch (fetchError) {
+    console.error(
+      `Error fetching metadata for ${nft.mintAddress}:`,
+      fetchError
+    );
+    return {
+      mintAddress: nft.mintAddress,
+      metadata: { name: nft.name, image: nft.image, symbol: nft.symbol },
+    };
+  }
+};
+
+// Batch metadata fetching function
+const fetchMetadataBatch = async (nfts: NFT[]) => {
+  const nftsWithUris = nfts.filter((nft) => nft.uri);
+
+  if (nftsWithUris.length === 0) {
+    return nfts.map((nft) => ({
+      mintAddress: nft.mintAddress,
+      metadata: { name: nft.name, image: nft.image, symbol: nft.symbol },
+    }));
+  }
+
+  try {
+    // Use batch endpoint for better performance
+    const response = await fetch("/api/nft-metadata", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        uris: nftsWithUris.map((nft) => nft.uri),
+      }),
     });
 
-    // Small delay between batches to respect rate limits
-    if (i + batchSize < items.length) {
-      await delay(200);
+    if (!response.ok) {
+      throw new Error(`Batch API error: ${response.status}`);
     }
-  }
 
-  return results;
-}
+    const results = await response.json();
+
+    // Combine results with original NFTs
+    return nfts.map((nft) => {
+      if (!nft.uri) {
+        return {
+          mintAddress: nft.mintAddress,
+          metadata: { name: nft.name, image: nft.image, symbol: nft.symbol },
+        };
+      }
+
+      const result = results.find((r: any) => r.uri === nft.uri);
+      return {
+        mintAddress: nft.mintAddress,
+        metadata: result?.success
+          ? result.metadata
+          : { name: nft.name, image: nft.image, symbol: nft.symbol },
+      };
+    });
+  } catch (error) {
+    console.error("Batch metadata fetch error:", error);
+    // Fallback to individual processing if batch fails
+    return Promise.all(nfts.map(fetchMetadataForNft));
+  }
+};
 
 const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
   nfts,
@@ -185,6 +173,7 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
     }
   }, [program]);
 
+  // NFT Ownership checking logic
   useEffect(() => {
     const checkNftOwnershipOptimized = async () => {
       if (!connectionRef.current || !nfts || nfts.length === 0) {
@@ -307,8 +296,7 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
           if (info) {
             try {
               amount = BigInt(1);
-              // eslint-disable-next-line @typescript-eslint/no-unused-vars
-            } catch (e) {
+            } catch {
               /* ignore if account doesn't exist or parsing fails */
             }
           }
@@ -346,7 +334,7 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
     checkNftOwnershipOptimized();
   }, [nfts, program, wallet.publicKey]);
 
-  // Updated metadata fetching with rate limiting and retry logic
+  // Updated metadata fetching with API route
   useEffect(() => {
     if (!nfts || nfts.length === 0) {
       setMetadataLoading(false);
@@ -354,68 +342,10 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
     }
     setMetadataLoading(true);
 
-    const fetchMetadataForNft = async (nft: NFT) => {
-      if (!nft.uri) {
-        return {
-          mintAddress: nft.mintAddress,
-          metadata: { name: nft.name, image: nft.image, symbol: nft.symbol },
-        };
-      }
-
-      try {
-        let uri = nft.uri;
-        if (uri.startsWith("ar://"))
-          uri = `https://arweave.net/${uri.substring(5)}`;
-        else if (uri.startsWith("ipfs://"))
-          uri = `https://ipfs.io/ipfs/${uri.substring(7)}`;
-        else if (!uri.startsWith("http"))
-          uri = `https://${uri.replace(/^\/\//, "")}`;
-
-        const response = await fetchWithRetryAndFallback(uri);
-
-        const contentType = response.headers.get("content-type")?.toLowerCase();
-        if (contentType?.startsWith("image/")) {
-          return {
-            mintAddress: nft.mintAddress,
-            metadata: { image: uri, name: nft.name, symbol: nft.symbol },
-          };
-        }
-
-        const metadata = await response.json();
-
-        // Convert IPFS URLs in metadata.image to use a working gateway
-        if (metadata.image) {
-          if (metadata.image.startsWith("ipfs://")) {
-            const hash = metadata.image.substring(7);
-            metadata.image = `https://ipfs.io/ipfs/${hash}`;
-          } else if (metadata.image.startsWith("ar://")) {
-            metadata.image = `https://arweave.net/${metadata.image.substring(
-              5
-            )}`;
-          }
-        }
-
-        return { mintAddress: nft.mintAddress, metadata };
-      } catch (fetchError) {
-        console.error(
-          `Error fetching/processing metadata for ${nft.mintAddress} from ${nft.uri}:`,
-          fetchError
-        );
-        return {
-          mintAddress: nft.mintAddress,
-          metadata: { name: nft.name, image: nft.image, symbol: nft.symbol },
-        };
-      }
-    };
-
     const fetchAllMetadata = async () => {
       try {
-        // Process NFTs in batches to respect rate limits
-        const results = await processBatched(
-          nfts,
-          fetchMetadataForNft,
-          MAX_CONCURRENT_REQUESTS
-        );
+        // Use batch processing for better performance
+        const results = await fetchMetadataBatch(nfts);
 
         const newMetadata: Record<string, NFTMetadata> = {};
         results.forEach((result) => {
@@ -506,7 +436,6 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
     [isSelling, isSold, poolAddress, sellNft, nftOwnership, onRefresh]
   );
 
-  // Rest of the component remains the same...
   const getActionButtonsDetails = useCallback(
     (nft: NFT) => {
       const ownership = nftOwnership[nft.mintAddress];

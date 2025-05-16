@@ -32,8 +32,6 @@ export const fetchMetadataBatch = async (
           }
           // Your URIs seem to already be HTTP URLs, so we'll use them directly
 
-          console.log("Fetching metadata from:", metadataUrl); // Add logging
-
           const response = await fetch(
             `/api/metadata?uri=${encodeURIComponent(metadataUrl)}`
           );
@@ -46,7 +44,6 @@ export const fetchMetadataBatch = async (
           }
 
           const metadata = await response.json();
-          console.log("Fetched metadata:", metadata); // Add logging
 
           const result = { name: metadata.name, image: metadata.image };
 

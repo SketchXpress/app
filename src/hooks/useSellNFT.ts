@@ -125,9 +125,6 @@ export const useSellNft = () => {
         throw new Error("Invalid pool address");
       }
 
-      console.log("Selling NFT with mint:", nftMintAddress);
-      console.log("Pool address:", poolAddress);
-
       // Get pool data to retrieve collection mint and creator
       const poolData = await program.account.bondingCurvePool.fetch(pool);
       const collectionMint = poolData.collection as PublicKey;
@@ -135,16 +132,12 @@ export const useSellNft = () => {
 
       // Check if pool has enough SOL to buy the NFT
       const poolBalance = await program.provider.connection.getBalance(pool);
-      console.log("Pool balance:", poolBalance / 1e9, "SOL");
 
       // If pool balance is very low, we might want to warn the user
       if (poolBalance < 10000) {
         // Less than 0.00001 SOL
         console.warn("Pool balance is very low, transaction might fail");
       }
-
-      console.log("Collection mint:", collectionMint.toString());
-      console.log("Creator:", creator.toString());
 
       // Derive collection metadata PDA
       const [collectionMetadata] = PublicKey.findProgramAddressSync(

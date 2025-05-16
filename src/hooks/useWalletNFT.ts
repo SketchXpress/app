@@ -126,7 +126,6 @@ export function useWalletNFTs() {
         }
 
         const data = (await response.json()) as HeliusRPCResponse;
-        console.log("Helius API response:", data);
 
         if (data.error) {
           throw new Error(`RPC Error: ${JSON.stringify(data.error)}`);

@@ -17,15 +17,12 @@ export const delay = (ms: number): Promise<void> =>
   new Promise((resolve) => setTimeout(resolve, ms));
 
 // Timer utility function for performance monitoring
-export const createTimer = (label: string) => {
+export const createTimer = () => {
   const startTime = performance.now();
   return {
     stop: () => {
       const endTime = performance.now();
       const duration = endTime - startTime;
-      if (process.env.NODE_ENV !== "production") {
-        console.log(`⏱️ ${label}: ${duration.toFixed(2)}ms`);
-      }
       return duration;
     },
   };

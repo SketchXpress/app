@@ -18,22 +18,13 @@ if (process.env.NODE_ENV === "development") {
 // Helper function to extract pool address from event
 function extractPoolAddressFromEvent(event: any): string | null {
   try {
-    // Log the event structure for debugging
-    console.log("Extracting pool address from event:", {
-      signature: event.signature,
-      instructionCount: event.instructions?.length,
-      firstInstruction: event.instructions?.[0],
-      accountCount: event.instructions?.[0]?.accounts?.length,
-    });
-
     // The pool address is typically the first account in the instruction
     if (event.instructions?.[0]?.accounts?.[0]) {
       const poolAddress = event.instructions[0].accounts[0];
-      console.log(`Extracted pool address: ${poolAddress}`);
+
       return poolAddress;
     }
 
-    console.log("No pool address found in event");
     return null;
   } catch (error) {
     console.error("Error extracting pool address:", error);
@@ -78,14 +69,10 @@ export async function POST(request: NextRequest) {
           { status: 401 }
         );
       }
-    } else {
-      console.log("Webhook running without signature verification");
     }
 
     // Parse the webhook payload
     const payload: HeliusWebhookPayload = JSON.parse(body);
-    console.log(`Processing webhook with ${payload.events.length} events`);
-
     // Process each event
     const processedEvents = [];
     let totalNewPools = 0;
@@ -139,10 +126,6 @@ export async function POST(request: NextRequest) {
               transactionType === "mintNft" ||
               transactionType === "sellNft"
             ) {
-              console.log(
-                `Processing ${transactionType} for pool ${poolAddress}`
-              );
-
               // Import broadcast function dynamically
               const { broadcastToSSEClients } = await import(
                 "@/lib/sse/eventBroadcaster"
@@ -160,9 +143,6 @@ export async function POST(request: NextRequest) {
               });
 
               totalPoolTransactions++;
-              console.log(
-                `Broadcasted ${transactionType} for pool ${poolAddress}`
-              );
             }
           }
         } catch (poolError) {
@@ -232,10 +212,6 @@ export async function POST(request: NextRequest) {
               updatedPools,
             },
           });
-
-          console.log(
-            `📊 Broadcasted volume updates for ${updatedPools.length} pools`
-          );
         }
       }
     }
@@ -250,7 +226,6 @@ export async function POST(request: NextRequest) {
       message: "Webhook processed successfully",
     };
 
-    console.log("Webhook processing complete:", response);
     return NextResponse.json(response);
   } catch (error) {
     console.error("Error processing webhook:", error);

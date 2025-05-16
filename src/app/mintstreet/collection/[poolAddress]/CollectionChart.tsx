@@ -24,7 +24,7 @@ import {
   SeriesType,
 } from "lightweight-charts";
 import styles from "./CollectionChart.module.scss";
-import { useBondingCurveForPool } from "@/hooks/useBondingCurveForPool";
+import { useBondingCurveForPool } from "@/hook/pools";
 import ChartToolbar, { ChartType, Timeframe, SMAPeriod } from "./ChartToolbar";
 import { useHeliusSales } from "@/hooks/useHeliusSales";
 import { useRealtimeChartData } from "@/hook/core/useRealtimeChartData";
@@ -74,8 +74,8 @@ function isNumber(value: unknown): value is number {
 
 const CollectionChart: React.FC<CollectionChartProps> = ({
   poolAddress,
-  hasRealtimeData: _hasRealtimeData = false, // Prefixed with _ to indicate intentionally unused
-  connectionState: _connectionState = "disconnected", // Prefixed with _ to indicate intentionally unused
+  hasRealtimeData: _hasRealtimeData = false,
+  connectionState: _connectionState = "disconnected",
 }) => {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const containerRef = useCallback((node: HTMLDivElement | null) => {
@@ -108,24 +108,22 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
     "70eef812-8d6b-496f-bc30-1725d5acb800"
   );
 
-  // Sell price calculation
-  function calculateSellPrice(
-    basePrice: number,
-    growthFactor: number,
-    currentSupply: number
-  ): number {
-    try {
-      const supplyAfterSell = currentSupply - 1;
-      const price = basePrice + growthFactor * supplyAfterSell;
-      return Math.max(price, basePrice);
-    } catch (error) {
-      console.error("Error in calculateSellPrice:", error);
-      return basePrice * 0.8;
-    }
-  }
+  // Debug sales data
+  console.log("Sales data received:", sales);
 
-  // Process raw historical data into candles
+  // Process raw historical data into candles with ACTION-BASED COLORING
   const rawCandles = useMemo(() => {
+    console.log("\n🔥 ACTION-BASED CANDLE PROCESSING 🔥");
+
+    if (!history || !sales) {
+      console.log("❌ Missing history or sales data, returning empty candles");
+      return [];
+    }
+
+    console.log("History entries:", history.length);
+    console.log("Sales entries:", sales.length);
+
+    // Step 1: Process mint events
     const mintEvents = history
       .filter(
         (h) =>
@@ -141,118 +139,109 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
       }))
       .sort((a, b) => Number(a.time) - Number(b.time));
 
-    let processedSellEvents =
-      sales && sales.length > 0
-        ? sales
-            .filter((s) => {
-              const isDuplicateOfMint = mintEvents.some(
-                (mint) =>
-                  Math.abs(mint.price - (s.soldSol || 0)) < 0.0001 &&
-                  mint.signature === s.signature
-              );
-              return s.blockTime != null && !isDuplicateOfMint;
-            })
-            .map((item) => ({
-              time: Math.floor(item.blockTime!) as Time,
-              price: item.soldSol || 0,
-              type: "sell" as const,
-              signature: item.signature,
-            }))
-        : [];
+    console.log(`Found ${mintEvents.length} mint events`);
 
-    const sellTransactions = history.filter(
-      (tx) => tx.instructionName === "sellNft" && tx.blockTime != null
-    );
-
-    if (sellTransactions.length > 0) {
-      const historySellEvents = sellTransactions.map((tx) => ({
-        time: Math.floor(tx.blockTime!) as Time,
-        price: tx.price || 0,
+    // Step 2: Process sell events with better null handling
+    const sellEvents = sales
+      .filter((s) => s.blockTime != null && s.soldSol != null && s.soldSol > 0)
+      .map((item) => ({
+        time: Math.floor(item.blockTime!) as Time,
+        price: item.soldSol!, // Now guaranteed to be non-null due to filter
         type: "sell" as const,
-        signature: tx.signature,
-      }));
-      processedSellEvents = [...processedSellEvents, ...historySellEvents];
-    }
+        signature: item.signature,
+      }))
+      .sort((a, b) => Number(a.time) - Number(b.time));
 
-    processedSellEvents.sort((a, b) => Number(a.time) - Number(b.time));
+    console.log(`Found ${sellEvents.length} sell events`);
 
-    const allEvents = [...mintEvents, ...processedSellEvents].sort((a, b) => {
+    // Step 3: Combine all events and sort by time
+    const allEvents = [...mintEvents, ...sellEvents].sort((a, b) => {
       const timeDiff = Number(a.time) - Number(b.time);
       if (timeDiff !== 0) return timeDiff;
+      // If same time, put mints before sells
       if (a.type === "mint" && b.type === "sell") return -1;
       if (a.type === "sell" && b.type === "mint") return 1;
       return 0;
     });
 
+    console.log(`Combined ${allEvents.length} total events`);
+
     const candles: ChartDataPoint[] = [];
     let lastPrice = 0;
-    let lastTimestamp = 0;
+    let lastTime = 0;
 
     allEvents.forEach((event, index) => {
-      let currentEventTime = Number(event.time);
-
-      if (lastTimestamp > 0 && currentEventTime <= lastTimestamp) {
-        currentEventTime = lastTimestamp + 1;
+      // Ensure strictly increasing timestamps
+      let eventTime = Number(event.time);
+      if (eventTime <= lastTime) {
+        eventTime = lastTime + 1;
       }
 
-      if (index === 0 && event.type === "mint") {
-        let initialTime = Number(event.time) - 86400;
-        if (initialTime >= currentEventTime) {
-          initialTime = currentEventTime - 1;
-        }
-        candles.push({
-          time: initialTime as Time,
-          open: 0,
-          high: event.price,
-          low: 0,
-          close: event.price,
-        });
-        lastPrice = event.price;
-        candles.push({
-          time: currentEventTime as Time,
-          open: 0,
-          high: event.price,
-          low: 0,
-          close: event.price,
-        });
-        lastTimestamp = currentEventTime;
-      } else {
+      // Handle first event
+      if (index === 0) {
+        lastPrice = 0;
+        // Create initial candle 1 day before first event
+        const initialTime = Math.max(1, eventTime - 86400);
         if (event.type === "mint") {
           candles.push({
-            time: currentEventTime as Time,
-            open: lastPrice,
-            high: Math.max(lastPrice, event.price),
-            low: Math.min(lastPrice, event.price),
+            time: initialTime as Time,
+            open: 0,
+            high: event.price,
+            low: 0,
             close: event.price,
           });
-        } else if (event.type === "sell") {
-          const basePrice = 0.05;
-          const growthFactor = 0.02;
-          const supplyBeforeSell =
-            mintEvents.filter((m) => Number(m.time) <= Number(event.time))
-              .length -
-            processedSellEvents.filter(
-              (s) => Number(s.time) < Number(event.time)
-            ).length;
-          const sellPrice = calculateSellPrice(
-            basePrice,
-            growthFactor,
-            supplyBeforeSell
-          );
-
-          candles.push({
-            time: currentEventTime as Time,
-            open: lastPrice,
-            high: lastPrice,
-            low: sellPrice,
-            close: sellPrice,
-          });
         }
-        lastPrice = candles[candles.length - 1].close;
-        lastTimestamp = currentEventTime;
+      }
+
+      let candle: ChartDataPoint;
+
+      if (event.type === "mint") {
+        // MINT = GREEN CANDLE (Force close >= open)
+        candle = {
+          time: eventTime as Time,
+          open: lastPrice,
+          high: Math.max(lastPrice, event.price),
+          low: Math.min(lastPrice, event.price),
+          close: event.price, // Mint always increases or maintains price = GREEN
+        };
+      } else {
+        // SELL = RED CANDLE (Force close < open)
+        candle = {
+          time: eventTime as Time,
+          open: lastPrice,
+          high: lastPrice, // High stays at previous price
+          low: Math.min(lastPrice, event.price), // Now guaranteed to be number
+          close: event.price, // Now guaranteed to be number
+        };
+      }
+
+      candles.push(candle);
+      lastPrice = event.price; // Now guaranteed to be number
+      lastTime = eventTime;
+    });
+
+    // Final validation and deduplication
+    const validatedCandles: ChartDataPoint[] = [];
+    const timesSeen = new Set<number>();
+
+    candles.forEach((candle) => {
+      const time = Number(candle.time);
+      if (!timesSeen.has(time)) {
+        timesSeen.add(time);
+        validatedCandles.push(candle);
       }
     });
-    return candles.sort((a, b) => Number(a.time) - Number(b.time));
+
+    // Sort final candles
+    const sortedCandles = validatedCandles.sort(
+      (a, b) => Number(a.time) - Number(b.time)
+    );
+
+    console.log(`Generated ${sortedCandles.length} valid candles`);
+    console.log("First candle:", sortedCandles[0]);
+    console.log("Last candle:", sortedCandles[sortedCandles.length - 1]);
+
+    return sortedCandles;
   }, [history, sales]);
 
   // **Enhanced candles with real-time data**
@@ -435,7 +424,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
     };
   }, [container, candles]);
 
-  // Chart update effect with real-time data highlighting
+  // Chart update effect with real-time data highlighting and FIXED VALIDATION
   useEffect(() => {
     if (!chartRef.current || !container) return;
 
@@ -443,18 +432,65 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
       (a, b) => Number(a.time) - Number(b.time)
     );
 
-    // Validate data ordering
-    for (let i = 1; i < finalCandles.length; i++) {
-      if (Number(finalCandles[i].time) <= Number(finalCandles[i - 1].time)) {
+    // Enhanced validation - check for exact duplicates and non-ascending data
+    const validatedCandles: ChartDataPoint[] = [];
+    const timesSeen = new Set<number>();
+
+    finalCandles.forEach((candle, index) => {
+      const time = Number(candle.time);
+
+      if (timesSeen.has(time)) {
+        console.warn(
+          `Duplicate timestamp found at index ${index}, time: ${time}. Skipping.`
+        );
+        return;
+      }
+
+      if (validatedCandles.length > 0) {
+        const lastTime = Number(
+          validatedCandles[validatedCandles.length - 1].time
+        );
+        if (time <= lastTime) {
+          console.warn(
+            `Non-ascending timestamp found at index ${index}. Current: ${time}, Previous: ${lastTime}. Adjusting.`
+          );
+          // Adjust the time to be strictly increasing
+          candle.time = (lastTime + 1) as Time;
+        }
+      }
+
+      timesSeen.add(Number(candle.time));
+      validatedCandles.push(candle);
+    });
+
+    // Final check for strictly ascending data
+    let hasError = false;
+    for (let i = 1; i < validatedCandles.length; i++) {
+      if (
+        Number(validatedCandles[i].time) <= Number(validatedCandles[i - 1].time)
+      ) {
         console.error(
-          "CRITICAL: Data not strictly ascending before setting to chart!",
+          "CRITICAL: Data still not strictly ascending after validation!",
           {
             index: i,
-            currentTime: finalCandles[i].time,
-            prevTime: finalCandles[i - 1].time,
+            currentTime: validatedCandles[i].time,
+            prevTime: validatedCandles[i - 1].time,
           }
         );
+        hasError = true;
       }
+    }
+
+    if (hasError) {
+      console.log("Attempting final fix by regenerating timestamps...");
+      // Last resort: regenerate timestamps
+      validatedCandles.forEach((candle, index) => {
+        if (index === 0) return;
+        const prevTime = Number(validatedCandles[index - 1].time);
+        if (Number(candle.time) <= prevTime) {
+          candle.time = (prevTime + 1) as Time;
+        }
+      });
     }
 
     if (seriesRef.current) {
@@ -498,11 +534,10 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
 
     if (newSeries) {
       seriesRef.current = newSeries;
-      if (finalCandles.length > 0) {
+      if (validatedCandles.length > 0) {
         if (chartType === "candlestick" || chartType === "bar") {
-          // Fix: Ensure proper Time type casting
           seriesRef.current.setData(
-            finalCandles.map((c) => ({
+            validatedCandles.map((c) => ({
               time: c.time as Time,
               open: c.open,
               high: c.high,
@@ -511,9 +546,8 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
             }))
           );
         } else {
-          // Fix: Ensure proper Time type casting for line/area charts
           seriesRef.current.setData(
-            finalCandles.map((c) => ({
+            validatedCandles.map((c) => ({
               time: c.time as Time,
               value: c.close,
             }))
@@ -523,7 +557,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
       }
     }
 
-    // Volume series
+    // Volume series (optional)
     if (volumeSeriesRef.current) {
       chartRef.current.removeSeries(volumeSeriesRef.current);
       volumeSeriesRef.current = null;
@@ -545,16 +579,16 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
       (chartType === "candlestick" ||
         chartType === "line" ||
         chartType === "area") &&
-      finalCandles.length >= smaPeriod
+      validatedCandles.length >= smaPeriod
     ) {
-      const smaData = finalCandles
+      const smaData = validatedCandles
         .slice(smaPeriod - 1)
         .map((_, index) => {
-          const sum = finalCandles
+          const sum = validatedCandles
             .slice(index, index + smaPeriod)
             .reduce((acc, curr) => acc + curr.close, 0);
           return {
-            time: finalCandles[index + smaPeriod - 1].time as Time,
+            time: validatedCandles[index + smaPeriod - 1].time as Time,
             value: sum / smaPeriod,
           };
         })
@@ -656,6 +690,14 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
           </div>
         )}
       </div>
+
+      {/* Debug info in development */}
+      {process.env.NODE_ENV === "development" && (
+        <div style={{ fontSize: "10px", color: "#666", marginTop: "8px" }}>
+          Debug: {rawCandles.length} candles, {sales?.length || 0} sales,{" "}
+          {history?.length || 0} history
+        </div>
+      )}
     </div>
   );
 };
