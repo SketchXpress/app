@@ -1,5 +1,3 @@
-// app/src/app/mintstreet/collection/[poolAddress]/components/LoadingError.tsx
-
 import React from "react";
 import { Loader2 } from "lucide-react";
 import styles from "../page.module.scss";

@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// app/src/app/mintstreet/collection/[poolAddress]/types.ts - Extended types
-
 export interface PoolInfo {
   collectionName: string;
   totalEscrowed: number;
@@ -12,7 +10,6 @@ export interface PoolInfo {
   migrationStatus: string;
   creator: string;
   collection: string;
-  // Optional real-time metrics that can be added from store
   volume24h?: number;
   transactions24h?: number;
   uniqueTraders24h?: number;
@@ -40,7 +37,6 @@ export interface CollectionPageData {
   error: string | null;
   lastMintPrice: string;
   migrationProgress: number;
-  // Extended fields for optimization
   dataSource?: {
     poolInfo: "store" | "api";
     nfts: "store" | "api";

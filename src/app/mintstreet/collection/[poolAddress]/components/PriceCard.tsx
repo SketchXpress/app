@@ -1,4 +1,3 @@
-// src/app/mintstreet/collection/[poolAddress]/components/PriceCard.tsx - UPDATED with alternatives
 import React from "react";
 import { PoolInfo } from "../types";
 import { formatSOL, formatProtocolFee } from "../utils/formatters";
@@ -10,7 +9,6 @@ interface PriceCardProps {
 }
 
 export default function PriceCard({ poolInfo, lastMintPrice }: PriceCardProps) {
-  // Helper function to format numbers safely
   const safeFormatSOL = (value: number | undefined): string => {
     if (value === undefined || value === null || isNaN(value)) {
       return "0.0000 SOL";

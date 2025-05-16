@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import React, {
@@ -23,12 +21,14 @@ import {
   Time,
   SeriesType,
 } from "lightweight-charts";
-import styles from "./CollectionChart.module.scss";
+
 import { useBondingCurveForPool } from "@/hook/pools";
-import ChartToolbar, { ChartType, Timeframe, SMAPeriod } from "./ChartToolbar";
 import { useHeliusSales } from "@/hook/pools/useHeliusSales";
-import { useRealtimeChartData } from "@/hook/core/useRealtimeChartData";
 import ConnectionStatus from "@/components/ConnectionStatus";
+import { useRealtimeChartData } from "@/hook/core/useRealtimeChartData";
+
+import styles from "./CollectionChart.module.scss";
+import ChartToolbar, { ChartType, Timeframe, SMAPeriod } from "./ChartToolbar";
 
 type Candle = {
   time: Time;
@@ -39,7 +39,6 @@ type Candle = {
   isRealtime?: boolean;
 };
 
-// Fixed ChartDataPoint type to match useRealtimeChartData
 type ChartDataPoint = {
   time: Time;
   open: number;
@@ -57,6 +56,7 @@ interface CollectionChartProps {
 }
 
 function isCandleData(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   data: any
 ): data is { open: number; high: number; low: number; close: number } {
   return (
@@ -74,7 +74,9 @@ function isNumber(value: unknown): value is number {
 
 const CollectionChart: React.FC<CollectionChartProps> = ({
   poolAddress,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   hasRealtimeData: _hasRealtimeData = false,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   connectionState: _connectionState = "disconnected",
 }) => {
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
@@ -101,20 +103,17 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
     time: null,
   });
 
-  // Existing data hooks
   const { history, isLoading } = useBondingCurveForPool(poolAddress);
   const { data: sales } = useHeliusSales(
     poolAddress,
     "70eef812-8d6b-496f-bc30-1725d5acb800"
   );
 
-  // Process raw historical data into candles with ACTION-BASED COLORING
   const rawCandles = useMemo(() => {
     if (!history || !sales) {
       return [];
     }
 
-    // Step 1: Process mint events
     const mintEvents = history
       .filter(
         (h) =>
@@ -130,18 +129,16 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
       }))
       .sort((a, b) => Number(a.time) - Number(b.time));
 
-    // Step 2: Process sell events with better null handling
     const sellEvents = sales
       .filter((s) => s.blockTime != null && s.soldSol != null && s.soldSol > 0)
       .map((item) => ({
         time: Math.floor(item.blockTime!) as Time,
-        price: item.soldSol!, // Now guaranteed to be non-null due to filter
+        price: item.soldSol!,
         type: "sell" as const,
         signature: item.signature,
       }))
       .sort((a, b) => Number(a.time) - Number(b.time));
 
-    // Step 3: Combine all events and sort by time
     const allEvents = [...mintEvents, ...sellEvents].sort((a, b) => {
       const timeDiff = Number(a.time) - Number(b.time);
       if (timeDiff !== 0) return timeDiff;
@@ -181,27 +178,27 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
       let candle: ChartDataPoint;
 
       if (event.type === "mint") {
-        // MINT = GREEN CANDLE (Force close >= open)
+        // MINT = GREEN CANDLE
         candle = {
           time: eventTime as Time,
           open: lastPrice,
           high: Math.max(lastPrice, event.price),
           low: Math.min(lastPrice, event.price),
-          close: event.price, // Mint always increases or maintains price = GREEN
+          close: event.price,
         };
       } else {
-        // SELL = RED CANDLE (Force close < open)
+        // SELL = RED CANDLE
         candle = {
           time: eventTime as Time,
           open: lastPrice,
-          high: lastPrice, // High stays at previous price
-          low: Math.min(lastPrice, event.price), // Now guaranteed to be number
-          close: event.price, // Now guaranteed to be number
+          high: lastPrice,
+          low: Math.min(lastPrice, event.price),
+          close: event.price,
         };
       }
 
       candles.push(candle);
-      lastPrice = event.price; // Now guaranteed to be number
+      lastPrice = event.price;
       lastTime = eventTime;
     });
 
@@ -225,7 +222,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
     return sortedCandles;
   }, [history, sales]);
 
-  // **Enhanced candles with real-time data**
   const {
     candles: enhancedCandles,
     hasRealtimeData: chartHasRealtime,
@@ -234,7 +230,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
     lastUpdate,
   } = useRealtimeChartData(poolAddress, rawCandles);
 
-  // Process candles based on timeframe
+  // Processing candles based on timeframe
   const candles = useMemo(() => {
     if (timeframe === "raw" || enhancedCandles.length === 0) {
       return [...enhancedCandles].sort(
@@ -295,7 +291,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
     }
   }, []);
 
-  // Chart initialization with real-time enhancements
+  // Chart initialization
   useEffect(() => {
     if (!container) return;
 
@@ -337,7 +333,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
     });
     seriesRef.current = initialSeries;
 
-    // Enhanced crosshair handler with real-time detection
     chart.subscribeCrosshairMove((param) => {
       if (
         param.point === undefined ||
@@ -359,7 +354,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
           ? param.seriesData.get(seriesRef.current)
           : null;
 
-        // Check if this is a real-time data point
         const candleIndex = candles.findIndex((c) => c.time === param.time);
         const isRealtime =
           candleIndex !== -1 ? candles[candleIndex].isRealtime : false;
@@ -405,7 +399,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
     };
   }, [container, candles]);
 
-  // Chart update effect with real-time data highlighting and FIXED VALIDATION
   useEffect(() => {
     if (!chartRef.current || !container) return;
 
@@ -413,7 +406,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
       (a, b) => Number(a.time) - Number(b.time)
     );
 
-    // Enhanced validation - check for exact duplicates and non-ascending data
     const validatedCandles: ChartDataPoint[] = [];
     const timesSeen = new Set<number>();
 
@@ -435,7 +427,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
           console.warn(
             `Non-ascending timestamp found at index ${index}. Current: ${time}, Previous: ${lastTime}. Adjusting.`
           );
-          // Adjust the time to be strictly increasing
           candle.time = (lastTime + 1) as Time;
         }
       }
@@ -444,7 +435,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
       validatedCandles.push(candle);
     });
 
-    // Final check for strictly ascending data
     let hasError = false;
     for (let i = 1; i < validatedCandles.length; i++) {
       if (
@@ -463,7 +453,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
     }
 
     if (hasError) {
-      // Last resort: regenerate timestamps
       validatedCandles.forEach((candle, index) => {
         if (index === 0) return;
         const prevTime = Number(validatedCandles[index - 1].time);
@@ -537,7 +526,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
       }
     }
 
-    // Volume series (optional)
+    // Volume series
     if (volumeSeriesRef.current) {
       chartRef.current.removeSeries(volumeSeriesRef.current);
       volumeSeriesRef.current = null;
@@ -594,6 +583,7 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
       });
     }
     if (volumeSeriesRef.current) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (chartRef.current.priceScale("volume") as any).applyOptions({
         scaleMargins: { top: 0.7, bottom: 0 },
         autoScale: true,
@@ -607,7 +597,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
 
   return (
     <div className={styles.chartWrapper}>
-      {/* Enhanced toolbar with connection status */}
       <div className={styles.toolbarContainer}>
         <ChartToolbar
           chartType={chartType}
@@ -639,7 +628,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
       </div>
 
       <div ref={containerRef} className={styles.chartContainer}>
-        {/* Enhanced legend with real-time indicator */}
         {legendValues.time && (
           <div
             className={`${styles.legend} ${
@@ -670,14 +658,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
           </div>
         )}
       </div>
-
-      {/* Debug info in development */}
-      {process.env.NODE_ENV === "development" && (
-        <div style={{ fontSize: "10px", color: "#666", marginTop: "8px" }}>
-          Debug: {rawCandles.length} candles, {sales?.length || 0} sales,{" "}
-          {history?.length || 0} history
-        </div>
-      )}
     </div>
   );
 };

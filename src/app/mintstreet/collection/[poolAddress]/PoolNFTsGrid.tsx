@@ -3,16 +3,19 @@
 
 import Image from "next/image";
 import { formatDistanceToNow } from "date-fns";
-import { useSellNft } from "@/hooks/useSellNFT";
-import styles from "./PoolNFTsGrid.module.scss";
-import React, { useState, useEffect, useCallback, useRef } from "react";
 import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
-import NFTRowSkeleton from "./NFTRowSkeleton";
-import NFTCardSkeleton from "./NFTCardSkeleton";
+import React, { useState, useEffect, useCallback, useRef } from "react";
+
+import { useSellNft } from "@/hooks/useSellNFT";
+import { PublicKey, Connection } from "@solana/web3.js";
+import { useWallet } from "@solana/wallet-adapter-react";
 import { getAssociatedTokenAddress } from "@solana/spl-token";
 import { useAnchorContext } from "@/contexts/AnchorContextProvider";
-import { useWallet } from "@solana/wallet-adapter-react";
-import { PublicKey, Connection } from "@solana/web3.js";
+
+import NFTRowSkeleton from "./NFTRowSkeleton";
+import NFTCardSkeleton from "./NFTCardSkeleton";
+
+import styles from "./PoolNFTsGrid.module.scss";
 
 interface NFT {
   mintAddress: string;
@@ -46,9 +49,6 @@ type OwnershipStatus = "pool" | "user" | "other" | "burned" | "loading";
 const SKELETON_COUNT = 5;
 const mintInfoCache = new Map<string, { supply: bigint } | "nonexistent">();
 
-// Helper function to delay execution
-
-// Updated metadata fetching functions using API route
 const fetchMetadataForNft = async (nft: NFT) => {
   if (!nft.uri) {
     return {
@@ -58,7 +58,6 @@ const fetchMetadataForNft = async (nft: NFT) => {
   }
 
   try {
-    // Use your API route instead of direct fetch
     const response = await fetch(
       `/api/nft-metadata?uri=${encodeURIComponent(nft.uri)}`
     );
@@ -99,7 +98,6 @@ const fetchMetadataBatch = async (nfts: NFT[]) => {
   }
 
   try {
-    // Use batch endpoint for better performance
     const response = await fetch("/api/nft-metadata", {
       method: "POST",
       headers: {
@@ -135,7 +133,6 @@ const fetchMetadataBatch = async (nfts: NFT[]) => {
     });
   } catch (error) {
     console.error("Batch metadata fetch error:", error);
-    // Fallback to individual processing if batch fails
     return Promise.all(nfts.map(fetchMetadataForNft));
   }
 };
@@ -173,7 +170,7 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
     }
   }, [program]);
 
-  // NFT Ownership checking logic
+  // NFT Ownership checking
   useEffect(() => {
     const checkNftOwnershipOptimized = async () => {
       if (!connectionRef.current || !nfts || nfts.length === 0) {
@@ -344,7 +341,6 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
 
     const fetchAllMetadata = async () => {
       try {
-        // Use batch processing for better performance
         const results = await fetchMetadataBatch(nfts);
 
         const newMetadata: Record<string, NFTMetadata> = {};
@@ -375,15 +371,8 @@ const PoolNFTsGrid: React.FC<PoolNFTsGridProps> = ({
         console.warn("Fallback image also failed to load");
         return;
       }
-
-      // Log the failed URL for debugging (only in development)
-      if (process.env.NODE_ENV === "development") {
-        console.warn("Failed to load image:", currentSrc);
-      }
-
-      // Set fallback image
       target.src = "/assets/images/defaultNFT.png";
-      target.onerror = null; // Remove error handler to prevent recursion
+      target.onerror = null; 
     },
     []
   );

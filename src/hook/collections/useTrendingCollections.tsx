@@ -271,7 +271,7 @@ export function useTrendingCollections(
           ),
           React.createElement(
             "div",
-            { className: "text-xs text-gray-500" },
+            { className: "priceText" },
             isTopSort ? "Base Price" : "Base Price"
           )
         );
@@ -287,7 +287,7 @@ export function useTrendingCollections(
           ),
           React.createElement(
             "div",
-            { className: "text-xs text-gray-500" },
+            { className: "priceText" },
             `${metrics.transactions24h} txns`
           )
         );

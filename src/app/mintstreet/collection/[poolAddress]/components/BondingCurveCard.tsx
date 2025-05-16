@@ -1,7 +1,8 @@
-// src/app/mintstreet/collection/[poolAddress]/components/BondingCurveCard.tsx - UPDATED
 import React from "react";
+
 import { PoolInfo } from "../types";
 import { formatSOL, formatPercentage } from "../utils/formatters";
+
 import styles from "../page.module.scss";
 
 interface BondingCurveCardProps {
@@ -9,13 +10,12 @@ interface BondingCurveCardProps {
   migrationProgress: number;
 }
 
-const MIGRATION_THRESHOLD = 690; // SOL
+const MIGRATION_THRESHOLD = 690;
 
 export default function BondingCurveCard({
   poolInfo,
   migrationProgress,
 }: BondingCurveCardProps) {
-  // Safe formatting with fallbacks
   const safeFormatSOL = (value: number | undefined): string => {
     if (value === undefined || value === null || isNaN(value)) {
       return "0.0000 SOL";
@@ -30,7 +30,6 @@ export default function BondingCurveCard({
     return formatPercentage(value);
   };
 
-  // Calculate migration status text
   const getMigrationStatusText = (): string => {
     if (poolInfo.totalEscrowed >= MIGRATION_THRESHOLD) {
       return "Ready for Migration";
@@ -41,7 +40,6 @@ export default function BondingCurveCard({
     return poolInfo.migrationStatus || "Active";
   };
 
-  // Get status style
   const getStatusStyle = (): string => {
     if (poolInfo.totalEscrowed >= MIGRATION_THRESHOLD) {
       return styles.statusReady;
@@ -52,13 +50,12 @@ export default function BondingCurveCard({
     return styles.statusInactive;
   };
 
-  // Calculate progress bar style with minimum visible width
   const getProgressBarStyle = (): React.CSSProperties => {
     const progress = Math.max(migrationProgress, 0);
-    const minWidth = progress > 0 ? Math.max(progress, 2) : 0; // Minimum 2% if any progress
+    const minWidth = progress > 0 ? Math.max(progress, 2) : 0;
     return {
       width: `${minWidth}%`,
-      backgroundColor: progress >= 100 ? "#10b981" : "#3b82f6", // Green when complete, blue otherwise
+      backgroundColor: progress >= 100 ? "#10b981" : "#3b82f6",
     };
   };
 

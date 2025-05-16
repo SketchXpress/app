@@ -1,8 +1,9 @@
 "use client";
 
-import { ReactNode } from 'react';
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools';
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { ReactNode } from "react";
+
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 /**
  * Setting up the QueryClient with default options
@@ -22,7 +23,7 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <QueryClientProvider client={queryClient}>
       {children}
-      {process.env.NODE_ENV !== 'production' && <ReactQueryDevtools />}
+      {process.env.NODE_ENV !== "production" && <ReactQueryDevtools />}
     </QueryClientProvider>
   );
 }

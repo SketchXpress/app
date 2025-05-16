@@ -1,8 +1,8 @@
-// app/src/app/mintstreet/collection/[poolAddress]/components/CollectionHeader.tsx
-
 import React from "react";
-import { formatAddress } from "../utils/formatters";
+
 import { PoolInfo } from "../types";
+import { formatAddress } from "../utils/formatters";
+
 import styles from "../page.module.scss";
 
 interface CollectionHeaderProps {

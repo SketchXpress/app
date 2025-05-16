@@ -11,7 +11,6 @@
   color: var(--foreground, #171717);
 }
 
-// Table layout (desktop)
 .tableContainer {
   display: none;
   width: 100%;
@@ -19,7 +18,7 @@
   border-radius: 8px;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
   overflow: hidden;
-  
+
   @media (min-width: 768px) {
     display: block;
   }
@@ -28,21 +27,22 @@
 .table {
   width: 100%;
   border-collapse: collapse;
-  
-  th, td {
+
+  th,
+  td {
     padding: 0.75rem 1rem;
     text-align: left;
     border-bottom: 1px solid var(--border, #E0E0E0);
-    
+
     &:first-child {
       padding-left: 1.5rem;
     }
-    
+
     &:last-child {
       padding-right: 1.5rem;
     }
   }
-  
+
   th {
     font-size: 0.75rem;
     font-weight: 600;
@@ -52,11 +52,11 @@
     letter-spacing: 0.05em;
     background-color: rgba(255, 255, 255, 0.5);
   }
-  
+
   tr:last-child td {
     border-bottom: none;
   }
-  
+
   tr:hover {
     background-color: rgba(0, 0, 0, 0.02);
   }
@@ -122,11 +122,11 @@
   cursor: pointer;
   transition: all 0.2s ease;
   border: none;
-  
+
   &:active {
     transform: translateY(1px);
   }
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -135,34 +135,34 @@
   }
 }
 
-.mintButton, .buyButton {
+.mintButton,
+.buyButton {
   background-color: var(--accent-cyan, #00B7E1);
   color: white;
-  
+
   &:hover:not(:disabled) {
-    background-color: #009bbf; // Manually darkened color instead of using darken()
+    background-color: #009bbf;
   }
 }
 
 .sellButton {
   background-color: var(--accent-magenta, #D63384);
   color: white;
-  
+
   &:hover:not(:disabled) {
-    background-color: #b62b71; // Manually darkened color instead of using darken()
+    background-color: #b62b71;
   }
 }
 
-// Card layout (mobile)
 .cardsContainer {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1rem;
-  
+
   @media (min-width: 480px) {
     grid-template-columns: repeat(2, 1fr);
   }
-  
+
   @media (min-width: 768px) {
     display: none;
   }
@@ -176,7 +176,7 @@
   display: flex;
   flex-direction: column;
   transition: transform 0.2s ease, box-shadow 0.2s ease;
-  
+
   &:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
@@ -254,7 +254,7 @@
 .detailValue {
   font-weight: 500;
   color: var(--foreground, #171717);
-  
+
   .priceValue & {
     color: var(--accent-cyan, #00B7E1);
     font-weight: 600;
@@ -267,7 +267,7 @@
   gap: 0.5rem;
   border-top: 1px solid var(--border, #E0E0E0);
   margin-top: auto;
-  
+
   .actionButton {
     flex: 1;
     padding: 0.5rem;
@@ -285,7 +285,7 @@
   width: 100%;
   background-color: var(--card-bg, #F9F9F9);
   border-radius: 8px;
-  
+
   p {
     margin-top: 1rem;
     color: var(--foreground, #171717);
@@ -327,8 +327,6 @@
   opacity: 0.6;
 }
 
-/* Add these styles to the existing PoolNFTsGrid.module.scss file */
-
 .errorMessage {
   background-color: rgba(239, 68, 68, 0.1);
   color: #EF4444;
@@ -341,7 +339,8 @@
   font-size: 0.875rem;
 }
 
-.buttonLoader, .buttonSuccess {
+.buttonLoader,
+.buttonSuccess {
   display: inline-flex;
   align-items: center;
   margin-right: 0.375rem;
@@ -358,7 +357,7 @@
 .soldButton {
   background-color: #10B981;
   opacity: 0.8;
-  
+
   &:hover {
     background-color: #10B981;
   }
@@ -368,13 +367,14 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
 }
 
-// Make sure images display properly
-.nftImage, .cardImage {
+.nftImage,
+.cardImage {
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -383,53 +383,79 @@
 }
 
 
-// Enhanced Skeleton Loader Styles
 @keyframes shimmer {
   0% {
     background-position: -1000px 0;
   }
+
   100% {
     background-position: 1000px 0;
   }
 }
 
 .skeleton {
-  background-color: #e0e0e0; // A slightly darker base
+  background-color: #e0e0e0;
   border-radius: 4px;
   position: relative;
   overflow: hidden;
   background-image: linear-gradient(to right, #e0e0e0 0%, #f0f0f0 20%, #e0e0e0 40%, #e0e0e0 100%);
   background-repeat: no-repeat;
-  background-size: 2000px 100%; // Wider gradient for smoother animation
-  animation: shimmer 1.5s linear infinite; // Slower, smoother animation
-  display: inline-block; // Helps with sizing if not full width
-  line-height: 1; // Prevents extra space if text is accidentally rendered
+  background-size: 2000px 100%;
+  animation: shimmer 1.5s linear infinite;
+  display: inline-block;
+  line-height: 1;
 }
 
-// Specific skeleton element styles (mimicking content)
-.skeletonTextShort { width: 50px; height: 1em; margin-bottom: 0.25em; }
-.skeletonTextMedium { width: 100px; height: 1em; margin-bottom: 0.25em; }
-.skeletonTextLong { width: 150px; height: 1em; margin-bottom: 0.25em; }
-.skeletonTitle { width: 70%; height: 1.5em; margin-bottom: 0.5em; }
-.skeletonImage { width: 100%; height: 100%; }
-.skeletonButton { width: 60px; height: 30px; border-radius: 6px; }
+.skeletonTextShort {
+  width: 50px;
+  height: 1em;
+  margin-bottom: 0.25em;
+}
 
-// Adjustments for NFTRowSkeleton
+.skeletonTextMedium {
+  width: 100px;
+  height: 1em;
+  margin-bottom: 0.25em;
+}
+
+.skeletonTextLong {
+  width: 150px;
+  height: 1em;
+  margin-bottom: 0.25em;
+}
+
+.skeletonTitle {
+  width: 70%;
+  height: 1.5em;
+  margin-bottom: 0.5em;
+}
+
+.skeletonImage {
+  width: 100%;
+  height: 100%;
+}
+
+.skeletonButton {
+  width: 60px;
+  height: 30px;
+  border-radius: 6px;
+}
+
 .skeletonRow {
   td {
-    padding-top: 12px; // Add some padding to match real rows better
+    padding-top: 12px; 
     padding-bottom: 12px;
   }
+
   .skeletonImageWrapper {
     width: 40px;
     height: 40px;
     border-radius: 6px;
     overflow: hidden;
-    background-color: transparent; // Let skeleton div handle background
+    background-color: transparent;
   }
 }
 
-// Adjustments for NFTCardSkeleton
 .skeletonCard {
   background-color: var(--card-bg, #F9F9F9);
   border-radius: 8px;
@@ -440,30 +466,50 @@
 
   .skeletonCardImage {
     width: 100%;
-    height: 60px; // Match card image wrapper height
-    background-color: transparent; // Let skeleton div handle background
-  }
-  .cardImageWrapper .skeletonCardImage { // If nested in a wrapper
-      height: 100%;
+    height: 60px; 
+    background-color: transparent;
   }
 
-  .skeletonCardIndex { width: 30px; height: 0.8em; margin-bottom: 0.3em; }
-  .skeletonCardName { width: 60%; height: 1.2em; margin-bottom: 0.3em; }
-  .skeletonCardSymbol { width: 40%; height: 1em; margin-bottom: 0.5em; }
+  .cardImageWrapper .skeletonCardImage {
+    height: 100%;
+  }
 
-  .cardDetails .skeletonTextShort { width: 40%; }
-  .cardDetails .skeletonTextMedium { width: 55%; }
-  .cardActions .skeletonButton { flex: 1; height: 36px; }
+  .skeletonCardIndex {
+    width: 30px;
+    height: 0.8em;
+    margin-bottom: 0.3em;
+  }
+
+  .skeletonCardName {
+    width: 60%;
+    height: 1.2em;
+    margin-bottom: 0.3em;
+  }
+
+  .skeletonCardSymbol {
+    width: 40%;
+    height: 1em;
+    margin-bottom: 0.5em;
+  }
+
+  .cardDetails .skeletonTextShort {
+    width: 40%;
+  }
+
+  .cardDetails .skeletonTextMedium {
+    width: 55%;
+  }
+
+  .cardActions .skeletonButton {
+    flex: 1;
+    height: 36px;
+  }
 }
 
-// Ensure the skeleton title in PoolNFTsGrid also uses the shimmer
 .skeletonTitle .skeletonTextMedium {
-    width: 200px; // Example width for the title "Pool NFTs"
-    height: 1.25rem; // Match title font size
+  width: 200px; 
+  height: 1.25rem; 
 }
-
-
-// Add these new styles to your existing PoolNFTsGrid.module.scss file
 
 .titleContainer {
   display: flex;
@@ -500,11 +546,11 @@
   padding: 3rem;
   text-align: center;
   color: #6b7280;
-  
+
   svg {
     color: #f59e0b;
   }
-  
+
   p {
     font-size: 1.125rem;
     margin: 0;
@@ -527,7 +573,6 @@
   letter-spacing: 0.025em;
 }
 
-// Status badge variants
 .availableStatus {
   background-color: #10b981;
   color: white;
@@ -548,14 +593,12 @@
   color: white;
 }
 
-// Card styles for status badge in mobile view
 .card {
   .statusBadge {
     margin-top: 0.5rem;
   }
 }
 
-// Error container with refresh button
 .errorContainer {
   display: flex;
   flex-direction: column;
@@ -563,7 +606,7 @@
   gap: 1rem;
   padding: 2rem;
   text-align: center;
-  
+
   .refreshButton {
     margin-top: 1rem;
   }
@@ -576,13 +619,12 @@
   gap: 1rem;
   padding: 2rem;
   text-align: center;
-  
+
   .refreshButton {
     margin-top: 1rem;
   }
 }
 
-// Action buttons styling
 .actionButton {
   padding: 0.375rem 0.75rem;
   border-radius: 0.375rem;
@@ -591,7 +633,7 @@
   transition: all 0.15s ease;
   cursor: pointer;
   border: none;
-  
+
   &:disabled {
     opacity: 0.5;
     cursor: not-allowed;
@@ -601,11 +643,11 @@
 .buyButton {
   background-color: #10b981;
   color: white;
-  
+
   &:hover:not(:disabled) {
     background-color: #059669;
   }
-  
+
   &:disabled {
     background-color: #9ca3af;
   }
@@ -619,11 +661,11 @@
 .sellButton {
   background-color: #ef4444;
   color: white;
-  
+
   &:hover:not(:disabled) {
     background-color: #dc2626;
   }
-  
+
   &:disabled {
     background-color: #9ca3af;
   }
@@ -650,12 +692,12 @@
   from {
     transform: rotate(0deg);
   }
+
   to {
     transform: rotate(360deg);
   }
 }
 
-// Error message styling
 .errorMessage {
   background-color: #fef2f2;
   border: 1px solid #fecaca;
@@ -666,7 +708,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  
+
   svg {
     flex-shrink: 0;
   }
