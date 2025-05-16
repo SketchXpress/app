@@ -18,9 +18,6 @@ export const NFTSkeleton: React.FC = () => (
   </div>
 );
 
-/**
- * LoadingDots component for indicating loading states
- */
 export const LoadingDots: React.FC<{ className?: string }> = ({
   className = "",
 }) => (
@@ -31,9 +28,6 @@ export const LoadingDots: React.FC<{ className?: string }> = ({
   </div>
 );
 
-/**
- * ErrorBadge component for displaying error states
- */
 export const ErrorBadge: React.FC<{ message?: string }> = ({
   message = "Failed to load",
 }) => (

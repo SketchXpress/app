@@ -1,11 +1,10 @@
-// src/components/NFTCarousel/NFTCarousel.tsx - Updated to use shared data
 "use client";
 
 import Link from "next/link";
 import Image from "next/image";
-import React, { useCallback, useEffect, useMemo, useState } from "react";
-import useEmblaCarousel from "embla-carousel-react";
 import Autoplay from "embla-carousel-autoplay";
+import useEmblaCarousel from "embla-carousel-react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -13,8 +12,11 @@ import {
   ExternalLink,
   Zap,
 } from "lucide-react";
+
 import { useCollectionsStore } from "@/stores/collectionsStore";
+
 import { NFTSkeleton } from "./Utils";
+
 import styles from "./NFTCarousel.module.scss";
 
 interface NFTCarouselProps {
@@ -35,17 +37,12 @@ interface NFTCollectionDisplay {
   trending?: boolean;
 }
 
-/**
- * NFTCarousel component displays a rotating carousel of NFT collections using shared store data.
- * No additional API calls needed - uses the same data as trending and dropdown.
- */
 const NFTCarousel: React.FC<NFTCarouselProps> = ({
   maxVisibleSlides = 6,
   showIndicators = true,
   showNavButtons = true,
   enableAutoplay = true,
 }) => {
-  // Get data from shared store
   const {
     collections: allCollections,
     pools: allPools,
@@ -54,7 +51,6 @@ const NFTCarousel: React.FC<NFTCarouselProps> = ({
     isLoading,
   } = useCollectionsStore();
 
-  // State for loaded images (similar to trending collections)
   const [loadedImages, setLoadedImages] = useState<Map<string, string>>(
     new Map()
   );
@@ -74,7 +70,6 @@ const NFTCarousel: React.FC<NFTCarouselProps> = ({
   const [canScrollPrev, setCanScrollPrev] = useState(false);
   const [canScrollNext, setCanScrollNext] = useState(false);
 
-  // Navigation handlers
   const scrollPrev = useCallback(() => {
     if (emblaApi) {
       emblaApi.scrollPrev();
@@ -96,7 +91,6 @@ const NFTCarousel: React.FC<NFTCarouselProps> = ({
     [emblaApi]
   );
 
-  // Update carousel configuration when collections change
   useEffect(() => {
     if (!emblaApi || allPools.length === 0) return;
 
@@ -133,7 +127,6 @@ const NFTCarousel: React.FC<NFTCarouselProps> = ({
     };
   }, [emblaApi, onSelect]);
 
-  // Function to fetch collection images (same as trending)
   const fetchMetadataImage = useCallback(
     async (uri: string): Promise<string | null> => {
       try {
@@ -166,7 +159,6 @@ const NFTCarousel: React.FC<NFTCarouselProps> = ({
     []
   );
 
-  // Fetch images for collections with URIs
   useEffect(() => {
     const fetchImages = async () => {
       const imagesToFetch = allCollections
@@ -177,7 +169,7 @@ const NFTCarousel: React.FC<NFTCarouselProps> = ({
             c.uri !== "google.com" &&
             c.uri.startsWith("http")
         )
-        .slice(0, 5); // Limit concurrent requests
+        .slice(0, 5);
 
       if (imagesToFetch.length === 0) return;
 
@@ -204,30 +196,24 @@ const NFTCarousel: React.FC<NFTCarouselProps> = ({
     return () => clearTimeout(timeoutId);
   }, [allCollections, loadedImages, fetchMetadataImage]);
 
-  // Convert store data to carousel format
   const nftCollections = useMemo((): NFTCollectionDisplay[] => {
-    // Take the most recent pools (like featured collections)
     const recentPools = allPools
       .sort((a, b) => b.timestamp - a.timestamp)
       .slice(0, maxVisibleSlides);
 
     return recentPools.map((pool) => {
-      // Find matching collection
       const collection = allCollections.find(
         (c) => c.collectionMint === pool.collectionMint
       );
 
-      // Get metrics if available
       const metrics = poolMetrics.get(pool.poolAddress);
 
-      // Determine image source
       let image = "/assets/images/defaultNFT.png";
       if (collection?.uri && loadedImages.has(collection.uri)) {
         image = loadedImages.get(collection.uri)!;
       } else if (collection?.image) {
         image = collection.image;
       } else {
-        // Use stable fallback based on pool address
         const hash = pool.poolAddress
           .split("")
           .reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -266,9 +252,6 @@ const NFTCarousel: React.FC<NFTCarouselProps> = ({
     });
   }, [allPools, allCollections, poolMetrics, loadedImages, maxVisibleSlides]);
 
-  /**
-   * Handles image loading errors by setting a fallback image.
-   */
   const handleImageError = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
       const target = e.currentTarget as HTMLImageElement;
@@ -280,7 +263,7 @@ const NFTCarousel: React.FC<NFTCarouselProps> = ({
     []
   );
 
-  // Show skeleton while loading or if no data
+  // Show skeleton while loading or if there is no data
   if (isLoading || nftCollections.length === 0) {
     const skeletonCount = Math.min(6, maxVisibleSlides);
     return (
@@ -288,11 +271,6 @@ const NFTCarousel: React.FC<NFTCarouselProps> = ({
         className={styles.heroContainer}
         aria-labelledby="carousel-heading"
       >
-        <h2 id="carousel-heading" className="sr-only">
-          Featured NFT Collections
-        </h2>
-        <div className={styles.glowEffect}></div>
-
         <div className={styles.carouselContainer}>
           <div className={styles.embla}>
             <div className={styles.emblaContainer}>
@@ -313,11 +291,6 @@ const NFTCarousel: React.FC<NFTCarouselProps> = ({
       className={styles.heroContainer}
       aria-labelledby="carousel-heading"
     >
-      <h2 id="carousel-heading" className="sr-only">
-        Featured NFT Collections
-      </h2>
-      <div className={styles.glowEffect}></div>
-
       <div className={styles.carouselContainer}>
         {/* Navigation Buttons */}
         {showNavButtons && nftCollections.length > 1 && (
