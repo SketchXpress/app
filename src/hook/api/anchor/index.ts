@@ -3,6 +3,6 @@ export {
   usePoolPrice,
   usePoolPricesSubscription,
 } from "./usePoolPrices";
-export { usePoolInfo } from "./usePoolInfo";
 export { useBuyNFT } from "./useBuyNFT";
 export { useSellNFT } from "./useSellNFT";
+export { usePoolInfo } from "./usePoolInfo";

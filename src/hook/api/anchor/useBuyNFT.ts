@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useState, useCallback } from "react";
-import { useAnchorContext } from "@/contexts/AnchorContextProvider";
+
+import { toast } from "@/utils/toast";
 import { useWallet } from "@solana/wallet-adapter-react";
+import { useAnchorContext } from "@/contexts/AnchorContextProvider";
+import { safePublicKey, isValidPublicKeyFormat } from "@/utils/bn-polyfill";
 import {
   PublicKey,
   SystemProgram,
@@ -16,10 +18,7 @@ import {
   createAssociatedTokenAccountInstruction,
   getAccount,
 } from "@solana/spl-token";
-import { safePublicKey, isValidPublicKeyFormat } from "@/utils/bn-polyfill";
-import { toast } from "@/utils/toast";
 
-// Types
 export interface BuyNFTResult {
   success: boolean;
   signature?: string;
@@ -39,7 +38,6 @@ export interface UseBuyNFTConfig {
   priorityFee?: number;
 }
 
-// Helper Functions
 const safeStringifyError = (error: unknown): string => {
   if (error instanceof Error) {
     return error.message;
@@ -51,12 +49,13 @@ const safeStringifyError = (error: unknown): string => {
 
   if (error && typeof error === "object") {
     try {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const errorObj = error as any;
 
       // Check for Anchor Error with custom error codes
       if (errorObj.error && errorObj.error.errorCode) {
         const code = errorObj.error.errorCode.number;
-        // Map common error codes
+        // Mapping common error codes
         switch (code) {
           case 6000:
             return "Insufficient funds or pool capacity exceeded";
@@ -88,7 +87,7 @@ const safeStringifyError = (error: unknown): string => {
 
 const formatPrice = (price: number | bigint): string => {
   const priceNumber = typeof price === "bigint" ? Number(price) : price;
-  return (priceNumber / 1e9).toFixed(4); // Convert lamports to SOL
+  return (priceNumber / 1e9).toFixed(4);
 };
 
 // Main Hook
@@ -146,13 +145,12 @@ export function useBuyNFT(config: UseBuyNFTConfig = {}) {
         if (!nftMint || !pool) {
           throw new Error("Invalid address format");
         }
-        // Get buyer's associated token account
+
         const buyerNftTokenAccount = await getAssociatedTokenAddress(
           nftMint,
           wallet.publicKey
         );
 
-        // Check if token account exists, create if not
         let needsTokenAccount = false;
         try {
           await getAccount(program.provider.connection, buyerNftTokenAccount);
@@ -206,7 +204,6 @@ export function useBuyNFT(config: UseBuyNFTConfig = {}) {
             buyerNftTokenAccount: buyerNftTokenAccount,
             tokenProgram: TOKEN_PROGRAM_ID,
             systemProgram: SystemProgram.programId,
-            // Add other required accounts based on your program
           })
           .preInstructions(instructions)
           .rpc({
@@ -247,7 +244,6 @@ export function useBuyNFT(config: UseBuyNFTConfig = {}) {
     ]
   );
 
-  // Buy from user function (placeholder for future implementation)
   const buyFromUser = useCallback(
     async (
       nftMintAddress: string,
@@ -264,11 +260,6 @@ export function useBuyNFT(config: UseBuyNFTConfig = {}) {
       resetState();
 
       try {
-        // This would typically involve:
-        // 1. Escrow or marketplace contract interaction
-        // 2. Transfer of SOL from buyer to seller
-        // 3. Transfer of NFT from seller to buyer
-
         throw new Error("Secondary market purchases not yet implemented");
       } catch (err) {
         const errorMessage = safeStringifyError(err);
