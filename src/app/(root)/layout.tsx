@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
-import { ToastContainer } from 'react-toastify';
+import { ToastContainer } from "react-toastify";
+
 import Header from "@/components/Header/Header";
 import WalletConnectionProvider from "@/wallet/WalletProvider";
 import AnchorContextProvider from "@/contexts/AnchorContextProvider";
@@ -10,16 +11,17 @@ import "@/styles/walletButton.scss";
 import styles from "@/styles/pages/layout.module.scss";
 
 export const viewport: Viewport = {
-  themeColor: '#00B7E1',
-  width: 'device-width',
+  themeColor: "#00B7E1",
+  width: "device-width",
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
-}
+};
 
 export const metadata: Metadata = {
   title: "SketchXpress | AI-Powered Sketch to NFT Platform with Bonding Curves",
-  description: "Transform sketches into AI-enhanced NFTs using advanced bonding curve economics. Mint, trade, and optimize digital assets with SketchXpress - your gateway to AI image generation and NFT innovation.",
+  description:
+    "Transform sketches into AI-enhanced NFTs using advanced bonding curve economics. Mint, trade, and optimize digital assets with SketchXpress - your gateway to AI image generation and NFT innovation.",
   keywords: [
     "sketch to image AI",
     "image enhance AI",
@@ -52,7 +54,7 @@ export const metadata: Metadata = {
     "sketch-xpress.tech",
     "sketchexpress.tech",
     "www.sketchxpress.tech",
-    "sketch xpress tech"
+    "sketch xpress tech",
   ],
   authors: [{ name: "SketchXpress Team" }],
   creator: "SketchXpress",
@@ -64,33 +66,35 @@ export const metadata: Metadata = {
     locale: "en_US",
     url: "https://sketchxpress.tech",
     title: "SketchXpress | Next-Gen AI NFT Creation Platform",
-    description: "From sketch to market-ready NFT: Leverage AI image enhancement and bonding curve economics for optimal digital asset creation and distribution.",
+    description:
+      "From sketch to market-ready NFT: Leverage AI image enhancement and bonding curve economics for optimal digital asset creation and distribution.",
     siteName: "SketchXpress",
     images: [
       {
         url: "https://sketchxpress.tech/assets/images/og-image.png",
         width: 1200,
         height: 630,
-        alt: "SketchXpress AI NFT Creation Workflow: Sketch → AI Enhancement → NFT Minting"
-      }
-    ]
+        alt: "SketchXpress AI NFT Creation Workflow: Sketch → AI Enhancement → NFT Minting",
+      },
+    ],
   },
 
   twitter: {
     card: "summary_large_image",
     title: "SketchXpress - AI-Driven NFT Ecosystem",
-    description: "Revolutionizing NFT creation with AI image enhancement and bonding curve market dynamics. #Web3 #NFTs #AI",
+    description:
+      "Revolutionizing NFT creation with AI image enhancement and bonding curve market dynamics. #Web3 #NFTs #AI",
     creator: "@SketchXpress",
     images: {
       url: "https://sketchxpress.tech/assets/images/og-image.png",
-      alt: "Visualization of SketchXpress AI to NFT pipeline"
-    }
+      alt: "Visualization of SketchXpress AI to NFT pipeline",
+    },
   },
 
   icons: {
     icon: "/assets/icons/favicon.ico",
     apple: "/assets/icons/apple-touch-icon.png",
-    shortcut: "/assets/icons/icon-32x32.png"
+    shortcut: "/assets/icons/icon-32x32.png",
   },
   manifest: "/manifest.webmanifest",
   appleWebApp: {
@@ -100,18 +104,19 @@ export const metadata: Metadata = {
   },
 
   alternates: {
-    canonical: "https://sketchxpress.tech"
+    canonical: "https://sketchxpress.tech",
   },
 
   verification: {
-    yandex: "a583f14d6af70938"
+    yandex: "a583f14d6af70938",
   },
 
   other: {
     "ai-tool": "sketch-to-image, image-enhancement, nft-generator",
     "nft-features": "bonding-curves, dynamic-pricing, collection-analytics",
     "marketplace-integration": "mint-street, decentralized-exchange",
-    "common-misspellings": "sketch express, sketch xpress, sketchexpress, sketch-xpress",
+    "common-misspellings":
+      "sketch express, sketch xpress, sketchexpress, sketch-xpress",
     "application-name": "SketchXpress",
     "mobile-web-app-capable": "yes",
     "apple-mobile-web-app-capable": "yes",
@@ -120,11 +125,15 @@ export const metadata: Metadata = {
     "format-detection": "telephone=no",
     "msapplication-TileColor": "#00B7E1",
     "msapplication-tap-highlight": "no",
-    "color-scheme": "normal"
-  }
-}
+    "color-scheme": "normal",
+  },
+};
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
     <html lang="en">
       <body>
@@ -132,12 +141,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <WalletConnectionProvider>
             <AnchorContextProvider>
               <Header />
-              <main className={styles.main}>
-                {children}
-              </main>
-              {/* Hidden content for SEO */}
-              <div style={{ display: 'none' }} aria-hidden="true">
-                <p>Also known as Sketch Express, SketchExpress, Sketch Xpress - commonly misspelled variations of SketchXpress</p>
+              <main className={styles.main}>{children}</main>
+              <div style={{ display: "none" }} aria-hidden="true">
+                <p>
+                  Also known as Sketch Express, SketchExpress, Sketch Xpress -
+                  commonly misspelled variations of SketchXpress
+                </p>
               </div>
             </AnchorContextProvider>
           </WalletConnectionProvider>
@@ -156,5 +165,5 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </TanStackQueryProvider>
       </body>
     </html>
-  )
+  );
 }

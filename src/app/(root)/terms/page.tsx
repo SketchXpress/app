@@ -1,10 +1,11 @@
-import styles from "./page.module.scss";
-import { ScrollText, ArrowLeft, ExternalLink } from "lucide-react";
 import Link from "next/link";
-import { generateTermsMetadata } from "./metadata";
 import type { Metadata } from "next";
+import { ScrollText, ArrowLeft, ExternalLink } from "lucide-react";
 
-// Export metadata for Next.js
+import { generateTermsMetadata } from "./metadata";
+
+import styles from "./page.module.scss";
+
 export const metadata: Metadata = generateTermsMetadata();
 
 const TermsPage = () => {
@@ -497,13 +498,13 @@ const TermsPage = () => {
             </p>
             <div className={styles.contactInfo}>
               <p>
-                <strong>Email:</strong> legal@sketchxpress.tech
+                <strong>Email:</strong> ashishregmi2017@gmail.com
               </p>
               <p>
-                <strong>Support:</strong> support@sketchxpress.tech
+                <strong>Support:</strong> lakpasherpa948@gmail.com
               </p>
               <p>
-                <strong>Address:</strong> [Company Address]
+                <strong>Address:</strong> Waterloo, Canada
               </p>
             </div>
           </section>

@@ -1,4 +1,3 @@
-// app/(root)/terms/layout.tsx
 import type { Metadata } from "next";
 import { generateTermsMetadata } from "./metadata";
 
