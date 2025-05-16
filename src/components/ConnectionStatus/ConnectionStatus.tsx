@@ -1,6 +1,6 @@
-// src/components/ConnectionStatus/ConnectionStatus.tsx
 import React from "react";
 import { Wifi, WifiOff, Loader2, AlertCircle } from "lucide-react";
+
 import styles from "./ConnectionStatus.module.scss";
 
 export interface ConnectionStatusProps {
@@ -12,10 +12,6 @@ export interface ConnectionStatusProps {
   size?: "sm" | "md" | "lg";
 }
 
-/**
- * Connection status indicator component
- * Shows real-time connection state with appropriate icons and colors
- */
 const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   connectionState,
   hasRealtimeData = false,
@@ -24,7 +20,6 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   showText = true,
   size = "md",
 }) => {
-  // Get connection details
   const getConnectionDetails = () => {
     switch (connectionState) {
       case "connected":
@@ -69,7 +64,6 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   const details = getConnectionDetails();
   const Icon = details.icon;
 
-  // Format last update time
   const getLastUpdateText = () => {
     if (!lastUpdate) return "";
 

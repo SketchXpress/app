@@ -18,7 +18,6 @@
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   
-  /* Elegant scrollbar styling */
   scrollbar-width: thin;
   scrollbar-color: rgba(0, 0, 0, 0.2) transparent;
   
@@ -35,7 +34,6 @@
     border-radius: 10px;
   }
   
-  /* Collapsed state (Desktop/Tablet - width change) */
   &.collapsed:not(.mobile):not(.tablet) {
     width: 64px;
     
@@ -80,7 +78,6 @@
       padding: 0;
     }
     
-    // Footer adjustments for collapsed state
     .footerLinks {
       flex-direction: column;
       gap: 0.5rem;
@@ -91,7 +88,6 @@
     }
   }
   
-  /* Tablet styling (Slide off-screen) */
   &.tablet {
     border-right: 1px solid var(--border);
     position: fixed;
@@ -108,7 +104,6 @@
     }
   }
   
-  /* Mobile styling (Slide off-screen) */
   &.mobile {
     position: fixed;
     top: var(--header-height, 60px);
@@ -155,7 +150,6 @@
   font-family: inherit;
 }
 
-/* Desktop/Tablet Collapse Toggle Button */
 .collapseToggle {
   position: fixed;
   top: calc(var(--header-height, 60px) + 10px);
@@ -187,7 +181,6 @@
   }
 }
 
-/* Mobile Toggle Button (Hamburger/X) */
 .mobileToggle {
   position: fixed;
   top: calc(var(--header-height, 60px) + 12px);
@@ -363,7 +356,6 @@
   }
 }
 
-/* Section Styling */
 .section {
   display: flex;
   flex-direction: column;
@@ -430,7 +422,6 @@
   }
 }
 
-/* Tips Styling - Improved */
 .tipsContainer {
   display: flex;
   flex-direction: column;
@@ -506,7 +497,7 @@
   }
 }
 
-/* Gallery Styling - Improved */
+/* Gallery Section */
 .galleryGrid {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -599,7 +590,6 @@
   }
 }
 
-/* Spacer to push footer down */
 .spacer {
   flex: 1;
   min-height: 20px;
@@ -690,7 +680,6 @@
   }
 }
 
-/* Sidebar overlay for mobile/tablet (background dimming) */
 .sidebarOverlay {
   position: fixed;
   top: var(--header-height, 60px);

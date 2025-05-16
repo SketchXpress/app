@@ -14,8 +14,8 @@ const MintStreetHeader = () => {
   const [isSearchExpanded, setIsSearchExpanded] = useState(false);
   const pathname = usePathname();
 
-  // Check if we're on a specific collection page
-  const isCollectionPage = pathname?.includes('/mintstreet/') && pathname !== '/mintstreet';
+  const isCollectionPage =
+    pathname?.includes("/mintstreet/") && pathname !== "/mintstreet";
 
   useEffect(() => {
     const checkMobile = () => {
@@ -45,9 +45,7 @@ const MintStreetHeader = () => {
                 priority
               />
             </div>
-            <span className={styles.title}>
-              SketchXpress
-            </span>
+            <span className={styles.title}>SketchXpress</span>
           </Link>
 
           {/* Search Bar - Center for Desktop */}
@@ -115,9 +113,7 @@ const MintStreetHeader = () => {
                       priority
                     />
                   </div>
-                  <span className={styles.title}>
-                    SketchXpress
-                  </span>
+                  <span className={styles.title}>SketchXpress</span>
                 </Link>
               </div>
               <div className={styles.mobileCenter}>
@@ -131,7 +127,10 @@ const MintStreetHeader = () => {
               <div className={styles.mobileRight}>
                 {isCollectionPage ? (
                   <div className={styles.mobileReturnButtons}>
-                    <Link href="/mintstreet" className={styles.mobileReturnButton}>
+                    <Link
+                      href="/mintstreet"
+                      className={styles.mobileReturnButton}
+                    >
                       <ArrowLeft size={16} />
                       <span>To MintStreet</span>
                     </Link>

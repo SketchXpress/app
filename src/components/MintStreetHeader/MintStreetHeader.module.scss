@@ -104,13 +104,12 @@
   }
 }
 
-// Return to Studio button with creative color scheme
 .returnButton {
   color: #fff !important;
   cursor: pointer !important;
   white-space: nowrap !important;
   z-index: 1001 !important;
-  background: linear-gradient(45deg, #0ea5e9, #10b981) !important; // Blue to green gradient
+  background: linear-gradient(45deg, #0ea5e9, #10b981) !important; 
   border: none !important;
   border-radius: 6px !important;
   justify-content: center !important;
@@ -143,8 +142,6 @@
   align-items: center;
 }
 
-// Mobile styles
-// Mobile search styles
 .mobileControls {
   display: flex;
   align-items: center;
@@ -173,7 +170,7 @@
   color: var(--foreground, #1f2937) !important;
   cursor: pointer !important;
   background: transparent !important;
-  border: 1.5px solid rgba(6, 182, 212, 0.5) !important; /* Light cyan border */
+  border: 1.5px solid rgba(6, 182, 212, 0.5) !important; 
   border-radius: 8px !important;
   justify-content: center !important;
   align-items: center !important;
@@ -299,7 +296,6 @@
   box-shadow: 0 3px 12px #00000026 !important;
 }
 
-// Media queries for responsive design
 @media (max-width: 768px) {
   .header {
     padding: 0 1rem;

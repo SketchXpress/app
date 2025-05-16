@@ -1,10 +1,12 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
-import styles from './EnhancePromptModal.module.scss';
-import { useEnhanceStore } from '@/stores/enhanceStore';
-import { useModeStore } from '@/stores/modeStore';
-import { X } from 'lucide-react';
+import { X } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+
+import { useModeStore } from "@/stores/modeStore";
+import { useEnhanceStore } from "@/stores/enhanceStore";
+
+import styles from "./EnhancePromptModal.module.scss";
 
 interface EnhancePromptModalProps {
   isOpen: boolean;
@@ -12,23 +14,23 @@ interface EnhancePromptModalProps {
   onConfirm: () => void;
 }
 
-const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalProps) => {
+const EnhancePromptModal = ({
+  isOpen,
+  onClose,
+  onConfirm,
+}: EnhancePromptModalProps) => {
   const [isVisible, setIsVisible] = useState(false);
   const modalRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // Get current application mode (kids or pro)
   const mode = useModeStore((s) => s.mode);
 
-  // Get prompt from store and update function
   const prompt = useEnhanceStore((s) => s.prompt);
   const setPrompt = useEnhanceStore((s) => s.setPrompt);
   const setModalOpen = useEnhanceStore((s) => s.setModalOpen);
 
-  // Local state for prompt input
   const [promptInput, setPromptInput] = useState(prompt);
 
-  // Sync local state with store when modal opens
   useEffect(() => {
     if (isOpen) {
       setPromptInput(prompt);
@@ -36,7 +38,7 @@ const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalPr
     }
   }, [isOpen, prompt, setModalOpen]);
 
-  // Animation handling
+  // Animation
   useEffect(() => {
     if (isOpen) {
       setIsVisible(true);
@@ -53,33 +55,35 @@ const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalPr
     }
   }, [isOpen, setModalOpen]);
 
-  // Close when clicking outside
+  // Closing when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
+      if (
+        modalRef.current &&
+        !modalRef.current.contains(event.target as Node)
+      ) {
         onClose();
       }
     };
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen, onClose]);
 
-  // Handle keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isOpen && e.key === 'Escape') {
+      if (isOpen && e.key === "Escape") {
         onClose();
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, [isOpen, onClose]);
 
   const handleSubmit = () => {
@@ -88,32 +92,38 @@ const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalPr
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
-    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+    if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
       handleSubmit();
     }
   };
 
-  // Don't render anything if modal is fully closed
   if (!isOpen && !isVisible) return null;
 
-  // Content configuration based on mode
+  // Content based on the user selected mode
   const content = {
-    title: mode === 'kids' ? 'Tell us your magic idea!' : 'Enhance Your Artwork',
-    description: mode === 'kids'
-      ? "Tell us about your drawing to make the magic better!🦄✨"
-      : "Add context to help our AI enhance your artwork with precision",
-    placeholder: mode === 'kids'
-      ? "What's in your cool picture? 'Dragon eating ice cream' or 'Superhero cat' 🦸‍♀️🐱"
-      : "Describe your vision (e.g., 'cyberpunk cityscape with neon lights and rain')",
-    buttonText: mode === 'kids' ? 'Make Magic!' : 'Enhance Artwork',
-    skipText: mode === 'kids' ? 'Skip' : 'Skip Description'
+    title:
+      mode === "kids" ? "Tell us your magic idea!" : "Enhance Your Artwork",
+    description:
+      mode === "kids"
+        ? "Tell us about your drawing to make the magic better!🦄✨"
+        : "Add context to help our AI enhance your artwork with precision",
+    placeholder:
+      mode === "kids"
+        ? "What's in your cool picture? 'Dragon eating ice cream' or 'Superhero cat' 🦸‍♀️🐱"
+        : "Describe your vision (e.g., 'cyberpunk cityscape with neon lights and rain')",
+    buttonText: mode === "kids" ? "Make Magic!" : "Enhance Artwork",
+    skipText: mode === "kids" ? "Skip" : "Skip Description",
   };
 
   return (
-    <div className={`${styles.modalOverlay} ${isVisible ? styles.visible : ''}`}>
+    <div
+      className={`${styles.modalOverlay} ${isVisible ? styles.visible : ""}`}
+    >
       <div
         ref={modalRef}
-        className={`${styles.modalContainer} ${isVisible ? styles.visible : ''}`}
+        className={`${styles.modalContainer} ${
+          isVisible ? styles.visible : ""
+        }`}
       >
         <button
           className={styles.closeButton}
@@ -125,17 +135,13 @@ const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalPr
 
         <div className={styles.modalContent}>
           <div className={styles.headerSection}>
-            <h3 className={styles.modalTitle}>
-              {content.title}
-            </h3>
-            <p className={styles.modalDescription}>
-              {content.description}
-            </p>
+            <h3 className={styles.modalTitle}>{content.title}</h3>
+            <p className={styles.modalDescription}>{content.description}</p>
           </div>
 
           <div className={styles.inputSection}>
             <label htmlFor="promptInput" className={styles.inputLabel}>
-              {mode === 'kids' ? 'Your Description' : 'Artwork Description'}
+              {mode === "kids" ? "Your Description" : "Artwork Description"}
             </label>
             <textarea
               id="promptInput"
@@ -148,7 +154,7 @@ const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalPr
               rows={4}
               aria-label="Artwork description"
             />
-            {mode === 'pro' && (
+            {mode === "pro" && (
               <p className={styles.inputHint}>
                 Tip: Be specific about style, mood, colors, and details
               </p>
@@ -156,23 +162,17 @@ const EnhancePromptModal = ({ isOpen, onClose, onConfirm }: EnhancePromptModalPr
           </div>
 
           <div className={styles.buttonGroup}>
-            <button
-              className={styles.skipButton}
-              onClick={onConfirm}
-            >
+            <button className={styles.skipButton} onClick={onConfirm}>
               {content.skipText}
             </button>
-            <button
-              className={styles.enhanceButton}
-              onClick={handleSubmit}
-            >
+            <button className={styles.enhanceButton} onClick={handleSubmit}>
               {content.buttonText}
             </button>
           </div>
 
           <div className={styles.termsSection}>
             <p className={styles.termsDisclaimer}>
-              * By enhancing, you agree to our{' '}
+              * By enhancing, you agree to our{" "}
               <a href="/terms" target="_blank" rel="noopener noreferrer">
                 Terms and Conditions
               </a>

@@ -114,7 +114,7 @@ export const handleUseExample = (example: {
   image.src = example.thumbnail;
 };
 
-// Helper to convert Image object to base64
+// Helper function to convert Image object to base64
 export const getBase64FromImage = (img: HTMLImageElement): Promise<string> => {
   return new Promise((resolve) => {
     const canvas = document.createElement("canvas");

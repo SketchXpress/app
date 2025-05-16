@@ -4,10 +4,14 @@ export const examples = [
   { id: 1, title: "House Sketch", thumbnail: "/assets/images/demoHouse.png" },
   { id: 2, title: "Robot Sketch", thumbnail: "/assets/images/demoRobot.webp" },
   { id: 3, title: "Car Sketch", thumbnail: "/assets/images/demoCar.png" },
-  { id: 4, title: "IronMan Sketch", thumbnail: "/assets/images/demoIronMan.jpg" },
+  {
+    id: 4,
+    title: "IronMan Sketch",
+    thumbnail: "/assets/images/demoIronMan.jpg",
+  },
 ];
 
-// Drawing tips for kids and pro modes
+// Drawing tips (for kid and pro mode)
 export const drawingTips = {
   kids: [
     { tip: "Use bold lines for better results", icon: <PenTool size={14} /> },

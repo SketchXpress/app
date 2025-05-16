@@ -203,8 +203,7 @@ $background:#f1f1f1;
   &:active {
     transform: translateY(0);
   }
-  
-  // Subtle shine effect
+
   &::before {
     content: '';
     position: absolute;
@@ -253,7 +252,6 @@ $background:#f1f1f1;
   }
 }
 
-// Responsive styles
 @media (max-width: 768px) {
   .headerSection {
     padding: 28px 28px 20px;
@@ -320,7 +318,6 @@ $background:#f1f1f1;
   }
 }
 
-// Very small screens
 @media (max-width: 360px) {
   .headerSection {
     padding: 20px 20px 16px;

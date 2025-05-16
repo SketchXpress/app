@@ -1,12 +1,14 @@
 "use client";
 
-import { createPortal } from "react-dom";
-import { X, Save, Share2, LucideLayoutDashboard } from "lucide-react";
-import styles from "./MobileMenu.module.scss";
-import ConnectWalletButton from "@/wallet/ConnectWalletButton";
-import { useModeStore } from "@/stores/modeStore";
 import { toast } from "react-toastify";
+import { createPortal } from "react-dom";
 import { useEffect, useState } from "react";
+import { X, Save, Share2, LucideLayoutDashboard } from "lucide-react";
+
+import { useModeStore } from "@/stores/modeStore";
+import ConnectWalletButton from "@/wallet/ConnectWalletButton";
+
+import styles from "./MobileMenu.module.scss";
 
 type Props = {
   isOpen: boolean;
