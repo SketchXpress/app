@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// app/src/app/api/nft-metadata/route.ts
 import { NextRequest, NextResponse } from "next/server";
 
 const IPFS_GATEWAYS = [
@@ -42,7 +41,6 @@ function normalizeUri(uri: string): string {
 async function fetchWithRetryAndFallback(url: string): Promise<any> {
   let lastError: Error;
 
-  // Try each gateway
   for (const gateway of IPFS_GATEWAYS) {
     let currentUrl = url;
 
@@ -57,11 +55,10 @@ async function fetchWithRetryAndFallback(url: string): Promise<any> {
       }
     }
 
-    // Try with retries for this gateway
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+        const timeoutId = setTimeout(() => controller.abort(), 10000);
 
         const response = await fetch(currentUrl, {
           signal: controller.signal,
@@ -78,7 +75,6 @@ async function fetchWithRetryAndFallback(url: string): Promise<any> {
           return data;
         }
 
-        // If we get a 429, wait before retrying
         if (response.status === 429) {
           const retryAfter = response.headers.get("Retry-After");
           const waitTime = retryAfter
@@ -113,7 +109,6 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Validate URI
     if (
       !uri.startsWith("http") &&
       !uri.startsWith("ipfs://") &&
@@ -131,7 +126,7 @@ export async function GET(request: NextRequest) {
     // Return metadata with cache headers
     return NextResponse.json(metadata, {
       headers: {
-        "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400", // Cache for 1 hour
+        "Cache-Control": "public, max-age=3600, stale-while-revalidate=86400",
       },
     });
   } catch (error) {
@@ -146,7 +141,6 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// Optional: Support POST for batch requests
 export async function POST(request: NextRequest) {
   try {
     const { uris } = await request.json();
@@ -158,7 +152,6 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Limit batch size to prevent abuse
     const limitedUris = uris.slice(0, 10);
 
     const results = await Promise.allSettled(

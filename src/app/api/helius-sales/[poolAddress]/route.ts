@@ -1,6 +1,3 @@
-// 3. Create the missing API endpoint for Helius sales
-// app/src/app/api/helius-sales/[poolAddress]/route.ts
-
 import { NextRequest, NextResponse } from "next/server";
 
 interface SaleEvent {

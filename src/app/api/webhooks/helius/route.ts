@@ -1,24 +1,17 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-// src/app/api/webhooks/helius/route.ts - Enhanced version with volume tracking
 import { NextRequest, NextResponse } from "next/server";
+
+import { volumeCache } from "@/lib/cache/volumeCache";
+import { HeliusWebhookPayload } from "@/lib/webhooks/types";
 import {
   verifyWebhookSignature,
   processWebhookEvent,
   extractCollectionInfo,
-  logInstructionDiscriminators,
 } from "@/lib/webhooks/heliusWebhook";
-import { HeliusWebhookPayload } from "@/lib/webhooks/types";
-import { volumeCache } from "@/lib/cache/volumeCache";
-
-// Log discriminators on startup for debugging
-if (process.env.NODE_ENV === "development") {
-  logInstructionDiscriminators();
-}
 
 // Helper function to extract pool address from event
 function extractPoolAddressFromEvent(event: any): string | null {
   try {
-    // The pool address is typically the first account in the instruction
     if (event.instructions?.[0]?.accounts?.[0]) {
       const poolAddress = event.instructions[0].accounts[0];
 
@@ -40,7 +33,6 @@ function getTransactionType(processedData: any): string | null {
       return processedData.instructionName;
     }
 
-    // Fallback: check the type field
     if (processedData.type) {
       return processedData.type;
     }
@@ -54,7 +46,7 @@ function getTransactionType(processedData: any): string | null {
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the raw body for signature verification
+    // Getting the raw body for signature verification
     const body = await request.text();
     const signature = request.headers.get("x-helius-signature");
 
@@ -73,7 +65,6 @@ export async function POST(request: NextRequest) {
 
     // Parse the webhook payload
     const payload: HeliusWebhookPayload = JSON.parse(body);
-    // Process each event
     const processedEvents = [];
     let totalNewPools = 0;
     let totalNewCollections = 0;
@@ -82,10 +73,8 @@ export async function POST(request: NextRequest) {
 
     for (const event of payload.events) {
       try {
-        // Process the transaction (now with volume data)
         const processedData = processWebhookEvent(event);
 
-        // Track volume data if present
         if (processedData.volumeData) {
           processedData.volumeData.forEach((volumeEvent) => {
             volumeCache.addTransaction({
@@ -101,7 +90,6 @@ export async function POST(request: NextRequest) {
         }
 
         if (processedData.hasCollectionEvents) {
-          // Extract collection information
           const { newPools, newCollections } =
             extractCollectionInfo(processedData);
 
@@ -115,18 +103,15 @@ export async function POST(request: NextRequest) {
           });
         }
 
-        // Process pool-specific real-time updates
         try {
           const poolAddress = extractPoolAddressFromEvent(event);
           const transactionType = getTransactionType(processedData);
 
           if (poolAddress && transactionType) {
-            // Check if this is a mint or sell transaction
             if (
               transactionType === "mintNft" ||
               transactionType === "sellNft"
             ) {
-              // Import broadcast function dynamically
               const { broadcastToSSEClients } = await import(
                 "@/lib/sse/eventBroadcaster"
               );
@@ -160,7 +145,6 @@ export async function POST(request: NextRequest) {
         "@/lib/sse/eventBroadcaster"
       );
 
-      // Broadcast each processed event (existing logic)
       processedEvents.forEach((processedEvent) => {
         if (processedEvent.newPools && processedEvent.newPools.length > 0) {
           broadcastToSSEClients({
@@ -184,10 +168,9 @@ export async function POST(request: NextRequest) {
 
       // Broadcast volume updates if there were any trading activities
       if (totalVolumeEvents > 0) {
-        // Get updated metrics for all pools that had volume activity
         const updatedPools: Array<{ poolAddress: string; metrics: any }> = [];
 
-        // Get unique pool addresses from volume events
+        // Getting unique pool addresses from volume events
         const poolsWithActivity = new Set<string>();
         for (const event of processedEvents) {
           if (event.volumeData) {
@@ -204,7 +187,6 @@ export async function POST(request: NextRequest) {
         });
 
         if (updatedPools.length > 0) {
-          // Send volume update event
           broadcastToSSEClients({
             type: "volumeUpdate",
             timestamp: new Date().toISOString(),
@@ -236,7 +218,6 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Handle GET requests (for webhook URL verification)
 export async function GET() {
   return NextResponse.json({
     status: "Webhook endpoint active",

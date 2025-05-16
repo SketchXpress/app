@@ -1,4 +1,3 @@
-// src/app/api/collections/sse/stats/route.ts
 import { NextResponse } from "next/server";
 import { sseManager } from "@/lib/sse/sseManager";
 

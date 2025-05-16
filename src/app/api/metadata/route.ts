@@ -1,4 +1,3 @@
-// src/app/api/metadata/route.ts
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
@@ -8,7 +7,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ error: "Missing uri" }, { status: 400 });
   }
 
-  // Resolve ipfs/arweave/force-https exactly once
   let target = uri;
   if (uri.startsWith("ipfs://")) {
     target = `https://ipfs.io/ipfs/${uri.slice(7)}`;
@@ -22,7 +20,6 @@ export async function GET(req: Request) {
     const upstream = await fetch(target);
     const contentType = upstream.headers.get("content-type") || "";
 
-    // If it’s not JSON or not 2xx, just return empty JSON
     if (!upstream.ok || !contentType.includes("application/json")) {
       return NextResponse.json({});
     }
@@ -30,7 +27,6 @@ export async function GET(req: Request) {
     const json = await upstream.json();
     return NextResponse.json(json);
   } catch {
-    // swallow any network or parse errors
     return NextResponse.json({});
   }
 }

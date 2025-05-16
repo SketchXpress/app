@@ -3,7 +3,6 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    // Fetch transaction history from Helius
     const response = await fetch(
       `${process.env.HELIUS_API_BASE}/addresses/${process.env.PROGRAM_ID}/transactions?api-key=${process.env.HELIUS_API_KEY}&limit=100`
     );
@@ -12,7 +11,6 @@ export async function GET() {
     // Process the data on the server
     const collections = processTrendingCollections(transactions);
 
-    // Return only what's needed by the client
     return NextResponse.json({ collections });
   } catch (error) {
     console.error("Error fetching trending collections:", error);

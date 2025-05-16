@@ -15,7 +15,6 @@ export async function GET(request: Request) {
   const HELIUS_API_KEY = process.env.NEXT_PUBLIC_HELIUS_API_KEY;
 
   try {
-    // Use Helius RPC directly to get NFTs (for testnet)
     const url = `https://api-devnet.helius-rpc.com/v0/addresses/${walletAddress}/tokens?api-key=${HELIUS_API_KEY}`;
 
     const response = await fetch(url);
