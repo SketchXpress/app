@@ -1,5 +1,9 @@
 "use client";
 
+import { toast } from "react-toastify";
+import { useMemo, useCallback, useState, useEffect } from "react";
+
+import { TLShapeId } from "@tldraw/editor";
 import {
   Tldraw,
   createTLStore,
@@ -9,21 +13,20 @@ import {
   loadSnapshot,
   getSnapshot,
 } from "tldraw";
-import { toast } from "react-toastify";
-import { useMemo, useCallback, useState, useEffect } from "react";
 
-import "tldraw/tldraw.css";
-import { TLShapeId } from "@tldraw/editor";
-import { useCanvasStore } from "@/stores/canvasStore";
+import canvasStorage from "@/lib/canvasStorage";
+import { useModeStore } from "@/stores/modeStore";
 import { enhanceSketch } from "@/lib/enhanceSketch";
-import styles from "./CanvasWrapper.module.scss";
+import { useCanvasStore } from "@/stores/canvasStore";
+import { useEnhanceStore } from "@/stores/enhanceStore";
+
 import EnhanceButton from "../EnhanceButton/EnhanceButton";
 import OnboardingGuide from "../OnboardingGuide/OnboardingGuide";
-import { useEnhanceStore } from "@/stores/enhanceStore";
-import { useModeStore } from "@/stores/modeStore";
-import canvasStorage from "@/lib/canvasStorage";
 
-// Debounce helper with proper typing
+import "tldraw/tldraw.css";
+import styles from "./CanvasWrapper.module.scss";
+
+// Debounce helper function
 const debounce = <T extends (...args: Parameters<T>) => ReturnType<T>>(
   fn: T,
   ms = 300
@@ -35,22 +38,19 @@ const debounce = <T extends (...args: Parameters<T>) => ReturnType<T>>(
   };
 };
 
-// Helper to check if we're in browser environment
 const isBrowser = typeof window !== "undefined";
 
 const CanvasWrapper = () => {
-  // State for tracking AI processing
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [processingProgress, setProcessingProgress] = useState(0);
-  const [showCanvasTip, setShowCanvasTip] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [showCanvasTip, setShowCanvasTip] = useState(true);
+  const [processingProgress, setProcessingProgress] = useState(0);
 
-  // Get Zustand actions
+  const mode = useModeStore((s) => s.mode);
   const setEditor = useCanvasStore((s) => s.setEditor);
   const setSelectedShapeIds = useCanvasStore((s) => s.setSelectedShapeIds);
-  const mode = useModeStore((s) => s.mode);
 
-  // Hide canvas tip after 5 seconds
+  // Hiding canvas tips after 5 seconds
   useEffect(() => {
     if (showCanvasTip) {
       const timer = setTimeout(() => {
@@ -60,7 +60,7 @@ const CanvasWrapper = () => {
     }
   }, [showCanvasTip]);
 
-  // Simulating processing progress
+  // Progress
   useEffect(() => {
     if (isProcessing) {
       const interval = setInterval(() => {
@@ -77,28 +77,25 @@ const CanvasWrapper = () => {
     }
   }, [isProcessing]);
 
+  // For mobile devices
   useEffect(() => {
-    // Detect mobile devices
     const checkMobile = () => {
       setIsMobile(window.innerWidth <= 768);
     };
 
-    // Function to set viewport height
     function setViewportHeight() {
       const vh = window.innerHeight * 0.01;
       document.documentElement.style.setProperty("--vh", `${vh}px`);
     }
 
-    // Run both functions initially
     checkMobile();
     setViewportHeight();
 
-    // Update on resize and orientation change
     window.addEventListener("resize", setViewportHeight);
     window.addEventListener("resize", checkMobile);
     window.addEventListener("orientationchange", setViewportHeight);
 
-    // iOS Safari may need a small delay
+    // iOS Safari orientation issue
     window.addEventListener("orientationchange", () => {
       setTimeout(setViewportHeight, 100);
     });
@@ -110,17 +107,13 @@ const CanvasWrapper = () => {
     };
   }, []);
 
-  // In CanvasWrapper.tsx, add these after your existing useEffect hooks
-
-  // Clear canvas on new session
+  // Clearing canvas on new session
   useEffect(() => {
     if (!isBrowser) return;
 
-    // Check if this is a new browser session
     const isNewSession = !sessionStorage.getItem("canvasSessionStarted");
 
     if (isNewSession) {
-      // Clear the saved canvas state
       canvasStorage
         .deleteCanvas("current")
         .then(() => {
@@ -131,11 +124,11 @@ const CanvasWrapper = () => {
         });
     }
 
-    // Also clear if the user has been away for more than 30 minutes
+    // Clearing canvas if user is away for 3 minutes
     const lastActivity = localStorage.getItem("lastCanvasActivity");
     if (lastActivity) {
       const timeSinceLastActivity = Date.now() - parseInt(lastActivity, 10);
-      const thirtyMinutes = 30 * 60 * 1000;
+      const thirtyMinutes = 3 * 60 * 1000;
 
       if (timeSinceLastActivity > thirtyMinutes) {
         canvasStorage
@@ -145,11 +138,10 @@ const CanvasWrapper = () => {
       }
     }
 
-    // Update last activity timestamp
     localStorage.setItem("lastCanvasActivity", Date.now().toString());
   }, []);
 
-  // Optional: Add activity tracking
+  // Tracking user activity
   useEffect(() => {
     if (!isBrowser) return;
 
@@ -157,7 +149,6 @@ const CanvasWrapper = () => {
       localStorage.setItem("lastCanvasActivity", Date.now().toString());
     };
 
-    // Update activity on user interaction
     window.addEventListener("mousemove", updateActivity);
     window.addEventListener("touchstart", updateActivity);
 
@@ -167,13 +158,11 @@ const CanvasWrapper = () => {
     };
   }, []);
 
-  // Create the tldraw store with persistence support
+  // Persistent support
   const store = useMemo(() => {
     const newStore = createTLStore();
 
-    // Only try to access storage in the browser
     if (isBrowser) {
-      // Load the canvas state asynchronously
       const loadSavedCanvas = async () => {
         try {
           const savedState = await canvasStorage.loadCanvas();
@@ -191,15 +180,13 @@ const CanvasWrapper = () => {
     return newStore;
   }, []);
 
-  // Handle editor mount and setup persistence
   const handleMount = useCallback(
     (editor: Editor) => {
       setEditor(editor);
 
-      // Set default tool to "draw" when canvas loads
+      // Default to `draw` when load
       editor.setCurrentTool("draw");
 
-      // Listen to selection changes
       const selectionUnsubscribe = editor.store.listen(
         () => {
           const ids = editor.getSelectedShapeIds();
@@ -208,14 +195,13 @@ const CanvasWrapper = () => {
         { scope: "document" }
       );
 
-      // Create debounced save function to avoid excessive writes
+      // debounce to handle excessive paint on the canvas
       const saveCanvasState = debounce(() => {
         if (!isBrowser || !editor) return;
 
         try {
           const snapshot = getSnapshot(editor.store);
 
-          // Save asynchronously
           canvasStorage.saveCanvas(snapshot).then((success) => {
             if (!success) {
               toast.error(
@@ -286,26 +272,20 @@ const CanvasWrapper = () => {
 
       await enhanceSketch(editor);
 
-      // Set progress to 100% when completed
       setProcessingProgress(100);
 
-      // Add a small delay to show 100% completion before hiding overlay
       setTimeout(() => {
         setIsProcessing(false);
-
-        // Clear the prompt after successful enhancement
-        // Access the enhanceStore directly from the import
         const { setPrompt } = useEnhanceStore.getState();
         setPrompt("");
 
-        // Switch to select tool after enhancement is complete
+        // Switching to `select` tools once image genereated
         editor.setCurrentTool("select");
 
-        // Update the canvas store to reflect the tool change
         const { setActiveTool } = useCanvasStore.getState();
         setActiveTool("select");
 
-        // Select all shapes that were just enhanced
+        // Selecting all the changes
         const allShapes = editor.getCurrentPageShapes();
         if (allShapes.length > 0) {
           editor.selectAll();
@@ -327,7 +307,6 @@ const CanvasWrapper = () => {
 
   return (
     <>
-      {/* Add this div to prevent scrolling on mobile */}
       {isMobile && <div className={styles.preventScroll} aria-hidden="true" />}
 
       <div className={styles.canvasContainer}>
@@ -355,7 +334,6 @@ const CanvasWrapper = () => {
         {isProcessing && (
           <div className={styles.processingOverlay} style={{ zIndex: 9999 }}>
             <div className={styles.processingContent}>
-              {/* Decorative particles */}
               <div className={styles.particles}>
                 <div
                   className={styles.particle}

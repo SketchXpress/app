@@ -8,7 +8,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 9999; /* Increased z-index to be higher than anything else */
+  z-index: 9999;
   backdrop-filter: blur(8px);
   animation: fadeIn 0.3s ease;
 }
@@ -27,7 +27,6 @@
   overflow: hidden;
 }
 
-/* Colorful top accent bar */
 .processingContent::before {
   content: '';
   position: absolute;
@@ -38,7 +37,6 @@
   background: linear-gradient(90deg, var(--accent-cyan), var(--accent-magenta));
 }
 
-/* Improved spinner */
 .spinnerContainer {
   margin-bottom: 24px;
   position: relative;
@@ -88,7 +86,6 @@
   opacity: 0.8;
 }
 
-/* Improved progress bar */
 .progressBar {
   width: 100%;
   height: 6px;
@@ -106,7 +103,6 @@
   animation: shimmer 2s infinite;
 }
 
-/* Progress text */
 .progressText {
   margin-top: 10px;
   font-size: 0.85rem;
@@ -114,7 +110,6 @@
   opacity: 0.6;
 }
 
-/* Decorative particles */
 .particles {
   position: absolute;
   width: 100%;
@@ -135,64 +130,65 @@
   animation: float 3s infinite ease-in-out;
 }
 
-/* Add these animations to your existing keyframes or add them */
 @keyframes shimmer {
   0% {
     opacity: 0.8;
   }
+
   50% {
     opacity: 1;
   }
+
   100% {
     opacity: 0.8;
   }
 }
 
 @keyframes float {
-  0%, 100% {
+
+  0%,
+  100% {
     transform: translateY(0) translateX(0);
     opacity: 0.2;
   }
+
   50% {
     transform: translateY(-20px) translateX(10px);
     opacity: 0.4;
   }
 }
 
-/* Responsive adjustments */
 @media (max-width: 640px) {
   .processingContent {
     width: 280px;
     padding: 30px;
   }
-  
+
   .spinnerContainer {
     width: 60px;
     height: 60px;
     margin-bottom: 20px;
   }
-  
+
   .processingTitle {
     font-size: 1.2rem;
   }
-  
+
   .processingMessage {
     font-size: 0.9rem;
   }
 }
 
-/* Canvas area styling */
 .canvasArea {
   width: 100%;
   height: 100%;
-  background-image: 
+  background-image:
     linear-gradient(rgba(200, 200, 200, 0.1) 1px, transparent 1px),
     linear-gradient(90deg, rgba(200, 200, 200, 0.1) 1px, transparent 1px);
   background-size: 20px 20px;
   background-position: center center;
 }
 
-/* Animations */
 @keyframes spin {
   to {
     transform: rotate(360deg);
@@ -203,6 +199,7 @@
   from {
     opacity: 0;
   }
+
   to {
     opacity: 1;
   }
@@ -212,15 +209,16 @@
   0% {
     transform: translateX(-100%);
   }
+
   50% {
     transform: translateX(100%);
   }
+
   100% {
     transform: translateX(-100%);
   }
 }
 
-/* Enhanced canvas tooltip */
 .canvasTip {
   position: absolute;
   bottom: 20px;
@@ -235,13 +233,12 @@
   transition: opacity 0.3s ease;
   pointer-events: none;
   white-space: nowrap;
-  
+
   &:hover {
     opacity: 0;
   }
 }
 
-/* Subtle canvas border styling */
 .canvasFrame {
   position: absolute;
   top: 0;
@@ -253,36 +250,28 @@
   box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.03);
   z-index: 10;
 }
+
 .canvasContainer {
-  /* Use the CSS variable for height calculation instead of 100vh */
   height: calc((var(--vh, 1vh) * 100) - 60px);
   width: 100%;
   position: relative;
   overflow: hidden;
 }
 
-/* For mobile devices */
-@media (max-width: 768px) {
-
-  /* Mobile specific enhancement */
 @media (max-width: 768px) {
   .processingOverlay {
-    /* Ensure it's above all other components on mobile */
     z-index: 9999;
   }
-}
+
   .canvasContainer {
-    /* Fixed position on mobile */
     position: fixed;
     top: 60px;
     left: 0;
     right: 0;
     bottom: 0;
-    /* Height calculation using the CSS variable */
     height: calc((var(--vh, 1vh) * 100) - 60px);
   }
-  
-  /* Create a class to apply to a div instead of targeting body directly */
+
   .preventScroll {
     position: fixed;
     top: 0;
@@ -292,6 +281,6 @@
     overflow: hidden;
     width: 100%;
     height: 100%;
-    z-index: -1; /* Place behind other content */
+    z-index: -1;
   }
 }

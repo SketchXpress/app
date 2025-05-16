@@ -1,9 +1,11 @@
 "use client";
 
-import { useModeStore } from "@/stores/modeStore";
-import styles from "./ModeToggle.module.scss";
 import { motion } from "framer-motion";
 import { Sparkles, Palette } from "lucide-react";
+
+import { useModeStore } from "@/stores/modeStore";
+
+import styles from "./ModeToggle.module.scss";
 
 const ModeToggle = () => {
   const mode = useModeStore((s) => s.mode);
@@ -17,11 +19,11 @@ const ModeToggle = () => {
         transition={{
           type: "spring",
           stiffness: 500,
-          damping: 30
+          damping: 30,
         }}
         initial={false}
         animate={{
-          x: mode === "pro" ? "100%" : "0%"
+          x: mode === "pro" ? "100%" : "0%",
         }}
       />
 

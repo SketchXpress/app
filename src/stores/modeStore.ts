@@ -9,7 +9,7 @@ interface ModeStore {
 }
 
 export const useModeStore = create<ModeStore>((set) => ({
-  mode: "kids", // Default mode
+  mode: "pro",
   setMode: (mode) => set({ mode }),
   toggleMode: () =>
     set((state) => ({
