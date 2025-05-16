@@ -1,11 +1,9 @@
 @use '../../styles/shared/variables' as *;
 
-// Component-specific variables
 $text-muted: rgba(0, 0, 0, 0.6);
 $background-panel: #FAFAFA;
 $background-card: #FFFFFF;
 
-// Panel-specific dimensions
 $panel-width: 320px;
 $panel-collapsed-width: 64px;
 $mobile-panel-width: 280px;
@@ -44,7 +42,6 @@ $mobile-panel-width: 280px;
     }
   }
 
-  // Panel states
   &.collapsed {
     width: $panel-collapsed-width;
 
@@ -54,7 +51,6 @@ $mobile-panel-width: 280px;
     }
   }
 
-  // Tablet styling (Slide off-screen)
   &.tablet {
     position: fixed;
     right: 0;
@@ -69,7 +65,6 @@ $mobile-panel-width: 280px;
     }
   }
 
-  // Mobile styling (Slide from right with fixed width)
   &.mobile {
     position: fixed;
     top: layout(header-height);
@@ -425,7 +420,6 @@ $mobile-panel-width: 280px;
   }
 }
 
-// ===== Pool Section =====
 .poolSection {
   margin-top: 0;
 }
@@ -488,7 +482,6 @@ $mobile-panel-width: 280px;
   }
 }
 
-// ===== Images Gallery =====
 .galleryHeader {
   display: flex;
   justify-content: space-between;
@@ -549,7 +542,7 @@ $mobile-panel-width: 280px;
 
   &.selected {
     border-color: var(--accent-cyan);
-    box-shadow: 0 0 0 3px rgba(0, 183, 225, 0.08);
+    box-shadow: 0 0 0 5px rgba(0, 184, 225, 0.212);
   }
 }
 
@@ -582,7 +575,6 @@ $mobile-panel-width: 280px;
   background: rgba(0, 0, 0, 0.02);
 }
 
-// ===== NFT Name Input =====
 .nftNameInput {
   display: flex;
   flex-direction: column;
@@ -622,7 +614,6 @@ $mobile-panel-width: 280px;
   }
 }
 
-// ===== Action Buttons =====
 .actionButtons {
   display: flex;
   flex-wrap: wrap;
@@ -715,7 +706,6 @@ $mobile-panel-width: 280px;
   animation: twinkle 2s infinite alternate;
 }
 
-// ===== Error State =====
 .errorSection {
   display: flex;
   flex-direction: column;
@@ -739,7 +729,6 @@ $mobile-panel-width: 280px;
   margin: 0;
 }
 
-// ===== Empty State =====
 .emptyState {
   display: flex;
   flex-direction: column;
@@ -795,7 +784,6 @@ $mobile-panel-width: 280px;
   animation: fadeIn 0.25s ease;
 }
 
-// ===== Animations =====
 @keyframes fadeIn {
   from {
     opacity: 0;
@@ -822,15 +810,12 @@ $mobile-panel-width: 280px;
   text-align: center;
   margin-top: 0.5rem;
   padding: 0.5rem;
-  background: rgba(239, 68, 68, 0.06); // Light red background
+  background: rgba(239, 68, 68, 0.06); 
   border-radius: radius(sm);
-  border: 1px dashed rgba(239, 68, 68, 0.15); // Red dashed border
-  font-weight: 500; // Make text slightly bolder for better visibility
+  border: 1px dashed rgba(239, 68, 68, 0.15); 
+  font-weight: 500; 
 }
 
-// RESPONSIVE 
-
-// Custom responsive mixins for this component
 @mixin tablet {
   @media (max-width: 1024px) {
     @content;
@@ -849,9 +834,6 @@ $mobile-panel-width: 280px;
   }
 }
 
-// ===== Responsive Adjustments =====
-
-// Tablet styles
 @include tablet {
   .panel {
     width: $panel-width;
@@ -862,7 +844,6 @@ $mobile-panel-width: 280px;
   }
 }
 
-// Mobile styles
 @include mobile {
   .panel:not(.collapsed) {
     width: $mobile-panel-width;
@@ -907,7 +888,6 @@ $mobile-panel-width: 280px;
   }
 }
 
-// Small mobile styles
 @include small {
   .generatedImagesGrid {
     grid-template-columns: repeat(2, 1fr);
@@ -930,7 +910,6 @@ $mobile-panel-width: 280px;
   }
 }
 
-// Larger screens - show 3 columns in grid
 @media (min-width: 360px) {
   .generatedImagesGrid {
     grid-template-columns: repeat(3, 1fr);

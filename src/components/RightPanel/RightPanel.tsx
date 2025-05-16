@@ -128,13 +128,13 @@ const RightPanel: React.FC = () => {
 
   // Mint handler
   const handleMintNFT = async () => {
-    // Check if wallet is connected - if not, open wallet modal
+    // Check if wallet is connected (if not, open wallet modal)
     if (!walletContext.connected || !walletContext.publicKey) {
       toast.info("Please connect your wallet to mint NFT", {
         position: "bottom-left",
         autoClose: 3000,
       });
-      setVisible(true); // Open wallet connection modal
+      setVisible(true);
       return;
     }
 
@@ -157,14 +157,11 @@ const RightPanel: React.FC = () => {
       nftName.trim()
     );
 
-    // If minting was successful, show extended success toast with link to Mintstreet
     if (success) {
-      // Clear the name after successful mint
       if (nftName.trim()) {
         setNftName("");
       }
 
-      // Show extended success message with action to navigate to Mintstreet
       toast.success(
         <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
           <span>🎉 NFT minted successfully!</span>
@@ -202,7 +199,6 @@ const RightPanel: React.FC = () => {
 
   // Kids-mode mint click
   const handleKidsMintClick = (imageId: number) => {
-    // Check if an image is selected
     if (!imageId) {
       toast.warning("Please select an image from Generated Images to mint", {
         position: "bottom-left",
@@ -218,7 +214,6 @@ const RightPanel: React.FC = () => {
     setShowParentalDialog(true);
   };
 
-  // After parental approval
   const handleParentalApproval = () => {
     setShowParentalDialog(false);
     setTimeout(() => handleMintNFT(), 100);
@@ -226,7 +221,6 @@ const RightPanel: React.FC = () => {
 
   return (
     <>
-      {/* Mobile/Tablet toggle */}
       {(isMobile || isTablet) && (
         <button
           className={styles.mobileToggle}
@@ -290,7 +284,6 @@ const RightPanel: React.FC = () => {
 
           {sidebarOpen && (
             <>
-              {/* Advanced Params - Only show in Pro mode */}
               {mode === "pro" && (
                 <div className={styles.section}>
                   <div className={styles.advancedParametersCard}>
@@ -441,15 +434,12 @@ const RightPanel: React.FC = () => {
                 </div>
               )}
 
-              {/* Collection Dropdown Section - Available in both modes */}
               <div className={styles.section}>
-                {/* Section Title */}
                 <h3 className={styles.sectionTitle}>
                   <Coins size={16} className={styles.sectionIcon} />
                   <span>Collection</span>
                 </h3>
 
-                {/* Show default collection */}
                 {!selectedPool && (
                   <div className={styles.poolBadge}>
                     <div className={styles.poolIcon}>
@@ -465,10 +455,8 @@ const RightPanel: React.FC = () => {
                   </div>
                 )}
 
-                {/* Collection Dropdown Component */}
                 <CollectionDropdown mode={mode} />
 
-                {/* Show selected pool */}
                 {selectedPool && (
                   <div className={styles.poolBadge}>
                     <div className={styles.poolIcon}>
@@ -591,7 +579,6 @@ const RightPanel: React.FC = () => {
                 </div>
               )}
 
-              {/* Actions */}
               {generatedImages.length > 0 && (
                 <div className={styles.section}>
                   <div
@@ -673,7 +660,6 @@ const RightPanel: React.FC = () => {
                 </div>
               )}
 
-              {/* Empty state */}
               {!error && generatedImages.length === 0 && (
                 <div className={styles.emptyState}>
                   <div className={styles.emptyStateIconWrapper}>

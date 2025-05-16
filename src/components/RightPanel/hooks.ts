@@ -1,4 +1,3 @@
-// hooks.ts
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
@@ -14,14 +13,12 @@ import {
 import { GeneratedImage } from "./types";
 import enhancedImageStorage from "@/lib/enhancedImageStorage";
 
-// Custom hook for responsive behavior
 export const useResponsiveBehavior = () => {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [isMobile, setIsMobile] = useState<boolean>(false);
   const [isTablet, setIsTablet] = useState<boolean>(false);
   const sidebarRef = useRef<HTMLElement | null>(null);
 
-  // Handle responsive behavior
   useEffect(() => {
     const checkWidth = () => {
       const width = window.innerWidth;
@@ -31,7 +28,6 @@ export const useResponsiveBehavior = () => {
       setIsMobile(isMobileView);
       setIsTablet(isTabletView);
 
-      // Auto-close sidebar on mobile and tablet initial load
       if (isMobileView || isTabletView) {
         setSidebarOpen(false);
       }
@@ -42,7 +38,6 @@ export const useResponsiveBehavior = () => {
     return () => window.removeEventListener("resize", checkWidth);
   }, []);
 
-  // Handle click outside to close sidebar on mobile
   useEffect(() => {
     if (!isMobile && !isTablet) return;
 
@@ -78,7 +73,6 @@ export const useResponsiveBehavior = () => {
   };
 };
 
-// Custom hook for enhance events
 export const useEnhanceEvents = (
   sidebarOpen: boolean,
   setSidebarOpen: (open: boolean) => void
@@ -90,7 +84,6 @@ export const useEnhanceEvents = (
   const [currentJobId, setCurrentJobId] = useState<string | null>(null);
   const [imagesLoaded, setImagesLoaded] = useState<boolean>(false);
 
-  // Load saved images on mount
   useEffect(() => {
     const loadSavedImages = async () => {
       try {
@@ -109,12 +102,10 @@ export const useEnhanceEvents = (
                 return img;
               }
 
-              // If it's a blob URL from a previous session, it won't work
-              // So we need to fetch from the original URL and create a new one
               if (img.src.startsWith("blob:")) {
                 try {
                   const response = await fetch(img.url);
-                  if (!response.ok) return img; // Keep original if fetch fails
+                  if (!response.ok) return img;
 
                   const blob = await response.blob();
                   return {
@@ -167,17 +158,12 @@ export const useEnhanceEvents = (
 
   // Subscribe to enhance events
   useEffect(() => {
-    // Handle enhance started event
     const unsubscribeStarted = subscribeToEnhanceStarted(
       (data: EnhanceStartedEvent) => {
         setIsProcessing(true);
         setError(null);
         setCurrentJobId(data.jobId);
 
-        // No longer clear previous images here
-        // We'll keep showing old images until new ones are ready
-
-        // Important: Close the sidebar during processing
         if (sidebarOpen) {
           setSidebarOpen(false);
         }
@@ -188,12 +174,11 @@ export const useEnhanceEvents = (
     const unsubscribeCompleted = subscribeToEnhanceCompleted(
       async (data: EnhanceCompletedEvent & { images_base64?: string[] }) => {
         setIsProcessing(false);
-        setCurrentJobId(null); // Clear job ID once completed
+        setCurrentJobId(null);
 
         try {
           let images: GeneratedImage[] = [];
 
-          // *** USE BASE64 DATA IF AVAILABLE ***
           if (data.images_base64 && data.images_base64.length > 0) {
             images = data.images_base64.map((base64String, index) => {
               const filename =
@@ -203,14 +188,12 @@ export const useEnhanceEvents = (
               return {
                 id: index + 1,
                 title: `Generated Image ${index + 1}`,
-                src: `data:image/png;base64,${base64String}`, // Use base64 data URI
-                url: originalUrl, // Store original URL for downloads
+                src: `data:image/png;base64,${base64String}`,
+                url: originalUrl,
                 customName: "",
               };
             });
-          }
-          // *** FALLBACK TO FETCHING FROM URL (OLD METHOD) ***
-          else if (data.images && data.images.length > 0) {
+          } else if (data.images && data.images.length > 0) {
             console.warn(
               "[RightPanel] Base64 data not found in event, falling back to fetching URLs."
             );
@@ -230,8 +213,8 @@ export const useEnhanceEvents = (
                   return {
                     id: index + 1,
                     title: `Generated Image ${index + 1}`,
-                    src: URL.createObjectURL(blob), // Create local URL for the Image component
-                    url: fullUrl, // Store original URL for downloads
+                    src: URL.createObjectURL(blob),
+                    url: fullUrl,
                   };
                 } catch {
                   return null;
@@ -240,7 +223,7 @@ export const useEnhanceEvents = (
             ).then(
               (results) =>
                 results.filter((img) => img !== null) as GeneratedImage[]
-            ); // Filter out nulls
+            );
           } else {
             console.warn(
               "[RightPanel] No image data found in completed event."
@@ -250,19 +233,15 @@ export const useEnhanceEvents = (
           if (images.length > 0) {
             setGeneratedImages(images);
 
-            // Set first image as selected by default
             const defaultSelectedId = images[0]?.id || null;
             setSelectedImageId(defaultSelectedId);
 
             // Save the new images to storage
             await saveCurrentImages(images, defaultSelectedId);
-
-            // NOW open the sidebar since enhancement is complete
             setSidebarOpen(true);
           } else {
             setError("Failed to load generated images from event.");
 
-            // Show error toast
             toast.error("Failed to load generated images", {
               position: "bottom-left",
               autoClose: 4000,
@@ -272,7 +251,6 @@ export const useEnhanceEvents = (
           console.error("Error processing generated images:", err);
           setError("Failed to process generated images");
 
-          // Show error toast
           toast.error("Failed to process generated images", {
             position: "bottom-left",
             autoClose: 4000,
@@ -285,14 +263,8 @@ export const useEnhanceEvents = (
     const unsubscribeFailed = subscribeToEnhanceFailed(
       (data: EnhanceFailedEvent) => {
         setIsProcessing(false);
-        setCurrentJobId(null); // Clear job ID on failure
+        setCurrentJobId(null);
         setError(data.error || "Image generation failed");
-
-        // Show error toast but don't open the panel
-        toast.error(data.error || "Image generation failed", {
-          position: "bottom-left",
-          autoClose: 5000,
-        });
       }
     );
 
@@ -302,9 +274,8 @@ export const useEnhanceEvents = (
       unsubscribeCompleted();
       unsubscribeFailed();
     };
-  }, [sidebarOpen, setSidebarOpen, saveCurrentImages]); // Rerun if sidebarOpen changes
+  }, [sidebarOpen, setSidebarOpen, saveCurrentImages]);
 
-  // Polling for job status (as a backup, primarily rely on events)
   useEffect(() => {
     if (!currentJobId || !isProcessing) return;
 
@@ -322,11 +293,10 @@ export const useEnhanceEvents = (
 
         const contentType = response.headers.get("content-type");
         if (contentType && contentType.includes("text/html")) {
-          return; // Try polling again
+          return;
         }
 
         if (!response.ok) {
-          // Keep polling unless it's a 404 (job not found)
           if (response.status === 404) {
             setError("Job not found. Please try again.");
             if (pollInterval) clearInterval(pollInterval);
@@ -344,12 +314,11 @@ export const useEnhanceEvents = (
         const data = await response.json();
 
         if (data.status === "completed") {
-          if (pollInterval) clearInterval(pollInterval); // Stop polling
+          if (pollInterval) clearInterval(pollInterval);
           setIsProcessing(false);
-          setCurrentJobId(null); // Clear job ID
+          setCurrentJobId(null);
 
           let images: GeneratedImage[] = [];
-          // *** USE BASE64 DATA IF AVAILABLE ***
           if (data.images_base64 && data.images_base64.length > 0) {
             images = data.images_base64.map(
               (base64String: string, index: number) => {
@@ -365,9 +334,7 @@ export const useEnhanceEvents = (
                 };
               }
             );
-          }
-          // *** FALLBACK TO FETCHING FROM URL (OLD METHOD) ***
-          else if (data.images && data.images.length > 0) {
+          } else if (data.images && data.images.length > 0) {
             console.warn(
               "[Polling] Base64 data not found in status, falling back to fetching URLs."
             );
@@ -397,7 +364,7 @@ export const useEnhanceEvents = (
             ).then(
               (results) =>
                 results.filter((img) => img !== null) as GeneratedImage[]
-            ); // Filter out nulls
+            );
           } else {
             console.warn(
               "[Polling] No image data found in completed status response."
@@ -414,9 +381,7 @@ export const useEnhanceEvents = (
             // Save images to storage
             await saveCurrentImages(images, defaultSelectedId);
 
-            setError(null); // Clear any previous error
-
-            // Now that processing is complete and we have images, open the sidebar
+            setError(null);
             setSidebarOpen(true);
           } else {
             setError("Failed to load generated images from status poll.");
@@ -439,27 +404,22 @@ export const useEnhanceEvents = (
             autoClose: 5000,
           });
         } else if (data.status === "processing") {
-          // Continue polling
         } else {
           console.warn("[Polling] Unknown job status:", data.status);
-          // Continue polling for a while
         }
-      } catch {
-        // Don't stop polling immediately on generic error, could be temporary network issue
-      }
+      } catch {}
     };
 
     // Start polling immediately and then set interval
     pollStatus();
-    pollInterval = setInterval(pollStatus, 5000); // Poll every 5 seconds
+    pollInterval = setInterval(pollStatus, 5000);
 
     // Cleanup function
     return () => {
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [currentJobId, isProcessing, setSidebarOpen, saveCurrentImages]); // Only restart polling if needed
+  }, [currentJobId, isProcessing, setSidebarOpen, saveCurrentImages]);
 
-  // Clean up object URLs on unmount or when images change
   useEffect(() => {
     const currentImageSrcs = generatedImages.map((img) => img.src);
     return () => {
@@ -482,7 +442,6 @@ export const useEnhanceEvents = (
   };
 };
 
-// Custom hook for image gallery
 export const useImageGallery = (
   setSelectedImageId: (id: number | null) => void
 ) => {
@@ -490,15 +449,6 @@ export const useImageGallery = (
 
   const handleImageSelect = (id: number, currentSelectedId: number | null) => {
     setSelectedImageId(id === currentSelectedId ? null : id);
-
-    // Optional: Show toast when selecting image
-    if (id !== currentSelectedId) {
-      toast.info(`Image ${id} selected`, {
-        position: "bottom-left",
-        autoClose: 1500,
-        hideProgressBar: true,
-      });
-    }
   };
 
   return {
@@ -508,7 +458,7 @@ export const useImageGallery = (
   };
 };
 
-// Custom hook for parental control
+// Parental control
 export const useParentalControl = () => {
   const [showParentalDialog, setShowParentalDialog] = useState<boolean>(false);
   const [mintingImage, setMintingImage] = useState<GeneratedImage | null>(null);
@@ -527,7 +477,7 @@ export const useParentalControl = () => {
   };
 };
 
-// Custom hook for advanced parameters
+// Advanced parameter
 export const useAdvancedParameters = () => {
   const [showAdvanced, setShowAdvanced] = useState<boolean>(false);
 
