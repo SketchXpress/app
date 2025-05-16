@@ -1,4 +1,4 @@
-// src/components/CollectionDropdown/CollectionDropdown.tsx
+import { toast } from "react-toastify";
 import React, { useState, useEffect, useRef } from "react";
 import {
   ChevronDown,
@@ -11,13 +11,14 @@ import {
   Bell,
   Circle,
 } from "lucide-react";
+
 import { usePoolStore } from "@/stores/poolStore";
 import {
   useRealTimeCollections,
   Pool,
   Collection,
 } from "@/hook/api/realtime/useRealTimeCollections";
-import { toast } from "react-toastify";
+
 import styles from "./CollectionDropdown.module.scss";
 
 interface CollectionDropdownProps {
@@ -28,8 +29,8 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = () => {
   const [isOpen, setIsOpen] = useState(false);
   const { selectedPool, setSelectedPool } = usePoolStore();
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
 
-  // Use real-time collections hook - Try real data first, fallback to mock
   const {
     pools,
     collections,
@@ -44,29 +45,39 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = () => {
   } = useRealTimeCollections({
     enableSSE: true,
     fallbackPolling: true,
-    newItemExpiry: 5 * 60 * 1000, // 5 minutes
-    useMockData: false, // Try real data first
+    newItemExpiry: 5 * 60 * 1000,
+    useMockData: false,
   });
 
-  // Show toast notifications for new items
+  // Auto-select first collection when pools are loaded
   useEffect(() => {
-    const totalNewItems = newPoolsCount + newCollectionsCount;
-    if (totalNewItems > 0) {
-      toast.info(
-        `${totalNewItems} new item(s) available! ${newCollectionsCount} collections, ${newPoolsCount} pools`,
-        {
-          position: "bottom-right",
-          autoClose: 5000,
-          onClick: () => {
-            setIsOpen(true);
-            refresh();
-          },
-        }
+    if (pools.length > 0 && !selectedPool && !hasAutoSelected) {
+      const firstPool = pools[0];
+      const firstCollection = collections.find(
+        (c: Collection) => c.collectionMint === firstPool.collectionMint
       );
-    }
-  }, [newPoolsCount, newCollectionsCount, refresh]);
 
-  // Handle click outside to close dropdown
+      const collectionName =
+        firstCollection?.collectionName ||
+        firstPool.collectionName ||
+        `Collection ${firstPool.collectionMint.slice(0, 6)}...`;
+
+      setSelectedPool({
+        address: firstPool.poolAddress,
+        name: collectionName,
+        id: firstPool.poolAddress,
+        type: "custom",
+      });
+
+      setHasAutoSelected(true);
+
+      toast.info(`Auto-selected: ${collectionName}`, {
+        position: "bottom-left",
+        autoClose: 3000,
+      });
+    }
+  }, [pools, collections, selectedPool, hasAutoSelected, setSelectedPool]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -97,7 +108,7 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = () => {
       type: "custom",
     });
     setIsOpen(false);
-    refresh(); // Clear new indicators
+    refresh();
     toast.success(`Selected collection: ${collectionName}`, {
       position: "bottom-left",
       autoClose: 2000,
@@ -112,9 +123,7 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = () => {
     return selectedPool?.address === poolAddress;
   };
 
-  // Get display pools with collection names
   const displayPools = pools.map((pool: Pool) => {
-    // Find matching collection by mint address
     const collection = collections.find(
       (c: Collection) => c.collectionMint === pool.collectionMint
     );
@@ -128,7 +137,6 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = () => {
     };
   });
 
-  // Get connection status display
   const getConnectionStatus = () => {
     switch (connectionState) {
       case "connected":
@@ -169,9 +177,7 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = () => {
           {getSelectedName()}
         </span>
 
-        {/* Real-time indicator and new item badge */}
         <div className={styles.indicators}>
-          {/* New items badge */}
           {(newPoolsCount > 0 || newCollectionsCount > 0) && (
             <div className={styles.newItemsBadge}>
               <Bell size={12} />
@@ -179,7 +185,6 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = () => {
             </div>
           )}
 
-          {/* Connection status */}
           <StatusIcon size={14} className={color} />
         </div>
 
