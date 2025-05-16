@@ -68,7 +68,9 @@ export function useRealtimeBondingCurveHistory(
     const handleNewTransaction = (event: SSEEvent) => {
       setLastRealTimeUpdate(Date.now());
       // Trigger a refetch to get updated data
-      refetch();
+      if (refetch) {
+        refetch();
+      }
     };
 
     const unsubscribe = subscribe("newTransaction", handleNewTransaction);
@@ -82,7 +84,9 @@ export function useRealtimeBondingCurveHistory(
   useEffect(() => {
     if (fallbackToPolling && !isConnected && !isLoading) {
       const interval = setInterval(() => {
-        refetch();
+        if (refetch) {
+          refetch();
+        }
       }, updateInterval);
 
       return () => clearInterval(interval);
@@ -108,14 +112,16 @@ export function useRealtimeBondingCurveHistory(
     // Force a reconnection
     setConnectionState("connecting");
     setLastRealTimeUpdate(Date.now());
-    refetch();
+    if (refetch) {
+      refetch();
+    }
   }, [refetch]);
 
   // Handle error conversion from Error to string
   const formattedError = error
     ? typeof error === "string"
       ? error
-      : error.message
+      : error
     : sseError
     ? typeof sseError === "string"
       ? sseError

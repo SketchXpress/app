@@ -4,7 +4,7 @@ import { processTransactionFast } from "./extractors";
 import { PublicKey, Connection } from "@solana/web3.js";
 import { IDL as BondingCurveIDL } from "../../utils/idl";
 import { useState, useEffect, useCallback } from "react";
-import { createTimer, findAccountIndex } from "./helpers";
+import { findAccountIndex } from "./helpers";
 import {
   HistoryItem,
   BondingCurveHistoryResult,
@@ -279,10 +279,6 @@ export function useBondingCurveHistory(
       setIsLoading(true);
       setError(null);
 
-      const fetchTimer = createTimer(
-        `Total fetch operation${beforeSig ? " (pagination)" : " (initial)"}`
-      );
-
       try {
         // 1. Compute a sane limit
         const safeLimit =
@@ -310,7 +306,7 @@ export function useBondingCurveHistory(
         if (!Array.isArray(txs) || txs.length === 0) {
           setCanLoadMore(false);
           setIsLoading(false);
-          fetchTimer.stop();
+
           return;
         }
 
@@ -334,12 +330,12 @@ export function useBondingCurveHistory(
 
         if (newTxs.length === 0) {
           setIsLoading(false);
-          fetchTimer.stop();
+
           return;
         }
 
         // 6. Fast initial processing (synchronous, no RPC calls)
-        const processTimer = createTimer("Fast transaction processing");
+
         const processedItems = newTxs.map((tx) => {
           const info = { timestamp: tx.timestamp };
 
@@ -351,7 +347,6 @@ export function useBondingCurveHistory(
             BondingCurveIDL
           );
         });
-        processTimer.stop();
 
         // 7. Update the history state with new transactions
         setHistory((prev) => {
@@ -375,12 +370,9 @@ export function useBondingCurveHistory(
           return newCache;
         });
 
-        const totalTime = fetchTimer.stop();
-
         // 9. Update performance stats
         setPerformance((prev) => ({
           ...prev,
-          lastFetchTime: totalTime,
         }));
 
         // 10. Trigger background price loading for sell operations
@@ -391,7 +383,6 @@ export function useBondingCurveHistory(
         console.error("Error in fetchHeliusHistory:", err);
         setError(err.message || "Failed to fetch transaction history");
         setCanLoadMore(false);
-        fetchTimer.stop();
       } finally {
         setIsLoading(false);
       }
@@ -495,7 +486,6 @@ export function useBondingCurveHistory(
     try {
       if (transactionCache.size > 0) {
         // Only save if we have items and not too frequently
-        const saveTimer = createTimer("Save to localStorage");
 
         // Use our utility to serialize the cache
         const serializedCache = serializeCache(transactionCache);
@@ -504,8 +494,6 @@ export function useBondingCurveHistory(
           "bondingCurveTransactionCache",
           JSON.stringify(serializedCache)
         );
-
-        saveTimer.stop();
       }
     } catch (err) {
       console.error("Error saving cache to localStorage:", err);

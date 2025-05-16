@@ -92,11 +92,6 @@ function decodeInstruction(instructionData: string): DecodedInstruction | null {
       }
     }
 
-    // If no match found, log for debugging
-    console.log(
-      "Unknown instruction discriminator:",
-      discriminator.toString("hex")
-    );
     return null;
   } catch (error) {
     console.error("Error decoding instruction:", error);
@@ -365,7 +360,6 @@ export function extractCollectionInfo(processedData: ProcessedWebhookData): {
 
 // Debug function to log discriminators for verification
 export function logInstructionDiscriminators(): void {
-  console.log("Instruction Discriminators:");
   Object.entries(INSTRUCTION_DISCRIMINATORS).forEach(
     ([name, discriminator]) => {
       console.log(`${name}: ${discriminator.toString("hex")}`);

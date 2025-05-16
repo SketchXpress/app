@@ -240,7 +240,6 @@ self.addEventListener("sync", (event) => {
 
 async function processQueuedUploads() {
   // Implement your offline queue processing logic here
-  console.log("Processing queued uploads...");
 }
 
 // Periodic background sync (if supported)
@@ -252,5 +251,4 @@ self.addEventListener("periodicsync", (event) => {
 
 async function updateContent() {
   // Implement periodic content updates
-  console.log("Updating content in background...");
 }

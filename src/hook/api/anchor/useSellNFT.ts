@@ -149,9 +149,6 @@ export function useSellNFT(config: UseSellNFTConfig = {}) {
           throw new Error("Invalid pool address");
         }
 
-        console.log("Selling NFT with mint:", nftMintAddress);
-        console.log("Pool address:", poolAddress);
-
         // Get pool data to retrieve collection mint and creator
         const poolData = await program.account.bondingCurvePool.fetch(pool);
         const collectionMint = poolData.collection as PublicKey;
@@ -159,12 +156,10 @@ export function useSellNFT(config: UseSellNFTConfig = {}) {
 
         // Check pool balance if enabled
         if (checkPoolBalance) {
-          const { balance, sufficient } = await checkPoolSolBalance(
+          const { sufficient } = await checkPoolSolBalance(
             pool,
             program.provider.connection
           );
-
-          console.log("Pool balance:", balance, "SOL");
 
           if (!sufficient) {
             console.warn("Pool balance is very low, transaction might fail");
@@ -173,9 +168,6 @@ export function useSellNFT(config: UseSellNFTConfig = {}) {
             }
           }
         }
-
-        console.log("Collection mint:", collectionMint.toString());
-        console.log("Creator:", creator.toString());
 
         // Derive collection metadata PDA
         const [collectionMetadata] = PublicKey.findProgramAddressSync(
@@ -278,8 +270,6 @@ export function useSellNFT(config: UseSellNFTConfig = {}) {
             skipPreflight: true, // Skip preflight to allow more complex transactions through
             commitment: "confirmed",
           });
-
-        console.log("NFT sold successfully with signature:", tx);
 
         setTxSignature(tx);
         setSuccess(true);

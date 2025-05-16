@@ -1,7 +1,7 @@
 // src/providers/CollectionsProvider.tsx - Ensure real-time data initialization
 "use client";
 
-import React, { useEffect } from "react";
+import React from "react";
 import { useRealTimeCollections } from "@/hook/api/realtime/useRealTimeCollections";
 
 interface CollectionsProviderProps {
@@ -22,17 +22,6 @@ export const CollectionsProvider: React.FC<CollectionsProviderProps> = ({
     newItemExpiry: 5 * 60 * 1000, // 5 minutes
     useMockData: false,
   });
-
-  // Log initialization status for debugging
-  useEffect(() => {
-    console.log("🔄 CollectionsProvider Status:", {
-      collections: realTimeData.collections.length,
-      pools: realTimeData.pools.length,
-      connectionState: realTimeData.connectionState,
-      isLoading: realTimeData.isLoading,
-      error: realTimeData.error,
-    });
-  }, [realTimeData]);
 
   // Don't render children until basic connection is established
   // This prevents empty state flashing

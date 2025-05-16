@@ -26,7 +26,7 @@ import {
 import styles from "./CollectionChart.module.scss";
 import { useBondingCurveForPool } from "@/hook/pools";
 import ChartToolbar, { ChartType, Timeframe, SMAPeriod } from "./ChartToolbar";
-import { useHeliusSales } from "@/hooks/useHeliusSales";
+import { useHeliusSales } from "@/hook/pools/useHeliusSales";
 import { useRealtimeChartData } from "@/hook/core/useRealtimeChartData";
 import ConnectionStatus from "@/components/ConnectionStatus";
 
@@ -108,20 +108,11 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
     "70eef812-8d6b-496f-bc30-1725d5acb800"
   );
 
-  // Debug sales data
-  console.log("Sales data received:", sales);
-
   // Process raw historical data into candles with ACTION-BASED COLORING
   const rawCandles = useMemo(() => {
-    console.log("\n🔥 ACTION-BASED CANDLE PROCESSING 🔥");
-
     if (!history || !sales) {
-      console.log("❌ Missing history or sales data, returning empty candles");
       return [];
     }
-
-    console.log("History entries:", history.length);
-    console.log("Sales entries:", sales.length);
 
     // Step 1: Process mint events
     const mintEvents = history
@@ -139,8 +130,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
       }))
       .sort((a, b) => Number(a.time) - Number(b.time));
 
-    console.log(`Found ${mintEvents.length} mint events`);
-
     // Step 2: Process sell events with better null handling
     const sellEvents = sales
       .filter((s) => s.blockTime != null && s.soldSol != null && s.soldSol > 0)
@@ -152,8 +141,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
       }))
       .sort((a, b) => Number(a.time) - Number(b.time));
 
-    console.log(`Found ${sellEvents.length} sell events`);
-
     // Step 3: Combine all events and sort by time
     const allEvents = [...mintEvents, ...sellEvents].sort((a, b) => {
       const timeDiff = Number(a.time) - Number(b.time);
@@ -163,8 +150,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
       if (a.type === "sell" && b.type === "mint") return 1;
       return 0;
     });
-
-    console.log(`Combined ${allEvents.length} total events`);
 
     const candles: ChartDataPoint[] = [];
     let lastPrice = 0;
@@ -236,10 +221,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
     const sortedCandles = validatedCandles.sort(
       (a, b) => Number(a.time) - Number(b.time)
     );
-
-    console.log(`Generated ${sortedCandles.length} valid candles`);
-    console.log("First candle:", sortedCandles[0]);
-    console.log("Last candle:", sortedCandles[sortedCandles.length - 1]);
 
     return sortedCandles;
   }, [history, sales]);
@@ -482,7 +463,6 @@ const CollectionChart: React.FC<CollectionChartProps> = ({
     }
 
     if (hasError) {
-      console.log("Attempting final fix by regenerating timestamps...");
       // Last resort: regenerate timestamps
       validatedCandles.forEach((candle, index) => {
         if (index === 0) return;

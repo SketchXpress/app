@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import { useAnchorContext } from "@/contexts/AnchorContextProvider";
@@ -31,24 +32,6 @@ export const useBuyNft = () => {
     try {
       const nftMint = new PublicKey(nftMintAddress);
       const pool = new PublicKey(poolAddress);
-
-      // Get pool data to get current price
-      const poolData = await program.account.bondingCurvePool.fetch(pool);
-      const currentPrice = poolData.currentPrice;
-
-      // Ensure currentPrice is a number or BigInt
-      const currentPriceNumber =
-        typeof currentPrice === "number"
-          ? currentPrice
-          : typeof currentPrice === "bigint"
-          ? Number(currentPrice)
-          : Number(currentPrice?.toString?.() ?? 0);
-
-      console.log(
-        `Buying NFT ${nftMintAddress} from pool for ${
-          currentPriceNumber / 1e9
-        } SOL`
-      );
 
       // Get buyer's associated token account
       const buyerNftTokenAccount = await getAssociatedTokenAddress(
@@ -111,9 +94,6 @@ export const useBuyNft = () => {
 
     try {
       // TODO: Implement peer-to-peer or marketplace purchase logic
-      console.log(
-        `Buying NFT ${nftMintAddress} from user ${sellerAddress} for ${price} SOL`
-      );
 
       // This would typically involve:
       // 1. Escrow or marketplace contract interaction

@@ -229,8 +229,6 @@ export const useSellNft = () => {
           commitment: "confirmed",
         });
 
-      console.log("NFT sold successfully with signature:", tx);
-
       setTxSignature(tx);
       setSuccess(true);
 

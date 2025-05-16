@@ -35,7 +35,6 @@ export function useRealTimeBondingCurveHistory(poolAddress?: string) {
 
   useEffect(() => {
     if (!isConnected) {
-      // console.log('SSE not connected, skipping subscription for bonding curve history.');
       return;
     }
 

@@ -9,7 +9,7 @@ import {
   MIN_RPC_DELAY,
   CONCURRENT_RPC_LIMIT,
 } from "./constants";
-import { delay, createTimer } from "./helpers";
+import { delay } from "./helpers";
 import { PerformanceStats } from "../../hook/useBondingCurveHistory/types";
 import React from "react";
 
@@ -21,7 +21,6 @@ export const fetchWithRetry = async (
   setPerformance?: React.Dispatch<React.SetStateAction<PerformanceStats>>
 ) => {
   let retries = 0;
-  const timer = createTimer(`API call to ${url.split("?")[0]}`);
 
   while (retries < maxRetries) {
     try {
@@ -47,7 +46,6 @@ export const fetchWithRetry = async (
         );
       }
 
-      timer.stop();
       if (setPerformance) {
         setPerformance((prev) => ({
           ...prev,
@@ -150,8 +148,6 @@ export const useRpcScheduler = (
     async (method: string, params: any[]) => {
       let retries = 0;
       const requestFn = async () => {
-        const timer = createTimer(`RPC ${method}`);
-
         try {
           // Minimal request payload
           const requestPayload = {
@@ -191,7 +187,7 @@ export const useRpcScheduler = (
 
               if (retries < MAX_RETRIES) {
                 // Retry with the same request function
-                timer.stop();
+
                 return requestFn();
               }
               throw new Error(
@@ -218,18 +214,16 @@ export const useRpcScheduler = (
             );
           }
 
-          const duration = timer.stop();
           setPerformance((prev) => ({
             ...prev,
             totalRpcCalls: prev.totalRpcCalls + 1,
             avgResponseTime:
-              (prev.avgResponseTime * prev.totalRpcCalls + duration) /
+              (prev.avgResponseTime * prev.totalRpcCalls) /
               (prev.totalRpcCalls + 1),
           }));
 
           return result.result;
         } catch (err) {
-          timer.stop();
           throw err;
         }
       };

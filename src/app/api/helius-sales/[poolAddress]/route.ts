@@ -35,16 +35,6 @@ export async function GET(
       );
     }
 
-    // For now, return empty sales since the actual Helius integration
-    // needs to be implemented based on your specific requirements
-    console.log(`Fetching Helius sales for pool: ${poolAddress}`);
-
-    // TODO: Implement actual Helius API call here
-    // This would involve:
-    // 1. Calling Helius API with the poolAddress
-    // 2. Filtering for sale transactions
-    // 3. Transforming the data to match SaleEvent interface
-
     const sales: SaleEvent[] = [];
 
     return NextResponse.json({

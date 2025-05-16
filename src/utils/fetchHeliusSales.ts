@@ -9,8 +9,6 @@ export async function fetchHeliusSales(
   pool: string,
   apiKey: string
 ): Promise<SaleEvent[]> {
-  console.log("Fetching Helius sales for pool:", pool);
-
   // 1) GET the last 100 signatures for your pool
   const sigResp = await fetch(
     `${HELIUS_RPC}/addresses/${pool}/transactions?api-key=${apiKey}&limit=100`
@@ -52,9 +50,6 @@ export async function fetchHeliusSales(
     return true;
   });
 
-  console.log(
-    `Found ${salesEvents.length} sales, validated ${validatedSales.length}`
-  );
   return validatedSales;
 }
 export type { SaleEvent };

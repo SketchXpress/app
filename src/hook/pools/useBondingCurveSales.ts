@@ -20,11 +20,6 @@ async function fetchHeliusSales(
   poolAddress: string,
   apiKey: string
 ): Promise<SaleEvent[]> {
-  console.log(`🔄 fetchHeliusSales called:`, {
-    poolAddress,
-    hasApiKey: !!apiKey,
-  });
-
   if (!poolAddress || !apiKey) {
     console.warn(`❌ Missing poolAddress or apiKey:`, {
       poolAddress,
@@ -35,14 +30,8 @@ async function fetchHeliusSales(
 
   try {
     const url = `/api/helius-sales/${poolAddress}?apiKey=${apiKey}`;
-    console.log(`📡 Fetching from API:`, url);
 
     const response = await fetch(url);
-    console.log(
-      `📡 API Response status:`,
-      response.status,
-      response.statusText
-    );
 
     if (!response.ok) {
       if (response.status === 404) {
@@ -53,10 +42,8 @@ async function fetchHeliusSales(
     }
 
     const data = await response.json();
-    console.log(`📡 Raw API response:`, data);
 
     const sales = data.sales || [];
-    console.log(`📡 Parsed sales from API:`, sales.length, sales);
 
     return sales;
   } catch (error) {
@@ -70,36 +57,19 @@ async function fetchHeliusSales(
  * OPTIMIZED: Uses store data first, falls back to Helius API only when needed
  */
 export function useHeliusSales(poolAddress: string, apiKey: string) {
-  console.log(`🎣 useHeliusSales called:`, {
-    poolAddress,
-    hasApiKey: !!apiKey,
-  });
-
   // Get store data first
   const { getPoolDetailsWithRealtime } = useCollectionsStore();
   const storeData = getPoolDetailsWithRealtime(poolAddress);
   const { deduplicatedFetch } = useDeduplicateRequests<SaleEvent[]>();
 
-  console.log(`🏪 Store data:`, storeData);
-  console.log(`🏪 Store history length:`, storeData?.history?.length || 0);
-
   // Extract sales from store history
   const storeSales = useMemo(() => {
-    console.log(`🔄 Processing store sales...`);
-
     if (!storeData?.history) {
-      console.log(`❌ No store history available`);
       return [];
     }
 
-    console.log(`📊 Store history:`, storeData.history.length, `transactions`);
-
     const sellTransactions = storeData.history.filter(
       (tx) => tx.instructionName === "sellNft"
-    );
-    console.log(
-      `📊 Found ${sellTransactions.length} sell transactions in store:`,
-      sellTransactions
     );
 
     const processedSales = sellTransactions
@@ -113,26 +83,13 @@ export function useHeliusSales(poolAddress: string, apiKey: string) {
       }))
       .filter((sale) => sale.blockTime > 0); // Only include valid sales
 
-    console.log(
-      `💰 Processed store sales:`,
-      processedSales.length,
-      processedSales
-    );
     return processedSales;
   }, [storeData?.history]);
-
-  console.log(`💰 Final store sales count:`, storeSales.length);
 
   // FIX: Ensure enabled is always boolean (not string)
   const shouldFetchFromAPI = Boolean(
     poolAddress && apiKey && storeSales.length === 0
   );
-
-  console.log(`🤔 Should fetch from API:`, shouldFetchFromAPI, {
-    hasPoolAddress: !!poolAddress,
-    hasApiKey: !!apiKey,
-    storeSalesCount: storeSales.length,
-  });
 
   // Conditional API fetch with deduplication
   const {
@@ -142,7 +99,6 @@ export function useHeliusSales(poolAddress: string, apiKey: string) {
   } = useQuery<SaleEvent[], Error>({
     queryKey: ["heliusSales", poolAddress],
     queryFn: () => {
-      console.log(`🚀 API query function executing...`);
       return deduplicatedFetch(
         `helius-sales-${poolAddress}`,
         () => fetchHeliusSales(poolAddress, apiKey),
@@ -159,44 +115,24 @@ export function useHeliusSales(poolAddress: string, apiKey: string) {
       Math.min(1000 * Math.pow(2, attemptIndex), 30000),
   });
 
-  console.log(`📡 API Query state:`, {
-    isLoading: apiLoading,
-    hasError: !!apiError,
-    salesCount: apiSales?.length || 0,
-    apiSales,
-  });
-
   if (apiError) {
     console.error(`❌ API Error:`, apiError);
   }
 
   // Use store data first, fallback to API
   const finalSales = useMemo(() => {
-    console.log(`🔄 Computing final sales...`);
-
     if (storeSales.length > 0) {
-      console.log(`✅ Using store sales:`, storeSales.length);
       const sortedStoreSales = storeSales.sort(
         (a, b) => b.blockTime - a.blockTime
       );
-      console.log(`📅 Sorted store sales:`, sortedStoreSales);
       return sortedStoreSales;
     }
 
     // FIX: Ensure apiSales is always an array
     const apiSalesArray = apiSales && Array.isArray(apiSales) ? apiSales : [];
-    console.log(`📡 Using API sales:`, apiSalesArray.length, apiSalesArray);
 
     return apiSalesArray;
   }, [storeSales, apiSales]);
-
-  console.log(`🎯 Final result:`, {
-    salesCount: finalSales.length,
-    dataSource: storeSales.length > 0 ? "webhook" : "api",
-    hasRealtimeData: storeSales.length > 0,
-    isLoading: shouldFetchFromAPI ? apiLoading : false,
-    finalSales,
-  });
 
   // Return with additional metadata about data source
   return {

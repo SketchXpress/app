@@ -195,7 +195,6 @@ export const mintNFT = async (
     // Close the loading toast first
     toast.dismiss(mintingToastId);
 
-    console.log("🎉 Minting completed successfully!");
     return { success: true, nftAddress, poolInfo };
   } catch (error) {
     console.error("❌ Minting failed:", error);

@@ -7,7 +7,7 @@ import {
   defaultTools,
   Editor,
   loadSnapshot,
-  getSnapshot
+  getSnapshot,
 } from "tldraw";
 import { toast } from "react-toastify";
 import { useMemo, useCallback, useState, useEffect } from "react";
@@ -36,7 +36,7 @@ const debounce = <T extends (...args: Parameters<T>) => ReturnType<T>>(
 };
 
 // Helper to check if we're in browser environment
-const isBrowser = typeof window !== 'undefined';
+const isBrowser = typeof window !== "undefined";
 
 const CanvasWrapper = () => {
   // State for tracking AI processing
@@ -64,7 +64,7 @@ const CanvasWrapper = () => {
   useEffect(() => {
     if (isProcessing) {
       const interval = setInterval(() => {
-        setProcessingProgress(prev => {
+        setProcessingProgress((prev) => {
           const next = prev + (1 + Math.random() * 2);
           return next < 90 ? next : 89;
         });
@@ -86,7 +86,7 @@ const CanvasWrapper = () => {
     // Function to set viewport height
     function setViewportHeight() {
       const vh = window.innerHeight * 0.01;
-      document.documentElement.style.setProperty('--vh', `${vh}px`);
+      document.documentElement.style.setProperty("--vh", `${vh}px`);
     }
 
     // Run both functions initially
@@ -94,19 +94,19 @@ const CanvasWrapper = () => {
     setViewportHeight();
 
     // Update on resize and orientation change
-    window.addEventListener('resize', setViewportHeight);
-    window.addEventListener('resize', checkMobile);
-    window.addEventListener('orientationchange', setViewportHeight);
+    window.addEventListener("resize", setViewportHeight);
+    window.addEventListener("resize", checkMobile);
+    window.addEventListener("orientationchange", setViewportHeight);
 
     // iOS Safari may need a small delay
-    window.addEventListener('orientationchange', () => {
+    window.addEventListener("orientationchange", () => {
       setTimeout(setViewportHeight, 100);
     });
 
     return () => {
-      window.removeEventListener('resize', setViewportHeight);
-      window.removeEventListener('resize', checkMobile);
-      window.removeEventListener('orientationchange', setViewportHeight);
+      window.removeEventListener("resize", setViewportHeight);
+      window.removeEventListener("resize", checkMobile);
+      window.removeEventListener("orientationchange", setViewportHeight);
     };
   }, []);
 
@@ -117,35 +117,36 @@ const CanvasWrapper = () => {
     if (!isBrowser) return;
 
     // Check if this is a new browser session
-    const isNewSession = !sessionStorage.getItem('canvasSessionStarted');
+    const isNewSession = !sessionStorage.getItem("canvasSessionStarted");
 
     if (isNewSession) {
       // Clear the saved canvas state
-      canvasStorage.deleteCanvas('current')
+      canvasStorage
+        .deleteCanvas("current")
         .then(() => {
-          console.log('Canvas cleared for new session');
-          sessionStorage.setItem('canvasSessionStarted', 'true');
+          sessionStorage.setItem("canvasSessionStarted", "true");
         })
-        .catch(err => {
-          console.warn('Failed to clear canvas data:', err);
+        .catch((err) => {
+          console.warn("Failed to clear canvas data:", err);
         });
     }
 
     // Also clear if the user has been away for more than 30 minutes
-    const lastActivity = localStorage.getItem('lastCanvasActivity');
+    const lastActivity = localStorage.getItem("lastCanvasActivity");
     if (lastActivity) {
       const timeSinceLastActivity = Date.now() - parseInt(lastActivity, 10);
       const thirtyMinutes = 30 * 60 * 1000;
 
       if (timeSinceLastActivity > thirtyMinutes) {
-        canvasStorage.deleteCanvas('current')
-          .then(() => console.log('Canvas cleared due to inactivity'))
+        canvasStorage
+          .deleteCanvas("current")
+          .then(() => console.warn("Canvas cleared due to inactivity"))
           .catch(console.warn);
       }
     }
 
     // Update last activity timestamp
-    localStorage.setItem('lastCanvasActivity', Date.now().toString());
+    localStorage.setItem("lastCanvasActivity", Date.now().toString());
   }, []);
 
   // Optional: Add activity tracking
@@ -153,16 +154,16 @@ const CanvasWrapper = () => {
     if (!isBrowser) return;
 
     const updateActivity = () => {
-      localStorage.setItem('lastCanvasActivity', Date.now().toString());
+      localStorage.setItem("lastCanvasActivity", Date.now().toString());
     };
 
     // Update activity on user interaction
-    window.addEventListener('mousemove', updateActivity);
-    window.addEventListener('touchstart', updateActivity);
+    window.addEventListener("mousemove", updateActivity);
+    window.addEventListener("touchstart", updateActivity);
 
     return () => {
-      window.removeEventListener('mousemove', updateActivity);
-      window.removeEventListener('touchstart', updateActivity);
+      window.removeEventListener("mousemove", updateActivity);
+      window.removeEventListener("touchstart", updateActivity);
     };
   }, []);
 
@@ -180,7 +181,7 @@ const CanvasWrapper = () => {
             loadSnapshot(newStore, savedState);
           }
         } catch (err) {
-          console.warn('Failed to restore canvas state:', err);
+          console.warn("Failed to restore canvas state:", err);
         }
       };
 
@@ -191,55 +192,66 @@ const CanvasWrapper = () => {
   }, []);
 
   // Handle editor mount and setup persistence
-  const handleMount = useCallback((editor: Editor) => {
-    setEditor(editor);
+  const handleMount = useCallback(
+    (editor: Editor) => {
+      setEditor(editor);
 
-    // Set default tool to "draw" when canvas loads
-    editor.setCurrentTool('draw');
+      // Set default tool to "draw" when canvas loads
+      editor.setCurrentTool("draw");
 
-    // Listen to selection changes
-    const selectionUnsubscribe = editor.store.listen(
-      () => {
-        const ids = editor.getSelectedShapeIds();
-        setSelectedShapeIds(ids as TLShapeId[]);
-      },
-      { scope: "document" }
-    );
+      // Listen to selection changes
+      const selectionUnsubscribe = editor.store.listen(
+        () => {
+          const ids = editor.getSelectedShapeIds();
+          setSelectedShapeIds(ids as TLShapeId[]);
+        },
+        { scope: "document" }
+      );
 
-    // Create debounced save function to avoid excessive writes
-    const saveCanvasState = debounce(() => {
-      if (!isBrowser || !editor) return;
+      // Create debounced save function to avoid excessive writes
+      const saveCanvasState = debounce(() => {
+        if (!isBrowser || !editor) return;
 
-      try {
-        const snapshot = getSnapshot(editor.store);
+        try {
+          const snapshot = getSnapshot(editor.store);
 
-        // Save asynchronously
-        canvasStorage.saveCanvas(snapshot).then(success => {
-          if (!success) {
-            toast.error("Failed to save your work. Consider exporting your drawing.", {
+          // Save asynchronously
+          canvasStorage.saveCanvas(snapshot).then((success) => {
+            if (!success) {
+              toast.error(
+                "Failed to save your work. Consider exporting your drawing.",
+                {
+                  position: "bottom-left",
+                  autoClose: 5000,
+                }
+              );
+            }
+          });
+        } catch (err) {
+          console.error("Error getting snapshot:", err);
+          toast.error(
+            "Failed to save your work. Consider exporting your drawing.",
+            {
               position: "bottom-left",
               autoClose: 5000,
-            });
-          }
-        });
-      } catch (err) {
-        console.error('Error getting snapshot:', err);
-        toast.error("Failed to save your work. Consider exporting your drawing.", {
-          position: "bottom-left",
-          autoClose: 5000,
-        });
-      }
-    }, 1000);
+            }
+          );
+        }
+      }, 1000);
 
-    // Listen for document changes to persist state
-    const persistUnsubscribe = editor.store.listen(saveCanvasState, { scope: 'document' });
+      // Listen for document changes to persist state
+      const persistUnsubscribe = editor.store.listen(saveCanvasState, {
+        scope: "document",
+      });
 
-    // Return cleanup function
-    return () => {
-      selectionUnsubscribe();
-      persistUnsubscribe();
-    };
-  }, [setEditor, setSelectedShapeIds]);
+      // Return cleanup function
+      return () => {
+        selectionUnsubscribe();
+        persistUnsubscribe();
+      };
+    },
+    [setEditor, setSelectedShapeIds]
+  );
 
   // Handle AI enhancement
   const handleEnhance = useCallback(async () => {
@@ -251,7 +263,7 @@ const CanvasWrapper = () => {
       toast.info("Please draw something first!", {
         position: "bottom-left",
         autoClose: 3000,
-        icon: false
+        icon: false,
       });
       return;
     }
@@ -261,11 +273,16 @@ const CanvasWrapper = () => {
       setProcessingProgress(0);
 
       // Show a single toast notification here
-      toast.info(mode === "kids" ? "Adding some magic to your drawing..." : "Enhancing your artwork...", {
-        position: "bottom-left",
-        autoClose: 4000,
-        icon: <span>{mode === "kids" ? "✨" : "🎨"}</span>
-      });
+      toast.info(
+        mode === "kids"
+          ? "Adding some magic to your drawing..."
+          : "Enhancing your artwork...",
+        {
+          position: "bottom-left",
+          autoClose: 4000,
+          icon: <span>{mode === "kids" ? "✨" : "🎨"}</span>,
+        }
+      );
 
       await enhanceSketch(editor);
 
@@ -282,11 +299,11 @@ const CanvasWrapper = () => {
         setPrompt("");
 
         // Switch to select tool after enhancement is complete
-        editor.setCurrentTool('select');
+        editor.setCurrentTool("select");
 
         // Update the canvas store to reflect the tool change
         const { setActiveTool } = useCanvasStore.getState();
-        setActiveTool('select');
+        setActiveTool("select");
 
         // Select all shapes that were just enhanced
         const allShapes = editor.getCurrentPageShapes();
@@ -294,12 +311,16 @@ const CanvasWrapper = () => {
           editor.selectAll();
         }
       }, 500);
-
     } catch (err) {
-      toast.error(`Enhancement failed: ${err instanceof Error ? err.message : "Unknown error"}`, {
-        position: "bottom-left",
-        autoClose: 5000,
-      });
+      toast.error(
+        `Enhancement failed: ${
+          err instanceof Error ? err.message : "Unknown error"
+        }`,
+        {
+          position: "bottom-left",
+          autoClose: 5000,
+        }
+      );
       setIsProcessing(false);
     }
   }, [mode]);
@@ -336,11 +357,26 @@ const CanvasWrapper = () => {
             <div className={styles.processingContent}>
               {/* Decorative particles */}
               <div className={styles.particles}>
-                <div className={styles.particle} style={{ top: '10%', left: '10%' }}></div>
-                <div className={styles.particle} style={{ top: '30%', left: '80%' }}></div>
-                <div className={styles.particle} style={{ top: '70%', left: '20%' }}></div>
-                <div className={styles.particle} style={{ top: '80%', left: '70%' }}></div>
-                <div className={styles.particle} style={{ top: '40%', left: '30%' }}></div>
+                <div
+                  className={styles.particle}
+                  style={{ top: "10%", left: "10%" }}
+                ></div>
+                <div
+                  className={styles.particle}
+                  style={{ top: "30%", left: "80%" }}
+                ></div>
+                <div
+                  className={styles.particle}
+                  style={{ top: "70%", left: "20%" }}
+                ></div>
+                <div
+                  className={styles.particle}
+                  style={{ top: "80%", left: "70%" }}
+                ></div>
+                <div
+                  className={styles.particle}
+                  style={{ top: "40%", left: "30%" }}
+                ></div>
               </div>
 
               <div className={styles.spinnerContainer}>
@@ -349,7 +385,9 @@ const CanvasWrapper = () => {
               </div>
 
               <h3 className={styles.processingTitle}>
-                {useModeStore.getState().mode === "kids" ? "Making Magic!" : "Enhancing Your Artwork"}
+                {useModeStore.getState().mode === "kids"
+                  ? "Making Magic!"
+                  : "Enhancing Your Artwork"}
               </h3>
 
               <p className={styles.processingMessage}>
@@ -363,12 +401,17 @@ const CanvasWrapper = () => {
                   className={styles.progressBarInner}
                   style={{
                     width: `${processingProgress}%`,
-                    animation: processingProgress > 0 ? 'shimmer 2s infinite' : undefined
+                    animation:
+                      processingProgress > 0
+                        ? "shimmer 2s infinite"
+                        : undefined,
                   }}
                 ></div>
               </div>
 
-              <div className={styles.progressText}>{Math.round(processingProgress)}% Complete</div>
+              <div className={styles.progressText}>
+                {Math.round(processingProgress)}% Complete
+              </div>
             </div>
           </div>
         )}

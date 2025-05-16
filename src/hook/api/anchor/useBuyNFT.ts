@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
@@ -145,19 +146,6 @@ export function useBuyNFT(config: UseBuyNFTConfig = {}) {
         if (!nftMint || !pool) {
           throw new Error("Invalid address format");
         }
-
-        // Get pool data to get current price
-        const poolData = (await program.account.bondingCurvePool.fetch(
-          pool
-        )) as unknown as PoolData;
-        const currentPrice = poolData.currentPrice;
-
-        console.log(
-          `Buying NFT ${nftMintAddress} from pool for ${formatPrice(
-            currentPrice
-          )} SOL`
-        );
-
         // Get buyer's associated token account
         const buyerNftTokenAccount = await getAssociatedTokenAddress(
           nftMint,
@@ -225,8 +213,6 @@ export function useBuyNFT(config: UseBuyNFTConfig = {}) {
             skipPreflight: false,
             commitment: "confirmed",
           });
-
-        console.log("NFT bought successfully with signature:", tx);
         setTxSignature(tx);
         setSuccess(true);
 
@@ -278,11 +264,6 @@ export function useBuyNFT(config: UseBuyNFTConfig = {}) {
       resetState();
 
       try {
-        // TODO: Implement peer-to-peer or marketplace purchase logic
-        console.log(
-          `Buying NFT ${nftMintAddress} from user ${sellerAddress} for ${price} SOL`
-        );
-
         // This would typically involve:
         // 1. Escrow or marketplace contract interaction
         // 2. Transfer of SOL from buyer to seller
