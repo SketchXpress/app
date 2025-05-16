@@ -79,6 +79,16 @@ body {
   @include hide-scrollbar;
 }
 
+.priceText {
+  font-size: 12px;
+}
+
+.text-right {
+  display: flex;
+  flex-direction: column;
+  align-items: end;
+}
+
 // We hide here but give credit on the github (https://github.com/SketchXpress/app)
 .tl-watermark_SEE-LICENSE {
   display: none !important;

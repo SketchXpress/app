@@ -1,7 +1,9 @@
-import { DynamicCollection } from "@/types/collections";
-import styles from "./TrendingCollections.module.scss";
 import Image from "next/image";
 import { CheckCircle } from "lucide-react";
+
+import { DynamicCollection } from "@/types/collections";
+
+import styles from "./TrendingCollections.module.scss";
 
 // TabSelector Component
 export const TabSelector = ({
@@ -40,8 +42,8 @@ export const Header = ({
   onTabChange: (tab: string) => void;
 }) => (
   <div className={styles.header}>
+    <h2>Trending NFT Collections</h2>
     <TabSelector activeTab={activeTab} onTabChange={onTabChange} />
-    <button className={styles.viewAllButton}>View all</button>
   </div>
 );
 

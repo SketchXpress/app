@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import styles from "./OnboardingGuide.module.scss";
 import Image from "next/image";
+import { useState, useEffect, useCallback } from "react";
+
 import { useCanvasStore } from "@/stores/canvasStore";
+
+import styles from "./OnboardingGuide.module.scss";
 
 const OnboardingGuide = () => {
   const [isVisible, setIsVisible] = useState(true);
@@ -126,7 +128,6 @@ const OnboardingGuide = () => {
       </div>
 
       {/* Left Sidebar */}
-      {/* Single Left Sidebar Hint */}
       <div className={styles.leftSidebarSingleHint}>
         <div className={styles.leftArrow}>
           <svg viewBox="0 0 78 38" fill="none">

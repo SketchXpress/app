@@ -1,5 +1,5 @@
-// src/hook/collections/useTrendingCollections.tsx - Fixed with image loading
 import React, { useMemo, useCallback, useEffect, useState } from "react";
+
 import { useCollectionsStore } from "@/stores/collectionsStore";
 import type {
   DynamicCollection,
@@ -7,7 +7,6 @@ import type {
   TrendingCollectionsResult,
 } from "@/types/collections";
 
-// Helper function to get stable placeholder image
 const getStableImage = (poolAddress: string): string => {
   const PLACEHOLDER_IMAGES = [
     "/assets/images/defaultNFT.png",
@@ -19,7 +18,6 @@ const getStableImage = (poolAddress: string): string => {
     "/assets/images/nft6.webp",
   ];
 
-  // Create deterministic image selection based on pool address
   const hash = poolAddress
     .split("")
     .reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -27,7 +25,6 @@ const getStableImage = (poolAddress: string): string => {
   return PLACEHOLDER_IMAGES[imageIndex];
 };
 
-// Function to fetch metadata and extract image
 const fetchMetadataImage = async (uri: string): Promise<string | null> => {
   try {
     // Validate URI format
@@ -45,7 +42,7 @@ const fetchMetadataImage = async (uri: string): Promise<string | null> => {
 
     // Add timeout to prevent hanging
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
 
     const response = await fetch(validUrl, {
       signal: controller.signal,
@@ -93,7 +90,6 @@ export function useTrendingCollections(
     sortBy = "trending",
   } = config;
 
-  // State for tracking loaded images
   const [loadedImages, setLoadedImages] = useState<Map<string, string>>(
     new Map()
   );
@@ -110,7 +106,6 @@ export function useTrendingCollections(
     error: storeError,
   } = useCollectionsStore();
 
-  // Debug the trending calculation in more detail
   const trendingData = useMemo(() => {
     const trending = getTrendingCollections(maxCollections);
     return trending;
@@ -134,7 +129,7 @@ export function useTrendingCollections(
         if (
           collection?.uri &&
           !loadedImages.has(collection.uri) &&
-          collection.uri !== "google.com" && // Filter out invalid URIs
+          collection.uri !== "google.com" &&
           collection.uri.startsWith("http")
         ) {
           imagesToFetch.set(collection.uri, collection.collectionMint);
@@ -145,7 +140,6 @@ export function useTrendingCollections(
         return;
       }
 
-      // Fetch images in parallel with limited concurrency
       const imagePromises = Array.from(imagesToFetch.entries()).map(
         async ([uri, collectionMint]) => {
           const image = await fetchMetadataImage(uri);
@@ -168,7 +162,6 @@ export function useTrendingCollections(
       }
     };
 
-    // Debounce fetching to avoid too many rapid requests
     const timeoutId = setTimeout(fetchImages, 500);
     return () => clearTimeout(timeoutId);
   }, [trendingData, loadedImages]);
@@ -177,10 +170,12 @@ export function useTrendingCollections(
   const processedCollections = useMemo(() => {
     return trendingData
       .sort((a, b) => {
-        // Apply sorting based on config
         switch (sortBy) {
           case "top":
-            return b.metrics.volume24h - a.metrics.volume24h;
+            // Sort by base price (highest first)
+            const basePriceA = parseFloat(a.pool.basePrice || "0") / 1e9; // Convert lamports to SOL
+            const basePriceB = parseFloat(b.pool.basePrice || "0") / 1e9;
+            return basePriceB - basePriceA;
           default: // "trending"
             return b.trendingScore - a.trendingScore;
         }
@@ -190,13 +185,11 @@ export function useTrendingCollections(
         const { pool, collection, metrics } = item;
 
         // Get image from loaded metadata or use placeholder
-        let image = getStableImage(pool.poolAddress); // Default fallback
+        let image = getStableImage(pool.poolAddress);
 
         if (collection?.uri && loadedImages.has(collection.uri)) {
-          // Use loaded image from metadata
           image = loadedImages.get(collection.uri)!;
         } else if (collection?.image) {
-          // Use image already in collection data
           image = collection.image;
         }
 
@@ -221,20 +214,18 @@ export function useTrendingCollections(
   // Create render function for pool prices with trending indicators
   const renderPoolPrice = useCallback(
     (collection: DynamicCollection): React.ReactNode => {
-      // Get the metrics for this collection using the pool address
       const trendingItem = trendingData.find(
         (item) =>
           item.pool.poolAddress === (collection.poolAddress || collection.id)
       );
 
       if (!trendingItem) {
-        // Fallback: show total volume if no pricing data
         return React.createElement(
           "div",
-          { className: "text-right" },
+          { className: "price" },
           React.createElement(
             "div",
-            { className: "text-gray-400" },
+            { className: "priceText" },
             `${collection.totalVolume.toFixed(4)} SOL`
           )
         );
@@ -264,20 +255,24 @@ export function useTrendingCollections(
           )
         );
       } else if (pool.basePrice && parseFloat(pool.basePrice) > 0) {
-        // Fallback: Show base price from pool creation
+        // Show base price from pool creation (highlighted when sorting by top)
         const basePriceSOL = parseFloat(pool.basePrice) / 1e9; // Convert lamports to SOL
+        const isTopSort = sortBy === "top";
+        const priceClass = isTopSort
+          ? "text-blue-600 font-semibold"
+          : "text-blue-500";
         return React.createElement(
           "div",
           { className: "text-right" },
           React.createElement(
             "div",
-            { className: "text-blue-500" },
+            { className: priceClass },
             `${basePriceSOL.toFixed(4)} SOL`
           ),
           React.createElement(
             "div",
             { className: "text-xs text-gray-500" },
-            "Base Price"
+            isTopSort ? "Base Price" : "Base Price"
           )
         );
       } else if (metrics.transactions24h > 0) {
@@ -304,13 +299,13 @@ export function useTrendingCollections(
           React.createElement("div", { className: "text-gray-400" }, "No Data"),
           React.createElement(
             "div",
-            { className: "text-xs text-gray-500" },
+            { className: "text-xs text-gray-400" },
             "0 txns"
           )
         );
       }
     },
-    [enablePricing, trendingData]
+    [enablePricing, trendingData, sortBy]
   );
 
   // Split collections for desktop layout

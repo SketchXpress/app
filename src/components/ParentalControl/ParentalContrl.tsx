@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
 import Image from "next/image";
+import { useState } from "react";
 import { Lock, Info } from "lucide-react";
+
 import styles from "./ParentalControl.module.scss";
 
 interface ParentalControlProps {
@@ -16,21 +17,23 @@ interface ParentalControlProps {
   } | null;
 }
 
-const ParentalControl = ({ isOpen, onClose, onApprove, image }: ParentalControlProps) => {
+const ParentalControl = ({
+  isOpen,
+  onClose,
+  onApprove,
+  image,
+}: ParentalControlProps) => {
   const [parentalPin, setParentalPin] = useState("");
   const [pinError, setPinError] = useState(false);
 
   if (!isOpen) return null;
 
   const verifyParentalPin = () => {
-    // For demo purposes we'll use a simple PIN "1234"
-    // In production, you'd use a more secure approach
+    // For demo purposes we'll use a PIN "1234"
     if (parentalPin === "1234") {
-      // PIN is correct, proceed with approval
       onApprove();
       setParentalPin("");
     } else {
-      // PIN is incorrect
       setPinError(true);
     }
   };
@@ -45,7 +48,8 @@ const ParentalControl = ({ isOpen, onClose, onApprove, image }: ParentalControlP
 
         <div className={styles.parentalContent}>
           <p className={styles.parentalText}>
-            Your child wants to mint their artwork as an NFT. This action requires your approval.
+            Your child wants to mint their artwork as an NFT. This action
+            requires your approval.
           </p>
 
           {image && (
@@ -66,7 +70,9 @@ const ParentalControl = ({ isOpen, onClose, onApprove, image }: ParentalControlP
             </label>
             <input
               type="password"
-              className={`${styles.pinInput} ${pinError ? styles.pinError : ''}`}
+              className={`${styles.pinInput} ${
+                pinError ? styles.pinError : ""
+              }`}
               placeholder="Enter PIN"
               value={parentalPin}
               onChange={(e) => {
@@ -76,25 +82,19 @@ const ParentalControl = ({ isOpen, onClose, onApprove, image }: ParentalControlP
               maxLength={4}
             />
             {pinError && (
-              <p className={styles.errorText}>Incorrect PIN. Please try again.</p>
+              <p className={styles.errorText}>
+                Incorrect PIN. Please try again.
+              </p>
             )}
-            <p className={styles.pinHint}>
-              For demo purposes, use PIN: 1234
-            </p>
+            <p className={styles.pinHint}>For demo purposes, use PIN: 1234</p>
           </div>
         </div>
 
         <div className={styles.parentalActions}>
-          <button
-            className={styles.cancelButton}
-            onClick={onClose}
-          >
+          <button className={styles.cancelButton} onClick={onClose}>
             Cancel
           </button>
-          <button
-            className={styles.approveButton}
-            onClick={verifyParentalPin}
-          >
+          <button className={styles.approveButton} onClick={verifyParentalPin}>
             Approve Minting
           </button>
         </div>
@@ -102,8 +102,8 @@ const ParentalControl = ({ isOpen, onClose, onApprove, image }: ParentalControlP
         <div className={styles.infoBox}>
           <Info size={14} className={styles.infoIcon} />
           <p className={styles.infoText}>
-            NFTs (Non-Fungible Tokens) are digital certificates of ownership for digital items.
-            Minting creates this certificate on a blockchain.
+            NFTs (Non-Fungible Tokens) are digital certificates of ownership for
+            digital items. Minting creates this certificate on a blockchain.
           </p>
         </div>
       </div>

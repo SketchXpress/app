@@ -5,19 +5,13 @@ $accent-magenta: #d946ef;
   width: 100%;
   padding: 2rem 1rem;
   background-color: #ffffff;
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
-    Helvetica, Arial, sans-serif;
 
     h2 {
+      background-clip: text;
       color: var(--foreground, #1f2937);
       background: linear-gradient(135deg, var(--accent-cyan, #06b6d4), var(--accent-magenta, #d946ef));
       -webkit-text-fill-color: #0000;
       -webkit-background-clip: text;
-      background-clip: text;
-
-      max-width: 1440px;
-      margin: 0 auto;
-      margin-bottom: 0.5rem;
     }
 }
 
@@ -47,7 +41,7 @@ $accent-magenta: #d946ef;
   font-weight: 600;
   background: transparent;
   border: none;
-  border-radius: 6px; // 6px border-radius as requested
+  border-radius: 6px; 
   cursor: pointer;
 
   &.activeTab {
@@ -57,24 +51,6 @@ $accent-magenta: #d946ef;
   }
 }
 
-.viewAllButton {
-  padding: 8px 16px;
-  color: #111827;
-  font-size: 14px;
-  font-weight: 600;
-  background-color: white;
-  border: 1px solid #e5e7eb;
-  border-radius: 6px; // 6px border-radius as requested
-  cursor: pointer;
-  transition: all 0.2s ease;
-
-  &:hover {
-    border-color: #d1d5db;
-    background-color: #f9fafb;
-  }
-}
-
-/* Desktop Layout */
 .tableContainer {
   display: block;
   width: 100%;
@@ -91,10 +67,9 @@ $accent-magenta: #d946ef;
   grid-template-areas:
     "left-header right-header"
     "left-content right-content";
-  column-gap: 100px; // Gap between left and right columns
+  column-gap: 100px; 
   background-color: #ffffff;
   border-radius: 12px;
-  // border: 1px solid #f0f0f0;
   overflow: hidden;
 }
 
@@ -276,8 +251,6 @@ $accent-magenta: #d946ef;
   }
 }
 
-// Additional styles for dynamic content loading states
-
 .loadingContainer {
   display: flex;
   flex-direction: column;
@@ -336,6 +309,10 @@ $accent-magenta: #d946ef;
   padding: 3rem 0;
   color: var(--foreground-muted, #6b7280);
   font-size: 1rem;
+}
+
+.priceText {
+  font-size: 10px;
 }
 
 /* Skeleton Styles */

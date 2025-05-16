@@ -1,9 +1,10 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import styles from "./TrendingCollections.module.scss";
 import React, { useState, useCallback, useEffect } from "react";
+
 import { useTrendingCollections } from "@/hook/collections/useTrendingCollections";
+
 import {
   DesktopCollectionTable,
   EmptyState,
@@ -11,6 +12,8 @@ import {
   MobileCollectionTable,
   SkeletonLoader,
 } from "./Utility";
+
+import styles from "./TrendingCollections.module.scss";
 
 const TrendingCollections: React.FC = () => {
   const router = useRouter();
@@ -30,15 +33,15 @@ const TrendingCollections: React.FC = () => {
     maxCollections: 8,
     enablePricing: true,
     sortBy: activeTab,
-    refreshInterval: 1 * 1000, // Using 2 minutes to reduce rate limit
+    refreshInterval: 1 * 1000,
   });
 
   // Monitoring error for rate limit
   useEffect(() => {
     if (error && error.includes("429")) {
       setRateLimitError(true);
-      // Auto-retry after delay if rate limited
       const retryDelay = Math.min(5000 * Math.pow(2, retryCount), 30000);
+
       setTimeout(() => {
         setRetryCount((prev) => prev + 1);
         refetch();
@@ -67,13 +70,12 @@ const TrendingCollections: React.FC = () => {
     [router]
   );
 
-  // Handle image errors with better fallback
+  // Handle image errors
   const handleImageError = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
       const target = e.target as HTMLImageElement;
       const currentSrc = target.src;
 
-      // Prevent infinite loop
       if (currentSrc.includes("defaultNFT.png")) return;
 
       target.src = "/assets/images/defaultNFT.png";
@@ -89,7 +91,6 @@ const TrendingCollections: React.FC = () => {
     refetch();
   }, [refetch]);
 
-  // Rate limit specific error
   if (rateLimitError) {
     return (
       <section
@@ -112,7 +113,6 @@ const TrendingCollections: React.FC = () => {
     );
   }
 
-  // Other errors with retry option
   if (error && !isLoading && collections.length === 0) {
     return (
       <section
@@ -137,13 +137,7 @@ const TrendingCollections: React.FC = () => {
   }
 
   return (
-    <section
-      className={styles.trendingSection}
-      aria-labelledby="trending-collections-heading"
-    >
-      <h2 id="trending-collections-heading" className="sr-only">
-        Trending NFT Collections
-      </h2>
+    <section className={styles.trendingSection}>
       <div className={styles.container}>
         <Header activeTab={activeTab} onTabChange={handleTabChange} />
 

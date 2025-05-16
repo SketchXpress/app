@@ -334,7 +334,7 @@ const MyNFT: React.FC = () => {
                   </div>
                 ))}
               </div>
-              <div className={styles.connectButtonWrapper}>
+              <div className={`${styles.connectButtonWrapper} header`}>
                 <ConnectWalletButton />
               </div>
             </div>
