@@ -200,7 +200,7 @@ export async function fetchAllPoolData(
           tx.instructionName === "mintNft" &&
           tx.poolAddress === poolAddress && // Ensure it's for this pool
           tx.accounts &&
-          tx.accounts.length > 1 // Basic check for accounts needed for mintAddress/minterAddress
+          tx.accounts.length > 1
       )
       .map((tx) => {
         const { name, symbol, uri } = (tx.args as any) || {};
