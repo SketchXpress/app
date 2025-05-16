@@ -147,53 +147,85 @@ const RightPanel: React.FC = () => {
       return;
     }
 
-    const success = await mintNFT(
-      walletContext,
-      selectedImageId,
-      generatedImages,
-      mode,
-      selectedPool,
-      mintNft,
-      nftName.trim()
-    );
+    // Check if a pool is selected
+    if (!selectedPool) {
+      toast.warning("Please select a collection pool to mint your NFT", {
+        position: "bottom-left",
+        autoClose: 3000,
+      });
+      return;
+    }
 
-    if (success) {
-      if (nftName.trim()) {
-        setNftName("");
+    try {
+      const result = await mintNFT(
+        walletContext,
+        selectedImageId,
+        generatedImages,
+        mode,
+        selectedPool,
+        mintNft,
+        nftName.trim()
+      );
+
+      if (result && result.success === true && result.cancelled !== true) {
+        if (nftName.trim()) {
+          setNftName("");
+        }
+
+        toast.success(
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <span>🎉 NFT minted successfully!</span>
+            <button
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                background: "white",
+                color: "#06b6d4",
+                border: "1px solid #06b6d4",
+                borderRadius: "6px",
+                padding: "6px 12px",
+                cursor: "pointer",
+                fontSize: "14px",
+                fontWeight: "500",
+              }}
+              onClick={() => {
+                router.push("/mintstreet");
+                toast.dismiss();
+              }}
+            >
+              View in Mintstreet <ExternalLink size={14} />
+            </button>
+          </div>,
+          {
+            position: "bottom-left",
+            autoClose: 8000,
+            closeOnClick: false,
+            style: { maxWidth: "320px" },
+          }
+        );
+        return;
       }
 
-      toast.success(
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          <span>🎉 NFT minted successfully!</span>
-          <button
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: "4px",
-              background: "white",
-              color: "#06b6d4",
-              border: "1px solid #06b6d4",
-              borderRadius: "6px",
-              padding: "6px 12px",
-              cursor: "pointer",
-              fontSize: "14px",
-              fontWeight: "500",
-            }}
-            onClick={() => {
-              router.push("/mintstreet");
-              toast.dismiss();
-            }}
-          >
-            View in Mintstreet <ExternalLink size={14} />
-          </button>
-        </div>,
-        {
+      // Handle cancellation
+      if (result && result.cancelled === true) {
+        toast.info("Transaction cancelled by user", {
           position: "bottom-left",
-          autoClose: 8000,
-          closeOnClick: false,
-          style: { maxWidth: "320px" },
-        }
-      );
+          autoClose: 3000,
+        });
+        return;
+      }
+      const errorMessage =
+        result?.error || "Failed to mint NFT. Please try again.";
+      toast.error(errorMessage, {
+        position: "bottom-left",
+        autoClose: 5000,
+      });
+    } catch {
+      toast.error("Failed to mint NFT. Please try again.", {
+        position: "bottom-left",
+        autoClose: 5000,
+      });
     }
   };
 

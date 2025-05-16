@@ -274,7 +274,7 @@ export const useMintNFT = () => {
       const errorMessage = safeStringifyError(error);
       console.error("Mint NFT error:", errorMessage);
       setError(errorMessage);
-      return null;
+      throw error;
     } finally {
       setLoading(false);
     }

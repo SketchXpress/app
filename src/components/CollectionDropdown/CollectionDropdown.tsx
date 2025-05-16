@@ -8,8 +8,6 @@ import {
   AlertCircle,
   Wifi,
   WifiOff,
-  Bell,
-  Circle,
 } from "lucide-react";
 
 import { usePoolStore } from "@/stores/poolStore";
@@ -34,8 +32,6 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = () => {
   const {
     pools,
     collections,
-    newPoolsCount,
-    newCollectionsCount,
     lastUpdate,
     connectionState,
     isLoading,
@@ -177,13 +173,6 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = () => {
         </span>
 
         <div className={styles.indicators}>
-          {(newPoolsCount > 0 || newCollectionsCount > 0) && (
-            <div className={styles.newItemsBadge}>
-              <Bell size={12} />
-              <span>{newPoolsCount + newCollectionsCount}</span>
-            </div>
-          )}
-
           <StatusIcon size={14} className={color} />
         </div>
 
@@ -257,12 +246,6 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = () => {
                         <div className={styles.itemHeader}>
                           <span className={styles.collectionName}>
                             {pool.collectionName}
-                            {pool.isNew && (
-                              <Circle
-                                size={8}
-                                className={styles.newIndicator}
-                              />
-                            )}
                           </span>
                           {pool.symbol && (
                             <span className={styles.symbol}>
