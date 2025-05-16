@@ -7,6 +7,7 @@ export interface NFT {
   collectionId: string;
   collectionName: string;
   uri?: string;
+  timestamp?: number | undefined;
 }
 
 export interface NFTCollection {
