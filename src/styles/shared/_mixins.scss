@@ -1,6 +1,5 @@
 @use 'variables' as *;
 
-// Flexbox mixins
 @mixin flex-center {
   display: flex;
   align-items: center;
@@ -13,18 +12,6 @@
   align-items: center;
 }
 
-// Responsive breakpoints
-@mixin breakpoint($size) {
-  @if map-has-key($breakpoints, $size) {
-    @media (min-width: map-get($breakpoints, $size)) {
-      @content;
-    }
-  } @else {
-    @warn "Invalid breakpoint: #{$size}";
-  }
-}
-
-// Card styles
 @mixin card($radius: md, $shadow: md) {
   background-color: white;
   border-radius: radius($radius);
@@ -32,7 +19,6 @@
   padding: 2.5rem;
 }
 
-// Button base
 @mixin button-base {
   display: flex;
   align-items: center;
@@ -44,7 +30,6 @@
   transition: all transition(base);
 }
 
-// Gradient text
 @mixin gradient-text {
   background: linear-gradient(90deg, color(accent-cyan), color(accent-magenta));
   -webkit-background-clip: text;
@@ -52,14 +37,12 @@
   -webkit-text-fill-color: transparent;
 }
 
-// Glass effect
 @mixin glass-effect {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   background-color: rgba(255, 255, 255, 0.7);
 }
 
-// Hide scrollbar
 @mixin hide-scrollbar {
   -ms-overflow-style: none;
   scrollbar-width: none;
@@ -69,7 +52,6 @@
   }
 }
 
-// Icon container
 @mixin icon-container($size: 80px, $bg-color: null) {
   @include flex-center;
   border-radius: 50%;
@@ -81,11 +63,20 @@
   }
 }
 
-// Responsive padding
 @mixin responsive-padding {
   padding: 2rem;
   
   @include breakpoint(sm) {
     padding: 2.5rem;
+  }
+}
+
+@mixin breakpoint($size) {
+  @if map-has-key($breakpoints, $size) {
+    @media (min-width: map-get($breakpoints, $size)) {
+      @content;
+    }
+  } @else {
+    @warn "Invalid breakpoint: #{$size}";
   }
 }

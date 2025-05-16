@@ -5,7 +5,7 @@
   @include flex-center;
   min-height: 100vh;
   padding: 2rem;
-  background-color: #f9fafb;
+  background-color: color(background);
 }
 
 .card {
@@ -17,12 +17,12 @@
 }
 
 .iconContainer {
-  @include icon-container(80px, #fee2e2);
+  @include icon-container(80px, mix(color(error), white, 15%)); // Creates a light error background
   margin-bottom: 1.5rem;
 }
 
 .icon {
-  color: #ef4444e7;
+  color: color(error);
   width: 40px;
   height: 40px;
 }
@@ -35,18 +35,18 @@
 }
 
 .message {
-  color: #4b5563;
+  color: color(text-secondary);
   font-size: 1.125rem;
   margin: 0 0 1rem 0;
 }
 
 .digest {
   font-size: 0.875rem;
-  color: #6b7280;
+  color: color(text-tertiary);
   margin: 0 0 2rem 0;
 
   code {
-    background-color: #f3f4f6;
+    background-color: color(card-bg);
     padding: 0.25rem 0.5rem;
     border-radius: radius(sm);
     font-family: monospace;
@@ -55,13 +55,13 @@
 
 .button {
   @include button-base;
-  background-color: #ef4444e7;
+  background-color: color(error);
   color: white;
   padding: 0.75rem 1.5rem;
   border-radius: radius(sm);
 
   &:hover {
-    background-color: #dc2626;
+    background-color: darken(color(error), 10%);
   }
 }
 

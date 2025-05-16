@@ -3,7 +3,6 @@
 @use 'shared/reset';
 @use 'shared/animations';
 
-// CSS Custom Properties
 :root {
   // Core colors
   --background: #{color(background)};
@@ -80,7 +79,7 @@ body {
   @include hide-scrollbar;
 }
 
-// Hide tldraw watermark
+// We hide here but give credit on the github (https://github.com/SketchXpress/app)
 .tl-watermark_SEE-LICENSE {
   display: none !important;
 }
