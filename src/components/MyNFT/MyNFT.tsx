@@ -489,7 +489,7 @@ const MyNFT: React.FC = () => {
                           className={styles.gemIcon}
                           aria-hidden="true"
                         />
-                        {nft.price}
+                        {/* {nft.price} */}
                       </div>
                       {hasPool && (
                         <div className={styles.poolBadge}>

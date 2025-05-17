@@ -80,14 +80,14 @@ const DesktopSkeletonTable = () => (
       <div className={styles.columnHeader}>
         <div className={styles.rankHeader}>RANK</div>
         <div className={styles.collectionHeader}>COLLECTION</div>
-        <div className={styles.priceHeader}>POOL PRICE</div>
+        <div className={styles.priceHeader}>BASE PRICE</div>
       </div>
 
       {/* Right Column Header */}
       <div className={styles.columnHeader}>
         <div className={styles.rankHeader}>RANK</div>
         <div className={styles.collectionHeader}>COLLECTION</div>
-        <div className={styles.priceHeader}>POOL PRICE</div>
+        <div className={styles.priceHeader}>BASE PRICE</div>
       </div>
 
       {/* Left Column Skeleton */}
@@ -113,7 +113,7 @@ export const MobileSkeletonTable = () => (
     <div className={styles.mobileHeader}>
       <div className={styles.rankHeader}>RANK</div>
       <div className={styles.collectionHeader}>COLLECTION</div>
-      <div className={styles.priceHeader}>POOL PRICE</div>
+      <div className={styles.priceHeader}>BASE PRICE</div>
     </div>
 
     <div className={styles.mobileContent}>
@@ -190,7 +190,7 @@ export const MobileCollectionTable = ({
     <div className={styles.mobileHeader}>
       <div className={styles.rankHeader}>RANK</div>
       <div className={styles.collectionHeader}>COLLECTION</div>
-      <div className={styles.priceHeader}>POOL PRICE</div>
+      <div className={styles.priceHeader}>BASE PRICE</div>
     </div>
 
     <div className={styles.mobileContent}>
@@ -227,14 +227,14 @@ export const DesktopCollectionTable = ({
       <div className={styles.columnHeader}>
         <div className={styles.rankHeader}>RANK</div>
         <div className={styles.collectionHeader}>COLLECTION</div>
-        <div className={styles.priceHeader}>POOL PRICE</div>
+        <div className={styles.priceHeader}>BASE PRICE</div>
       </div>
 
       {/* Right Column Header */}
       <div className={styles.columnHeader}>
         <div className={styles.rankHeader}>RANK</div>
         <div className={styles.collectionHeader}>COLLECTION</div>
-        <div className={styles.priceHeader}>POOL PRICE</div>
+        <div className={styles.priceHeader}>BASE PRICE</div>
       </div>
 
       {/* Left Column Content */}
