@@ -29,7 +29,6 @@ export interface UseRealTimeCollectionsOptions {
   enableSSE?: boolean;
   fallbackPolling?: boolean;
   newItemExpiry?: number;
-  useMockData?: boolean;
 }
 
 export function useRealTimeCollections(
@@ -39,7 +38,6 @@ export function useRealTimeCollections(
     enableSSE = true,
     fallbackPolling = true,
     newItemExpiry = 5 * 60 * 1000,
-    useMockData = false,
   } = options;
 
   const {
@@ -97,19 +95,11 @@ export function useRealTimeCollections(
 
   // Update loading and error state in store
   useEffect(() => {
-    setLoading(historyLoading && !useMockData);
-    const errorToSet =
-      sseError || (!useMockData ? historyError?.message || null : null);
+    setLoading(historyLoading);
+    const errorToSet = sseError || historyError?.message || null;
     setError(errorToSet);
     setLocalError(errorToSet);
-  }, [
-    historyLoading,
-    useMockData,
-    sseError,
-    historyError,
-    setLoading,
-    setError,
-  ]);
+  }, [historyLoading, sseError, historyError, setLoading, setError]);
 
   // Process transaction history (initial load and fallback)
   const processTransactionHistory = useCallback(
@@ -211,7 +201,7 @@ export function useRealTimeCollections(
 
   // Handle SSE events
   useEffect(() => {
-    if (!enableSSE || useMockData) return;
+    if (!enableSSE) return;
 
     // Subscribe to collection events
     const unsubscribeCollections = subscribe(
@@ -245,7 +235,7 @@ export function useRealTimeCollections(
       }
     });
 
-    // NEW: Subscribe to pool-specific transaction events
+    // Subscribe to pool-specific transaction events
     const unsubscribePoolTransactions = subscribe(
       "poolTransaction",
       (event: SSEEvent) => {
@@ -288,7 +278,6 @@ export function useRealTimeCollections(
     updatePoolMetrics,
     addTransactionToPool,
     addNFTToPool,
-    useMockData,
   ]);
 
   useEffect(() => {
@@ -319,10 +308,6 @@ export function useRealTimeCollections(
   const refresh = useCallback(() => {
     clearNewIndicators();
 
-    if (useMockData) {
-      return;
-    }
-
     refetch()
       .then(() => {
         setError(null);
@@ -334,7 +319,7 @@ export function useRealTimeCollections(
         setError(errorMsg);
         setLocalError(errorMsg);
       });
-  }, [refetch, clearNewIndicators, useMockData, setError]);
+  }, [refetch, clearNewIndicators, setError]);
 
   return {
     collections,
@@ -345,7 +330,7 @@ export function useRealTimeCollections(
     lastUpdate,
     connectionState,
     isConnected,
-    isLoading: historyLoading && !useMockData,
+    isLoading: historyLoading,
     error: localError,
     refresh,
     stats: {

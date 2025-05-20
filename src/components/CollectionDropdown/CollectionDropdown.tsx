@@ -41,7 +41,6 @@ const CollectionDropdown: React.FC<CollectionDropdownProps> = () => {
     enableSSE: true,
     fallbackPolling: true,
     newItemExpiry: 5 * 60 * 1000,
-    useMockData: false,
   });
 
   // Auto-select first collection when pools are loaded
