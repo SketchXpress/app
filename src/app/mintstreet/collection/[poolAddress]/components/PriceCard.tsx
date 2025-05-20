@@ -1,14 +1,44 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { PoolInfo } from "../types";
 import { formatSOL, formatProtocolFee } from "../utils/formatters";
 import styles from "../page.module.scss";
+import { usePoolNfts } from "@/hook/pools/usePoolNFTs";
 
 interface PriceCardProps {
   poolInfo: PoolInfo;
   lastMintPrice: string;
+  poolAddress: string;
 }
 
-export default function PriceCard({ poolInfo, lastMintPrice }: PriceCardProps) {
+export default function PriceCard({
+  poolInfo,
+  lastMintPrice,
+  poolAddress,
+}: PriceCardProps) {
+  const [calculatedLastMintPrice, setCalculatedLastMintPrice] = useState<
+    string | null
+  >(null);
+
+  // Fetch NFTs directly in the component to ensure we get the latest data
+  const { nfts, isLoading, stats } = usePoolNfts(poolAddress);
+
+  // Calculate last mint price from NFTs
+  useEffect(() => {
+    if (nfts && nfts.length > 0) {
+      // Sort by timestamp (newest first)
+      const sortedNfts = [...nfts].sort(
+        (a, b) => (b.timestamp || 0) - (a.timestamp || 0)
+      );
+
+      // Get the most recent NFT with a valid price
+      const latestNft = sortedNfts.find((nft) => nft.price && nft.price > 0);
+
+      if (latestNft && latestNft.price) {
+        setCalculatedLastMintPrice(`${latestNft.price.toFixed(4)} SOL`);
+      }
+    }
+  }, [nfts]);
+
   const safeFormatSOL = (value: number | undefined): string => {
     if (value === undefined || value === null || isNaN(value)) {
       return "0.0000 SOL";
@@ -30,13 +60,24 @@ export default function PriceCard({ poolInfo, lastMintPrice }: PriceCardProps) {
     return formatProtocolFee(value);
   };
 
+  // Determine the most accurate last mint price to display
+  const displayLastMintPrice = calculatedLastMintPrice || lastMintPrice;
+
+  // Calculate minted NFTs
+  const mintedNFTs = stats?.totalNfts || nfts?.length || 0;
+
   return (
     <div className={styles.card}>
       <h2 className={styles.cardTitle}>Price Information</h2>
       <div className={styles.cardContent}>
         <div className={styles.priceHighlight}>
           <span className={styles.priceLabel}>Last Mint Price</span>
-          <span className={styles.priceValue}>{lastMintPrice}</span>
+          <span className={styles.priceValue}>
+            {displayLastMintPrice}
+            {isLoading && (
+              <span className={styles.loadingIndicator}> (loading...)</span>
+            )}
+          </span>
         </div>
 
         <div className={styles.infoGrid}>
@@ -54,15 +95,15 @@ export default function PriceCard({ poolInfo, lastMintPrice }: PriceCardProps) {
             </span>
           </div>
 
-          {/* Alternative to Current Supply: Show estimated or transactions */}
+          {/* Use a more accurate label for the NFT count */}
           <div className={styles.infoItem}>
-            <span className={styles.infoLabel}>
-              {poolInfo.currentSupply > 0 ? "Estimated Supply" : "Pool Status"}
-            </span>
+            <span className={styles.infoLabel}>Minted Assets</span>
             <span className={styles.infoValue}>
-              {poolInfo.currentSupply > 0
-                ? safeFormatNumber(poolInfo.currentSupply)
-                : "Active"}
+              {isLoading ? (
+                <span className={styles.loadingIndicator}>Loading...</span>
+              ) : (
+                mintedNFTs
+              )}
             </span>
           </div>
 

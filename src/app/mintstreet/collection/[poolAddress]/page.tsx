@@ -112,7 +112,12 @@ export default function CollectionDetailPage() {
         </section>
 
         <section className={styles.infoSection}>
-          <PriceCard poolInfo={poolInfo} lastMintPrice={lastMintPrice} />
+          {/* Pass poolAddress to PriceCard */}
+          <PriceCard
+            poolInfo={poolInfo}
+            lastMintPrice={lastMintPrice}
+            poolAddress={poolAddress}
+          />
 
           <BondingCurveCard
             poolInfo={poolInfo}
