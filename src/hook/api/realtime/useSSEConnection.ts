@@ -26,7 +26,7 @@ export function useSSEConnection(options: UseSSEConnectionOptions = {}) {
       .substr(2, 9)}`,
     autoReconnect = true,
     reconnectDelay = 5000,
-    maxReconnectAttempts = 3,
+    maxReconnectAttempts = Infinity,
   } = options;
 
   const [connectionState, setConnectionState] = useState<
