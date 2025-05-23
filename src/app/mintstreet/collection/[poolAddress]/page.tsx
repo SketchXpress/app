@@ -79,15 +79,13 @@ export default function CollectionDetailPage() {
     return String(errorDataPoolGridNfts);
   }, [errorDataPoolGridNfts]);
 
+  // Check for invalid pool address
   if (!poolAddress) {
     return <InvalidPoolAddress poolAddress={poolAddress} />;
   }
 
-  if (isLoadingPoolInfo) {
-    return <LoadingState />;
-  }
-
-  if (errorPoolInfo || !poolInfo) {
+  // Show error if there's a critical error and no pool info at all
+  if (errorPoolInfo && !poolInfo) {
     return (
       <ErrorState
         message={errorPoolInfo || "Could not load pool information."}
@@ -95,14 +93,30 @@ export default function CollectionDetailPage() {
     );
   }
 
+  // Render the page with component-level loading states
   return (
     <div className={styles.container}>
-      <CollectionHeader poolInfo={poolInfo} poolAddress={poolAddress} />
+      {/* Header Section - Show loading state or content */}
+      {isLoadingPoolInfo && !poolInfo ? (
+        <div className={styles.headerSkeleton}>
+          <div className={styles.skeletonTitle}></div>
+          <div className={styles.skeletonSubtitle}></div>
+        </div>
+      ) : poolInfo ? (
+        <CollectionHeader poolInfo={poolInfo} poolAddress={poolAddress} />
+      ) : (
+        <div className={styles.headerError}>
+          <h1>Collection Details Unavailable</h1>
+          <p>Pool: {poolAddress}</p>
+        </div>
+      )}
 
       <main className={styles.content}>
         <section className={styles.chartSection}>
+          {/* Chart - Always show, it handles its own loading */}
           <CollectionChart poolAddress={poolAddress} />
 
+          {/* NFTs Grid - Pass loading and error states to component */}
           <PoolNFTsGrid
             nfts={mappedPoolGridNfts}
             isLoading={isLoadingPoolGridNfts}
@@ -112,19 +126,81 @@ export default function CollectionDetailPage() {
         </section>
 
         <section className={styles.infoSection}>
-          {/* Pass poolAddress to PriceCard */}
-          <PriceCard
-            poolInfo={poolInfo}
-            lastMintPrice={lastMintPrice}
-            poolAddress={poolAddress}
-          />
+          {/* Price Card - Show loading or content */}
+          {isLoadingPoolInfo && !poolInfo ? (
+            <div className={styles.card}>
+              <div className={styles.cardTitle}>Price Information</div>
+              <div className={styles.cardContent}>
+                <div className={styles.loadingContent}>
+                  <LoadingState message="Loading price data..." />
+                </div>
+              </div>
+            </div>
+          ) : poolInfo ? (
+            <PriceCard
+              poolInfo={poolInfo}
+              lastMintPrice={lastMintPrice}
+              poolAddress={poolAddress}
+            />
+          ) : (
+            <div className={styles.card}>
+              <div className={styles.cardTitle}>Price Information</div>
+              <div className={styles.cardContent}>
+                <div className={styles.errorContent}>
+                  <p>Unable to load price information</p>
+                </div>
+              </div>
+            </div>
+          )}
 
-          <BondingCurveCard
-            poolInfo={poolInfo}
-            migrationProgress={migrationProgress}
-          />
+          {/* Bonding Curve Card - Show loading or content */}
+          {isLoadingPoolInfo && !poolInfo ? (
+            <div className={styles.card}>
+              <div className={styles.cardTitle}>Bonding Curve</div>
+              <div className={styles.cardContent}>
+                <div className={styles.loadingContent}>
+                  <LoadingState message="Loading bonding curve data..." />
+                </div>
+              </div>
+            </div>
+          ) : poolInfo ? (
+            <BondingCurveCard
+              poolInfo={poolInfo}
+              migrationProgress={migrationProgress}
+            />
+          ) : (
+            <div className={styles.card}>
+              <div className={styles.cardTitle}>Bonding Curve</div>
+              <div className={styles.cardContent}>
+                <div className={styles.errorContent}>
+                  <p>Unable to load bonding curve data</p>
+                </div>
+              </div>
+            </div>
+          )}
 
-          <CollectionDetailsCard poolInfo={poolInfo} />
+          {/* Collection Details Card - Show loading or content */}
+          {isLoadingPoolInfo && !poolInfo ? (
+            <div className={styles.card}>
+              <div className={styles.cardTitle}>Collection Details</div>
+              <div className={styles.cardContent}>
+                <div className={styles.loadingContent}>
+                  <LoadingState message="Loading collection details..." />
+                </div>
+              </div>
+            </div>
+          ) : poolInfo ? (
+            <CollectionDetailsCard poolInfo={poolInfo} />
+          ) : (
+            <div className={styles.card}>
+              <div className={styles.cardTitle}>Collection Details</div>
+              <div className={styles.cardContent}>
+                <div className={styles.errorContent}>
+                  <p>Unable to load collection details</p>
+                </div>
+              </div>
+            </div>
+          )}
         </section>
       </main>
     </div>

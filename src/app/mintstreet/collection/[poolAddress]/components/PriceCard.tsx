@@ -115,58 +115,6 @@ export default function PriceCard({
           </div>
         </div>
       </div>
-
-      {/* Real-time data section if available */}
-      {(poolInfo.volume24h !== undefined ||
-        poolInfo.transactions24h !== undefined) && (
-        <div className={styles.realtimeStats}>
-          <h3>24h Statistics</h3>
-          <div className={styles.infoGrid}>
-            {poolInfo.volume24h !== undefined && (
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Volume</span>
-                <span className={styles.infoValue}>
-                  {safeFormatSOL(poolInfo.volume24h)}
-                </span>
-              </div>
-            )}
-
-            {poolInfo.transactions24h !== undefined && (
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Transactions</span>
-                <span className={styles.infoValue}>
-                  {safeFormatNumber(poolInfo.transactions24h)}
-                </span>
-              </div>
-            )}
-
-            {poolInfo.lastPrice !== undefined && (
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>Current Price</span>
-                <span className={styles.infoValue}>
-                  {safeFormatSOL(poolInfo.lastPrice)}
-                </span>
-              </div>
-            )}
-
-            {poolInfo.priceChange24h !== undefined && (
-              <div className={styles.infoItem}>
-                <span className={styles.infoLabel}>24h Change</span>
-                <span
-                  className={`${styles.infoValue} ${
-                    poolInfo.priceChange24h >= 0
-                      ? styles.positive
-                      : styles.negative
-                  }`}
-                >
-                  {poolInfo.priceChange24h >= 0 ? "+" : ""}
-                  {poolInfo.priceChange24h.toFixed(2)}%
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }

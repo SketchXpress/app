@@ -9,7 +9,7 @@ import { findAccountIndex } from "./helpers";
 import { BorshInstructionCoder } from "@coral-xyz/anchor";
 import { cachePriceInfo, getPriceFromCache } from "./cache";
 
-// Fast price extraction for mint operations (synchronous)
+// Fixed price extraction for mint operations (synchronous)
 export const extractMintPrice = (
   tx: HeliusTransaction,
   escrowAddress?: string
@@ -19,7 +19,49 @@ export const extractMintPrice = (
   if (cachedPrice !== undefined) {
     return cachedPrice;
   }
-  // Quick check for mint operations and native transfers
+
+  // Method 1: Calculate total balance change of the payer (most accurate)
+  if (tx.accountData && Array.isArray(tx.accountData) && tx.feePayer) {
+    const payerAccount = tx.accountData.find(
+      (account) => account.account === tx.feePayer
+    );
+
+    if (payerAccount && payerAccount.nativeBalanceChange) {
+      // nativeBalanceChange is negative for outgoing payments
+      const totalPaid =
+        Math.abs(payerAccount.nativeBalanceChange) / LAMPORTS_PER_SOL;
+
+      // Only consider significant amounts (> 0.001 SOL to filter out pure fee transactions)
+      if (totalPaid > 0.001) {
+        // Cache the price via utility
+        cachePriceInfo(tx.signature, totalPaid, escrowAddress);
+        return totalPaid;
+      }
+    }
+  }
+
+  // Method 2: Sum all outgoing native transfers from payer (fallback)
+  if (tx.nativeTransfers && Array.isArray(tx.nativeTransfers) && tx.feePayer) {
+    const payer = tx.feePayer;
+
+    // Find ALL transfers FROM the payer (not just to escrow)
+    const allOutgoingTransfers = tx.nativeTransfers
+      .filter((transfer) => transfer.fromUserAccount === payer)
+      .reduce((total, transfer) => total + transfer.amount, 0);
+
+    if (allOutgoingTransfers > 0) {
+      const totalPaid = allOutgoingTransfers / LAMPORTS_PER_SOL;
+
+      // Only consider significant amounts
+      if (totalPaid > 0.001) {
+        // Cache the price via utility
+        cachePriceInfo(tx.signature, totalPaid, escrowAddress);
+        return totalPaid;
+      }
+    }
+  }
+
+  // Method 3: Original method (only escrow transfer) - keep as final fallback
   if (
     tx.nativeTransfers &&
     Array.isArray(tx.nativeTransfers) &&
@@ -37,18 +79,16 @@ export const extractMintPrice = (
       .sort((a, b) => b.amount - a.amount); // Sort by amount descending
 
     if (transfersToEscrow.length > 0) {
-      const price = transfersToEscrow[0].amount / LAMPORTS_PER_SOL;
+      const escrowPrice = transfersToEscrow[0].amount / LAMPORTS_PER_SOL;
 
       // Cache the price via utility
-      cachePriceInfo(tx.signature, price, escrowAddress);
-
-      return price;
+      cachePriceInfo(tx.signature, escrowPrice, escrowAddress);
+      return escrowPrice;
     }
   }
 
   return undefined;
 };
-
 // Advanced price extraction for sell operations (async)
 export const extractSellPrice = async (
   rpcRequestWithRetry: (method: string, params: any[]) => Promise<any>,

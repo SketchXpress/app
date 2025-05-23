@@ -19,7 +19,6 @@ export const CollectionsProvider: React.FC<CollectionsProviderProps> = ({
     enableSSE: true,
     fallbackPolling: true,
     newItemExpiry: 5 * 60 * 1000, // 5 minutes
-    useMockData: false,
   });
 
   // Don't render children until basic connection is established

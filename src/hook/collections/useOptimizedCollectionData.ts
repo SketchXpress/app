@@ -22,7 +22,6 @@ export function useOptimizedCollectionData(
     enableSSE: true,
     fallbackPolling: true,
     newItemExpiry: 5 * 60 * 1000,
-    useMockData: false,
   });
 
   // Get pool metrics and details from store

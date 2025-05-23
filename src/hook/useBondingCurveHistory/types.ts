@@ -27,6 +27,7 @@ export interface HeliusTransaction {
 
 // Export the HistoryItem interface
 export interface HistoryItem {
+  poolName?: string;
   signature: string;
   blockTime: number | null | undefined;
   instructionName: string;

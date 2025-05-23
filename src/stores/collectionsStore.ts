@@ -197,44 +197,56 @@ export const useCollectionsStore = create<CollectionsState>()(
     newPoolsCount: 0,
     error: null,
 
-    // Existing actions
     addCollections: (newCollections) =>
       set((state) => {
         const existingMints = new Set(
           state.collections.map((c) => c.collectionMint)
         );
+
         const filteredNew = newCollections.filter(
           (c) => !existingMints.has(c.collectionMint)
         );
 
-        if (filteredNew.length === 0) return state;
+        if (filteredNew.length === 0) {
+          return state;
+        }
+
+        // Build the new collections array
+        const updatedCollections = [
+          ...filteredNew.map((c) => ({ ...c, isNew: true })),
+          ...state.collections.map((c) => ({ ...c, isNew: false })),
+        ];
 
         return {
-          collections: [
-            ...filteredNew.map((c) => ({ ...c, isNew: true })),
-            ...state.collections.map((c) => ({ ...c, isNew: false })),
-          ],
+          collections: updatedCollections,
           newCollectionsCount: state.newCollectionsCount + filteredNew.length,
           lastUpdate: Date.now(),
         };
       }),
 
+    // Similarly, add debug logs to addPools
     addPools: (newPools) =>
       set((state) => {
         const existingAddresses = new Set(
           state.pools.map((p) => p.poolAddress)
         );
+
         const filteredNew = newPools.filter(
           (p) => !existingAddresses.has(p.poolAddress)
         );
 
-        if (filteredNew.length === 0) return state;
+        if (filteredNew.length === 0) {
+          return state;
+        }
+
+        // Build the new pools array
+        const updatedPools = [
+          ...filteredNew.map((p) => ({ ...p, isNew: true })),
+          ...state.pools.map((p) => ({ ...p, isNew: false })),
+        ];
 
         return {
-          pools: [
-            ...filteredNew.map((p) => ({ ...p, isNew: true })),
-            ...state.pools.map((p) => ({ ...p, isNew: false })),
-          ],
+          pools: updatedPools,
           newPoolsCount: state.newPoolsCount + filteredNew.length,
           lastUpdate: Date.now(),
         };

@@ -13,13 +13,15 @@ import {
   AlertCircle,
   Loader,
   RefreshCw,
+  Zap,
+  Clock,
 } from "lucide-react";
 
 import { NFT } from "@/types/nft";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { useWalletNFTs } from "@/hooks/queries/useWalletNFTs";
 import ConnectWalletButton from "@/wallet/ConnectWalletButton";
-import { useTransactionHistory } from "@/hook/api/helius/useTransactionHistory";
+import { useUserNFTPoolMapping } from "@/hook/pools/useUserNFTPoolMapping";
 
 import styles from "./MyNFT.module.scss";
 
@@ -90,6 +92,7 @@ const MyNFT: React.FC = () => {
     "poolsFirst" | "newest" | "alphabetical"
   >("poolsFirst");
 
+  // Main data hooks
   const {
     data: nfts = [],
     isLoading: nftsLoading,
@@ -97,42 +100,34 @@ const MyNFT: React.FC = () => {
     refetch: refetchNfts,
   } = useWalletNFTs();
 
+  // New efficient pool mapping hook
   const {
-    history,
-    isLoading: historyLoading,
-    error: historyError,
-    refetch: refetchHistory,
-  } = useTransactionHistory({ limit: 100 });
+    poolMappings,
+    isEnhancing,
+    error: mappingsError,
+    stats,
+    refresh: refreshMappings,
+  } = useUserNFTPoolMapping(nfts);
 
+  // Convert new poolMappings format to legacy nftToPoolMap format for compatibility
   const nftToPoolMap = useMemo(() => {
-    if (!history || history.length === 0 || !nfts || nfts.length === 0) {
-      return {};
-    }
-    const map: Record<
+    const legacyMap: Record<
       string,
       { address: string; name?: string; timestamp?: number }
     > = {};
 
-    history.forEach((tx: any) => {
-      if (
-        tx.instructionName === "mintNft" &&
-        tx.accounts &&
-        tx.accounts.length > 1 &&
-        tx.poolAddress
-      ) {
-        const mintAddress = tx.accounts[1]?.toString();
-        if (mintAddress) {
-          map[mintAddress] = {
-            address: tx.poolAddress,
-            name: tx.poolName || "Pool Collection",
-            timestamp: tx.timestamp || Date.now(),
-          };
-        }
-      }
+    Object.entries(poolMappings).forEach(([mintAddress, mapping]) => {
+      legacyMap[mintAddress] = {
+        address: mapping.poolAddress,
+        name: mapping.poolName,
+        timestamp: mapping.timestamp,
+      };
     });
-    return map;
-  }, [history, nfts]);
 
+    return legacyMap;
+  }, [poolMappings]);
+
+  // Sorting strategies (unchanged)
   const sortingStrategies = useMemo(
     () => ({
       poolsFirst: (nfts: NFT[]) =>
@@ -140,7 +135,6 @@ const MyNFT: React.FC = () => {
           const hasPoolA = !!nftToPoolMap[a.mintAddress];
           const hasPoolB = !!nftToPoolMap[b.mintAddress];
 
-          // NFTs with pools first
           if (hasPoolA && !hasPoolB) return -1;
           if (!hasPoolA && hasPoolB) return 1;
 
@@ -150,7 +144,6 @@ const MyNFT: React.FC = () => {
             return timestampB - timestampA;
           }
 
-          // Sort by NFT name alphabetically
           const nameA = a.name || "";
           const nameB = b.name || "";
           return nameA.localeCompare(nameB);
@@ -176,6 +169,7 @@ const MyNFT: React.FC = () => {
     return sortingStrategies[sortOption](nfts);
   }, [nfts, sortOption, sortingStrategies]);
 
+  // Cleanup blob URLs
   useEffect(() => {
     return () => {
       nfts.forEach((nft) => {
@@ -196,6 +190,7 @@ const MyNFT: React.FC = () => {
     [sortedNFTs, visibleCount]
   );
 
+  // Enhanced stats with mapping progress
   const nftStats = useMemo(() => {
     const withPools = sortedNFTs.filter(
       (nft) => !!nftToPoolMap[nft.mintAddress]
@@ -216,8 +211,15 @@ const MyNFT: React.FC = () => {
         sortedNFTs.length > 0
           ? Math.round((withPools.length / sortedNFTs.length) * 100)
           : 0,
+      // New mapping stats
+      mappingProgress:
+        stats.totalNFTs > 0
+          ? Math.round((stats.mappedNFTs / stats.totalNFTs) * 100)
+          : 0,
+      cacheMisses: stats.cacheMisses,
+      apiCalls: stats.apiCalls,
     };
-  }, [sortedNFTs, nftToPoolMap, visibleNFTs]);
+  }, [sortedNFTs, nftToPoolMap, visibleNFTs, stats]);
 
   const totalValue = useMemo(() => {
     return sortedNFTs
@@ -245,13 +247,37 @@ const MyNFT: React.FC = () => {
     [nftToPoolMap, router]
   );
 
-  const isLoading = nftsLoading || (connected && historyLoading);
-  const displayError = nftsError || (connected && historyError);
+  // Loading states: Only show loading for NFTs, not for pool mappings
+  const isLoading = nftsLoading;
+  const displayError = nftsError || mappingsError;
 
-  const handleRetry = useCallback(() => {
-    if (nftsError) refetchNfts();
-    if (historyError && refetchHistory) refetchHistory();
-  }, [nftsError, historyError, refetchNfts, refetchHistory]);
+  const handleRetry = useCallback(async () => {
+    if (nftsError) await refetchNfts();
+    if (mappingsError) await refreshMappings();
+  }, [nftsError, mappingsError, refetchNfts, refreshMappings]);
+
+  // Clean progress indicator component
+  const ProgressIndicator: React.FC = () => {
+    if (!isEnhancing || stats.totalNFTs === 0) return null;
+
+    return (
+      <div className={styles.progressIndicator}>
+        <div className={styles.progressContent}>
+          <Zap size={16} className={styles.enhancingIcon} />
+          <span className={styles.progressText}>
+            Discovering pool associations... {stats.mappedNFTs}/
+            {stats.totalNFTs} NFTs
+          </span>
+        </div>
+        <div className={styles.progressBar}>
+          <div
+            className={styles.progressFill}
+            style={{ width: `${nftStats.mappingProgress}%` }}
+          />
+        </div>
+      </div>
+    );
+  };
 
   const SortDropdown: React.FC = () => (
     <div className={styles.sortDropdown}>
@@ -384,12 +410,20 @@ const MyNFT: React.FC = () => {
           </div>
         </div>
 
+        {/* Progressive Enhancement Indicator */}
+        <ProgressIndicator />
+
         {nftStats.withPools > 0 && sortOption === "poolsFirst" && (
           <div className={styles.sortingIndicator}>
             <span className={styles.sortingText}>
               📌 Pool NFTs shown first ({nftStats.poolsShownFirst} visible of{" "}
               {nftStats.withPools} total)
             </span>
+            {isEnhancing && (
+              <span className={styles.enhancingText}>
+                <Clock size={14} /> Discovering more...
+              </span>
+            )}
           </div>
         )}
 
@@ -401,9 +435,10 @@ const MyNFT: React.FC = () => {
           >
             <Loader className={styles.loadingSpinner} size={48} />
             <p>Loading your NFTs...</p>
-            {nftStats.withPools > 0 && (
-              <p className={styles.loadingSubtext}>Prioritizing pool NFTs...</p>
-            )}
+            <p className={styles.loadingSubtext}>
+              Your NFTs will appear instantly with pool associations enhanced in
+              the background
+            </p>
           </div>
         ) : displayError ? (
           <div className={styles.errorContainer} role="alert">
@@ -413,8 +448,7 @@ const MyNFT: React.FC = () => {
               aria-hidden="true"
             />
             <p className={styles.errorMessage}>
-              Error loading your NFTs:{" "}
-              {displayError.message || "An unknown error occurred."}
+              Error loading your NFTs: {"An unknown error occurred."}
             </p>
             <button className={styles.retryButton} onClick={handleRetry}>
               <RefreshCw size={16} className={styles.refreshIcon} />
@@ -452,12 +486,17 @@ const MyNFT: React.FC = () => {
                   hasPool && index < 3 && sortOption === "poolsFirst";
                 const imageSrc = getImageSrc(nft);
 
+                // Check if this NFT's pool mapping is still being enhanced
+                const isEnhancingThis = isEnhancing && !hasPool;
+
                 return (
                   <div
                     key={nft.id || nft.mintAddress || `nft-${index}`}
                     className={`${styles.nftCard} ${
                       hasPool ? styles.hasPool : ""
-                    } ${isTopPoolNFT ? styles.priorityNFT : ""}`}
+                    } ${isTopPoolNFT ? styles.priorityNFT : ""} ${
+                      isEnhancingThis ? styles.enhancing : ""
+                    }`}
                     onClick={() => handleNFTClick(nft)}
                     role="button"
                     tabIndex={0}
@@ -491,11 +530,19 @@ const MyNFT: React.FC = () => {
                         />
                         {/* {nft.price} */}
                       </div>
-                      {hasPool && (
+
+                      {/* Pool badge with enhanced states */}
+                      {hasPool ? (
                         <div className={styles.poolBadge}>
-                          {poolInfo.name || "Pool"}
+                          {poolInfo.name || "Pool Collection"}
                         </div>
-                      )}
+                      ) : isEnhancingThis ? (
+                        <div className={styles.enhancingBadge}>
+                          <div className={styles.enhancingSpinner} />
+                          Analyzing...
+                        </div>
+                      ) : null}
+
                       {isTopPoolNFT && (
                         <div className={styles.priorityBadge}>⭐ Featured</div>
                       )}
@@ -509,7 +556,11 @@ const MyNFT: React.FC = () => {
                         className={styles.viewDetailsButton}
                         aria-hidden="true"
                       >
-                        {hasPool ? "View Collection" : "View Details"}
+                        {hasPool
+                          ? "View Collection"
+                          : isEnhancingThis
+                          ? "Analyzing..."
+                          : "View Details"}
                         <ArrowRight size={14} className={styles.arrowIcon} />
                       </div>
                     </div>

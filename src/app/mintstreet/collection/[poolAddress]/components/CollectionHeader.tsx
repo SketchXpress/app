@@ -17,8 +17,8 @@ export default function CollectionHeader({
   return (
     <header className={styles.header}>
       <h1 className={styles.title}>
-        Collection: {formatAddress(poolInfo.collection)} (
-        {poolInfo.collectionName})
+        Collection: {poolInfo.collectionName} (
+        {formatAddress(poolInfo.collection)})
       </h1>
       <div className={styles.poolAddress}>
         Pool: <span>{formatAddress(poolAddress)}</span>

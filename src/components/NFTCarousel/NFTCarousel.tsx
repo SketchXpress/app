@@ -356,11 +356,11 @@ const NFTCarousel: React.FC<NFTCarouselProps> = ({
                       )}
 
                       {/* Supply Badge */}
-                      {typeof nft.supply === "number" && nft.supply > 0 && (
+                      {/* {typeof nft.supply === "number" && nft.supply > 0 && (
                         <div className={styles.supplyBadge}>
                           <span>{nft.supply} txns</span>
                         </div>
-                      )}
+                      )} */}
 
                       {/* New Pool Badge */}
                       <div className={styles.newBadge}>
