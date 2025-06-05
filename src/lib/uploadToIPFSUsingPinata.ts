@@ -1,32 +1,19 @@
-const PINATA_JWT = process.env.NEXT_PUBLIC_PINATA_JWT;
-const UPLOAD_ENDPOINT = "https://api.pinata.cloud/pinning/pinFileToIPFS";
-
 export async function uploadToIPFSUsingPinata(
   file: File | Blob
 ): Promise<string> {
-  if (!PINATA_JWT) {
-    throw new Error(
-      "Missing Pinata JWT Token. Please set NEXT_PUBLIC_PINATA_JWT in your .env.local"
-    );
-  }
-
   const formData = new FormData();
   formData.append("file", file);
 
-  const response = await fetch(UPLOAD_ENDPOINT, {
+  const response = await fetch("/api/upload-to-ipfs", {
     method: "POST",
-    headers: {
-      Authorization: `Bearer ${PINATA_JWT}`,
-    },
     body: formData,
   });
 
   if (!response.ok) {
-    const errorText = await response.text();
-    console.error("Pinata upload failed:", errorText);
+    const error = await response.json();
+    throw new Error(error.error || "Upload failed");
   }
 
   const data = await response.json();
-  const cid = data.IpfsHash;
-  return `https://gateway.pinata.cloud/ipfs/${cid}`;
+  return data.ipfsUrl;
 }
