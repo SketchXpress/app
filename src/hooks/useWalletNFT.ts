@@ -134,7 +134,7 @@ export function useWalletNFTs() {
         const formattedNfts: NFT[] = data.result.items.map(
           (nft: HeliusNFT, index: number) => {
             // Extract image URL from content
-            let imageUrl = "/nft1.jpeg"; // Default fallback image
+            let imageUrl = "/assets/images/nft1.jpeg"; // Default fallback image
 
             if (nft.content?.links?.image) {
               imageUrl = nft.content.links.image;

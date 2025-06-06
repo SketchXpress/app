@@ -37,8 +37,87 @@ const BASE64_PLACEHOLDER =
 const LOAD_MORE_COUNT = 4;
 const INITIAL_VISIBLE_COUNT = 8;
 
+// Metadata interface
+interface NFTMetadata {
+  image?: string;
+  name?: string;
+  symbol?: string;
+  description?: string;
+}
+
+// Metadata fetching functions
+const fetchMetadataForNft = async (nft: NFT) => {
+  if (!nft.uri) {
+    return {
+      mintAddress: nft.mintAddress,
+      metadata: { name: nft.name, image: nft.image },
+    };
+  }
+
+  try {
+    // Direct fetch from the URI (like your Pinata links)
+    const response = await fetch(nft.uri);
+
+    if (!response.ok) {
+      throw new Error(`HTTP error: ${response.status}`);
+    }
+
+    const metadata = await response.json();
+
+    return { mintAddress: nft.mintAddress, metadata };
+  } catch (fetchError) {
+    console.error(
+      `Error fetching metadata for ${nft.mintAddress}:`,
+      fetchError
+    );
+    return {
+      mintAddress: nft.mintAddress,
+      metadata: { name: nft.name, image: nft.image },
+    };
+  }
+};
+
+const fetchMetadataBatch = async (nfts: NFT[]) => {
+  const nftsWithUris = nfts.filter((nft) => nft.uri);
+
+  if (nftsWithUris.length === 0) {
+    return nfts.map((nft) => ({
+      mintAddress: nft.mintAddress,
+      metadata: { name: nft.name, image: nft.image },
+    }));
+  }
+
+  // Fetch all metadata concurrently
+  const results = await Promise.allSettled(
+    nftsWithUris.map(fetchMetadataForNft)
+  );
+
+  // Combine successful results with fallbacks for failed ones
+  const successfulResults = results.map((result, index) => {
+    if (result.status === "fulfilled") {
+      return result.value;
+    } else {
+      const nft = nftsWithUris[index];
+      console.error(`Failed to fetch metadata for ${nft.name}:`, result.reason);
+      return {
+        mintAddress: nft.mintAddress,
+        metadata: { name: nft.name, image: nft.image },
+      };
+    }
+  });
+
+  // Include NFTs without URIs
+  const nftsWithoutUris = nfts.filter((nft) => !nft.uri);
+  const fallbackResults = nftsWithoutUris.map((nft) => ({
+    mintAddress: nft.mintAddress,
+    metadata: { name: nft.name, image: nft.image },
+  }));
+
+  return [...successfulResults, ...fallbackResults];
+};
+
 const useImageFallback = () => {
-  const [failedUrls, setFailedUrls] = useState<Set<string>>(new Set());
+  const [, setFailedUrls] = useState<Set<string>>(new Set());
 
   const handleImageError = useCallback(
     (e: React.SyntheticEvent<HTMLImageElement, Event>, nft: NFT) => {
@@ -63,34 +142,50 @@ const useImageFallback = () => {
     []
   );
 
-  const getImageSrc = useCallback(
-    (nft: NFT) => {
-      if (nft.image && !failedUrls.has(nft.image)) {
-        return nft.image;
-      }
-      if (!failedUrls.has(DEFAULT_NFT_IMAGES[0])) {
-        return DEFAULT_NFT_IMAGES[0];
-      }
-      if (!failedUrls.has(DEFAULT_NFT_IMAGES[1])) {
-        return DEFAULT_NFT_IMAGES[1];
-      }
-      return BASE64_PLACEHOLDER;
-    },
-    [failedUrls]
-  );
+  return { handleImageError };
+};
 
-  return { handleImageError, getImageSrc };
+// Image URL helper function
+const getNftImageUrl = (nft: NFT, metadata?: NFTMetadata): string => {
+  // Priority 1: Use metadata image (from json_uri fetch)
+  const metadataImage = metadata?.image;
+  if (metadataImage) {
+    // Handle IPFS and Arweave URLs
+    if (metadataImage.startsWith("ipfs://")) {
+      return `https://ipfs.io/ipfs/${metadataImage.substring(7)}`;
+    }
+    if (metadataImage.startsWith("ar://")) {
+      return `https://arweave.net/${metadataImage.substring(5)}`;
+    }
+    if (metadataImage.startsWith("http")) {
+      return metadataImage;
+    }
+  }
+
+  // Priority 2: Use original NFT image (from Helius)
+  if (nft.image && nft.image !== "/assets/images/nft1.jpeg") {
+    return nft.image;
+  }
+
+  // Fallback
+  return "/assets/images/defaultNFT.png";
 };
 
 const MyNFT: React.FC = () => {
   const router = useRouter();
   const { connected, connecting } = useWallet();
-  const { handleImageError, getImageSrc } = useImageFallback();
+  const { handleImageError } = useImageFallback();
 
   const [visibleCount, setVisibleCount] = useState(INITIAL_VISIBLE_COUNT);
   const [sortOption, setSortOption] = useState<
     "poolsFirst" | "newest" | "alphabetical"
   >("poolsFirst");
+
+  // Add metadata state
+  const [nftMetadata, setNftMetadata] = useState<Record<string, NFTMetadata>>(
+    {}
+  );
+  const [metadataLoading, setMetadataLoading] = useState<boolean>(false);
 
   // Main data hooks
   const {
@@ -100,7 +195,7 @@ const MyNFT: React.FC = () => {
     refetch: refetchNfts,
   } = useWalletNFTs();
 
-  // New efficient pool mapping hook
+  // Pool mapping hook
   const {
     poolMappings,
     isEnhancing,
@@ -109,7 +204,48 @@ const MyNFT: React.FC = () => {
     refresh: refreshMappings,
   } = useUserNFTPoolMapping(nfts);
 
-  // Convert new poolMappings format to legacy nftToPoolMap format for compatibility
+  // Metadata fetching effect
+  useEffect(() => {
+    if (!nfts || nfts.length === 0) {
+      setMetadataLoading(false);
+      return;
+    }
+
+    // Only fetch metadata for NFTs that have URIs and we haven't fetched yet
+    const nftsNeedingMetadata = nfts.filter(
+      (nft) => nft.uri && !nftMetadata[nft.mintAddress]
+    );
+
+    if (nftsNeedingMetadata.length === 0) {
+      setMetadataLoading(false);
+      return;
+    }
+
+    setMetadataLoading(true);
+
+    const fetchAllMetadata = async () => {
+      try {
+        const results = await fetchMetadataBatch(nftsNeedingMetadata);
+
+        const newMetadata: Record<string, NFTMetadata> = {};
+        results.forEach((result) => {
+          if (result && result.mintAddress) {
+            newMetadata[result.mintAddress] = result.metadata;
+          }
+        });
+
+        setNftMetadata((prev) => ({ ...prev, ...newMetadata }));
+      } catch (error) {
+        console.error("Error fetching metadata batch:", error);
+      } finally {
+        setMetadataLoading(false);
+      }
+    };
+
+    fetchAllMetadata();
+  }, [nfts]); // Removed nftMetadata dependency to prevent infinite loops
+
+  // Convert poolMappings to legacy format
   const nftToPoolMap = useMemo(() => {
     const legacyMap: Record<
       string,
@@ -127,7 +263,7 @@ const MyNFT: React.FC = () => {
     return legacyMap;
   }, [poolMappings]);
 
-  // Sorting strategies (unchanged)
+  // Sorting strategies
   const sortingStrategies = useMemo(
     () => ({
       poolsFirst: (nfts: NFT[]) =>
@@ -190,7 +326,7 @@ const MyNFT: React.FC = () => {
     [sortedNFTs, visibleCount]
   );
 
-  // Enhanced stats with mapping progress
+  // Enhanced stats
   const nftStats = useMemo(() => {
     const withPools = sortedNFTs.filter(
       (nft) => !!nftToPoolMap[nft.mintAddress]
@@ -211,7 +347,6 @@ const MyNFT: React.FC = () => {
         sortedNFTs.length > 0
           ? Math.round((withPools.length / sortedNFTs.length) * 100)
           : 0,
-      // New mapping stats
       mappingProgress:
         stats.totalNFTs > 0
           ? Math.round((stats.mappedNFTs / stats.totalNFTs) * 100)
@@ -247,7 +382,7 @@ const MyNFT: React.FC = () => {
     [nftToPoolMap, router]
   );
 
-  // Loading states: Only show loading for NFTs, not for pool mappings
+  // Loading states
   const isLoading = nftsLoading;
   const displayError = nftsError || mappingsError;
 
@@ -256,7 +391,7 @@ const MyNFT: React.FC = () => {
     if (mappingsError) await refreshMappings();
   }, [nftsError, mappingsError, refetchNfts, refreshMappings]);
 
-  // Clean progress indicator component
+  // Progress indicator
   const ProgressIndicator: React.FC = () => {
     if (!isEnhancing || stats.totalNFTs === 0) return null;
 
@@ -410,8 +545,14 @@ const MyNFT: React.FC = () => {
           </div>
         </div>
 
-        {/* Progressive Enhancement Indicator */}
         <ProgressIndicator />
+
+        {metadataLoading && (
+          <div className={styles.metadataLoadingIndicator}>
+            <Loader size={16} className={styles.metadataSpinner} />
+            <span>Loading NFT images...</span>
+          </div>
+        )}
 
         {nftStats.withPools > 0 && sortOption === "poolsFirst" && (
           <div className={styles.sortingIndicator}>
@@ -435,10 +576,6 @@ const MyNFT: React.FC = () => {
           >
             <Loader className={styles.loadingSpinner} size={48} />
             <p>Loading your NFTs...</p>
-            <p className={styles.loadingSubtext}>
-              Your NFTs will appear instantly with pool associations enhanced in
-              the background
-            </p>
           </div>
         ) : displayError ? (
           <div className={styles.errorContainer} role="alert">
@@ -484,9 +621,12 @@ const MyNFT: React.FC = () => {
                 const hasPool = !!poolInfo;
                 const isTopPoolNFT =
                   hasPool && index < 3 && sortOption === "poolsFirst";
-                const imageSrc = getImageSrc(nft);
 
-                // Check if this NFT's pool mapping is still being enhanced
+                // Use the enhanced image URL function
+                const metadata = nftMetadata[nft.mintAddress];
+                const imageSrc = getNftImageUrl(nft, metadata);
+                const nftName = metadata?.name || nft.name;
+
                 const isEnhancingThis = isEnhancing && !hasPool;
 
                 return (
@@ -506,14 +646,14 @@ const MyNFT: React.FC = () => {
                         handleNFTClick(nft);
                       }
                     }}
-                    aria-label={`View details for NFT: ${nft.name}${
+                    aria-label={`View details for NFT: ${nftName}${
                       hasPool ? " (Pool NFT)" : ""
                     }`}
                   >
                     <div className={styles.nftImageContainer}>
                       <Image
                         src={imageSrc}
-                        alt={nft.name || "User NFT"}
+                        alt={nftName || "User NFT"}
                         fill
                         className={styles.nftImage}
                         onError={(e) => handleImageError(e, nft)}
@@ -528,10 +668,8 @@ const MyNFT: React.FC = () => {
                           className={styles.gemIcon}
                           aria-hidden="true"
                         />
-                        {/* {nft.price} */}
                       </div>
 
-                      {/* Pool badge with enhanced states */}
                       {hasPool ? (
                         <div className={styles.poolBadge}>
                           {poolInfo.name || "Pool Collection"}
@@ -548,7 +686,7 @@ const MyNFT: React.FC = () => {
                       )}
                     </div>
                     <div className={styles.nftInfo}>
-                      <h4 className={styles.nftName}>{nft.name}</h4>
+                      <h4 className={styles.nftName}>{nftName}</h4>
                       <p className={styles.collectionName}>
                         {nft.collectionName}
                       </p>
@@ -569,7 +707,6 @@ const MyNFT: React.FC = () => {
               })}
             </div>
 
-            {/* Load More Button */}
             {hasMoreNfts && (
               <div className={styles.loadMoreContainer}>
                 <button

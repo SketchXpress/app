@@ -45,8 +45,8 @@ export const useWalletNFTs = () => {
 
       // Transforming the data to match our NFT interface
       return data.result.items.map((item: HeliusNFT, index: number): NFT => {
-        // Extract image URL from content
-        let imageUrl = "/nft1.jpeg";
+        // Extract image URL from content (fallback for immediate display)
+        let imageUrl = "/assets/images/nft1.jpeg";
 
         if (item.content?.links?.image) {
           imageUrl = item.content.links.image;
@@ -67,6 +67,9 @@ export const useWalletNFTs = () => {
           imageUrl = item.content.metadata.image;
         }
 
+        // FIXED: Properly extract the metadata URI
+        const metadataUri = item.content?.json_uri || "";
+
         return {
           id: item.id,
           mintAddress: item.id,
@@ -75,7 +78,7 @@ export const useWalletNFTs = () => {
           price: "0 SOL",
           collectionId: item.grouping?.[0]?.group_value || "",
           collectionName: item.content?.metadata?.symbol || "SketchXpress",
-          uri: item.content?.metadata?.image || "",
+          uri: metadataUri, // This should be the JSON metadata URI, not the image URL
         };
       });
     },
@@ -92,7 +95,7 @@ export const useWalletNFTs = () => {
  */
 export function extractImageUrl(nft: HeliusNFT): string {
   // Extract image URL from content
-  let imageUrl = "/nft1.jpeg"; // Default fallback image
+  let imageUrl = "/assets/images/nft1.jpeg"; // Default fallback image
 
   if (nft.content?.links?.image) {
     imageUrl = nft.content.links.image;
